@@ -48,12 +48,8 @@ ensure_collection() {
     -H "Authorization: Bearer $TOKEN")
 
   if [ "$STATUS" = "200" ]; then
-    # Update existing collection (fields only)
-    local FIELDS=$(echo "$DEF" | python3 -c "import sys,json; d=json.load(sys.stdin); print(json.dumps({'fields': d['fields']}))")
-    curl -sf "$PB_URL/api/collections/$NAME" -X PATCH \
-      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-      -d "$FIELDS" > /dev/null
-    echo "  ✓ $NAME (updated)"
+    # Collection exists — skip (don't overwrite fields to preserve data)
+    echo "  ✓ $NAME (exists)"
   else
     # Create new collection
     curl -sf "$PB_URL/api/collections" -X POST \
