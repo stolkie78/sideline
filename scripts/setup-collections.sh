@@ -384,4 +384,33 @@ else
 fi
 
 echo ""
+echo "🏐 Seeding default team & season..."
+
+# Create default team if none exists
+TEAM_COUNT=$(curl -sf "$PB_URL/api/collections/teams/records?perPage=1" \
+  -H "Authorization: Bearer $TOKEN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalItems',0))")
+
+if [ "$TEAM_COUNT" = "0" ]; then
+  TEAM_ID=$(curl -sf "$PB_URL/api/collections/teams/records" -X POST \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d '{"name":"Zovoc MB1"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+  echo "  ✓ Team 'Zovoc MB1' created ($TEAM_ID)"
+else
+  echo "  ✓ Team exists (skipped)"
+fi
+
+# Create default season if none exists
+SEASON_COUNT=$(curl -sf "$PB_URL/api/collections/seasons/records?perPage=1" \
+  -H "Authorization: Bearer $TOKEN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalItems',0))")
+
+if [ "$SEASON_COUNT" = "0" ]; then
+  curl -sf "$PB_URL/api/collections/seasons/records" -X POST \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d '{"name":"2026-2027","start_year":2026,"end_year":2027}' > /dev/null
+  echo "  ✓ Seizoen '2026-2027' created"
+else
+  echo "  ✓ Seizoen exists (skipped)"
+fi
+
+echo ""
 echo "✅ Setup complete! All collections are ready."
