@@ -36,12 +36,14 @@ function createAuthStore() {
 		set,
 		login: async () => {
 			const authMethods = await pb.collection('users').listAuthMethods();
-			const googleProvider = authMethods.oauth2?.providers?.find(
-				(p) => p.name === 'google'
+			// SDK 0.21 uses authProviders array directly
+			const providers = authMethods.authProviders || (authMethods as any).oauth2?.providers || [];
+			const googleProvider = providers.find(
+				(p: any) => p.name === 'google'
 			);
 
 			if (!googleProvider) {
-				throw new Error('Google OAuth niet geconfigureerd in PocketBase');
+				throw new Error('Google OAuth niet geconfigureerd in PocketBase. Ga naar PocketBase Admin → Settings → Auth providers → Google.');
 			}
 
 			const authData = await pb.collection('users').authWithOAuth2({ provider: 'google' });

@@ -48,9 +48,7 @@
 		try {
 			const data = new FormData();
 			data.append('name', formName.trim());
-			for (const pos of formPositions) {
-				data.append('position', pos);
-			}
+			data.append('position', JSON.stringify(formPositions));
 			data.append('status', formStatus);
 			if (formJersey) data.append('jersey_number', formJersey);
 			if (formPhoto && formPhoto[0]) data.append('photo', formPhoto[0]);

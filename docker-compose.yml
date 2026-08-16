@@ -14,6 +14,19 @@ services:
       timeout: 5s
       retries: 3
 
+  pb-setup:
+    image: python:3.12-alpine
+    container_name: teamtracker-pb-setup
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: ["sh", "-c", "apk add --no-cache curl docker-cli > /dev/null 2>&1 && sh /scripts/setup-collections.sh http://pocketbase:8090"]
+    restart: "no"
+    profiles: ["setup"]
+
   frontend:
     build:
       context: ./frontend
