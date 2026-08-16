@@ -1,0 +1,46 @@
+<script lang="ts">
+	const reports = [
+		{
+			href: '/reports/competencies',
+			title: 'Competenties',
+			description: 'Gemiddelde scores per competentie of per speler met voortgangsindicatie.',
+		},
+		{
+			href: '/reports/attendance',
+			title: 'Trainingsaanwezigheid',
+			description: 'Overzicht van aan- en afwezigheid per speler over alle trainingen.',
+		},
+		{
+			href: '/reports/position-points',
+			title: 'Punten per positie',
+			description: 'Hoeveel punten elke speler per positie heeft gescoord over alle wedstrijden.',
+		},
+		{
+			href: '/reports/sets',
+			title: 'Sets gewonnen & verloren',
+			description: 'Overzicht van gewonnen en verloren sets over het seizoen.',
+		},
+	];
+</script>
+
+<svelte:head>
+	<title>Rapportages - SideLine</title>
+</svelte:head>
+
+<div class="space-y-4">
+	<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Rapportages</h2>
+
+	<div class="space-y-2">
+		{#each reports as report}
+			<a href={report.href} class="card flex items-center gap-4 hover:shadow-md transition-shadow">
+				<div class="flex-1">
+					<h3 class="font-semibold text-gray-800 dark:text-gray-200">{report.title}</h3>
+					<p class="text-sm text-gray-500 dark:text-gray-400">{report.description}</p>
+				</div>
+				<svg class="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+				</svg>
+			</a>
+		{/each}
+	</div>
+</div>
