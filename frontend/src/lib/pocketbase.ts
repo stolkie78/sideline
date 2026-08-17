@@ -82,7 +82,7 @@ export async function getPlayerCompetencies(
 	return pb.collection('player_competencies').getFullList<PlayerCompetency>({
 		filter,
 		sort: 'date',
-		expand: 'competency',
+		expand: 'competency,created_by',
 	});
 }
 
@@ -92,6 +92,7 @@ export async function createPlayerCompetency(data: {
 	rating: number;
 	date: string;
 	notes?: string;
+	created_by?: string;
 }): Promise<PlayerCompetency> {
 	return pb.collection('player_competencies').create<PlayerCompetency>(data);
 }
@@ -99,7 +100,7 @@ export async function createPlayerCompetency(data: {
 // === Trainings ===
 
 export async function getTrainings(): Promise<Training[]> {
-	return pb.collection('trainings').getFullList<Training>({ sort: '-date' });
+	return pb.collection('trainings').getFullList<Training>({ sort: '-date', expand: 'created_by' });
 }
 
 export async function createTraining(data: {
@@ -115,6 +116,7 @@ export async function createTraining(data: {
 	core1?: string;
 	core2?: string;
 	game?: string;
+	created_by?: string;
 }): Promise<Training> {
 	return pb.collection('trainings').create<Training>(data);
 }
@@ -153,7 +155,7 @@ export async function updateTrainingAttendance(
 // === Matches ===
 
 export async function getMatches(): Promise<Match[]> {
-	return pb.collection('matches').getFullList<Match>({ sort: '-date' });
+	return pb.collection('matches').getFullList<Match>({ sort: '-date', expand: 'created_by' });
 }
 
 export async function createMatch(data: {
@@ -170,6 +172,7 @@ export async function createMatch(data: {
 	game_system?: any;
 	substitutions?: any;
 	timeouts?: any;
+	created_by?: string;
 }): Promise<Match> {
 	return pb.collection('matches').create<Match>(data);
 }

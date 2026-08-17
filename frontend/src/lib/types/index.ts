@@ -55,10 +55,12 @@ export interface PlayerCompetency extends RecordModel {
 	rating: number;
 	date: string;
 	notes?: string;
+	created_by?: string;
 	// Expanded relations
 	expand?: {
 		player?: Player;
 		competency?: Competency;
+		created_by?: { id: string; name: string; email: string };
 	};
 }
 
@@ -75,8 +77,10 @@ export interface Training extends RecordModel {
 	core1?: string;
 	core2?: string;
 	game?: string;
+	created_by?: string;
 	expand?: {
 		template?: TrainingTemplate;
+		created_by?: { id: string; name: string; email: string };
 	};
 }
 
@@ -109,6 +113,10 @@ export interface Match extends RecordModel {
 	game_system?: SetGameSystem[];
 	substitutions?: Substitution[];
 	timeouts?: Timeout[];
+	created_by?: string;
+	expand?: {
+		created_by?: { id: string; name: string; email: string };
+	};
 }
 
 export interface SetScore {

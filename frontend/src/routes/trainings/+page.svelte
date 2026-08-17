@@ -87,6 +87,9 @@
 					{#if training.general_comments}
 						<p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{training.general_comments}</p>
 					{/if}
+					{#if training.expand?.created_by}
+						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Aangemaakt door {training.expand.created_by.name || training.expand.created_by.email}</p>
+					{/if}
 				</div>
 			{/each}
 		</div>

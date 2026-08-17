@@ -75,7 +75,7 @@
 	onMount(async () => {
 		try {
 			const id = $page.params.id;
-			match = await pb.collection('matches').getOne<Match>(id);
+			match = await pb.collection('matches').getOne<Match>(id, { expand: 'created_by' });
 
 			matchDate = match.date.slice(0, 16);
 			opponent = match.opponent;
@@ -224,6 +224,10 @@
 				🗑️ Verwijderen
 			</button>
 		</div>
+
+		{#if match?.expand?.created_by}
+			<p class="text-xs text-gray-400 dark:text-gray-500">Aangemaakt door {match.expand.created_by.name || match.expand.created_by.email}</p>
+		{/if}
 
 		<!-- Match details -->
 		<div class="card space-y-3">

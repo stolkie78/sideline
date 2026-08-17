@@ -5,6 +5,7 @@
 	import type { Player, PlayerPosition, SetScore, GameSystem, SetLineup, SetGameSystem, Substitution, Timeout } from '$lib/types';
 	import { POSITION_LABELS, GAME_SYSTEM_LABELS, COURT_POSITION_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { authUser } from '$lib/stores/auth';
 
 	let players: Player[] = [];
 	let loading = true;
@@ -207,6 +208,7 @@
 					? substitutions.filter(s => s.playerIn && s.playerOut)
 					: undefined,
 				timeouts: timeouts.length > 0 ? timeouts : undefined,
+				created_by: $authUser?.id || undefined,
 			});
 
 			const promises = lineup.map(pid => {

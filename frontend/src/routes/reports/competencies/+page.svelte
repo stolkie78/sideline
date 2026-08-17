@@ -19,7 +19,7 @@
 				getCompetencies(),
 				pb.collection('player_competencies').getFullList<PlayerCompetency>({
 					sort: 'date',
-					expand: 'player,competency',
+					expand: 'player,competency,created_by',
 				}),
 			]);
 		} catch (e) {

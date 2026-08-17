@@ -5,6 +5,7 @@
 	import type { Player, Competency, PlayerCompetency } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { authUser } from '$lib/stores/auth';
 
 	let players: Player[] = [];
 	let competencies: Competency[] = [];
@@ -83,6 +84,7 @@
 							rating: s.rating,
 							date,
 							notes: s.notes || (measurementLabel ? `Meting: ${measurementLabel}` : undefined),
+							created_by: $authUser?.id || undefined,
 						}));
 					}
 				}

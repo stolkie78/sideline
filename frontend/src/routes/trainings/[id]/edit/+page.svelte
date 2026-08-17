@@ -39,7 +39,7 @@
 	onMount(async () => {
 		try {
 			const id = $page.params.id;
-			training = await pb.collection('trainings').getOne<Training>(id);
+			training = await pb.collection('trainings').getOne<Training>(id, { expand: 'created_by' });
 
 			trainingDate = training.date.slice(0, 16);
 			overallRating = training.overall_rating || 7;
@@ -191,6 +191,10 @@
 				🗑️ Verwijderen
 			</button>
 		</div>
+
+		{#if training?.expand?.created_by}
+			<p class="text-xs text-gray-400 dark:text-gray-500">Aangemaakt door {training.expand.created_by.name || training.expand.created_by.email}</p>
+		{/if}
 
 		<div class="card space-y-4">
 			<!-- Status toggle -->

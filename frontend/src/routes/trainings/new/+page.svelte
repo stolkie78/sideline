@@ -5,6 +5,7 @@
 	import type { Player, AttendanceStatus, TrainingTemplate } from '$lib/types';
 	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS, PHASE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { authUser } from '$lib/stores/auth';
 
 	let players: Player[] = [];
 	let templates: TrainingTemplate[] = [];
@@ -95,6 +96,7 @@
 				core1: formCore1 || undefined,
 				core2: formCore2 || undefined,
 				game: formGame || undefined,
+				created_by: $authUser?.id || undefined,
 			});
 
 			// 2. Create attendance records (only when closed)

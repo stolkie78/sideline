@@ -146,7 +146,8 @@ ensure_collection "{
     {\"name\": \"competency\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$COMPETENCIES_ID\", \"maxSelect\": 1},
     {\"name\": \"rating\", \"type\": \"number\", \"required\": true},
     {\"name\": \"date\", \"type\": \"date\", \"required\": true},
-    {\"name\": \"notes\", \"type\": \"text\", \"required\": false}
+    {\"name\": \"notes\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
@@ -171,7 +172,8 @@ ensure_collection "{
     {\"name\": \"technique\", \"type\": \"text\", \"required\": false},
     {\"name\": \"core1\", \"type\": \"text\", \"required\": false},
     {\"name\": \"core2\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"game\", \"type\": \"text\", \"required\": false}
+    {\"name\": \"game\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
@@ -217,7 +219,8 @@ ensure_collection "{
     {\"name\": \"lineups\", \"type\": \"json\", \"required\": false},
     {\"name\": \"game_system\", \"type\": \"json\", \"required\": false},
     {\"name\": \"substitutions\", \"type\": \"json\", \"required\": false},
-    {\"name\": \"timeouts\", \"type\": \"json\", \"required\": false}
+    {\"name\": \"timeouts\", \"type\": \"json\", \"required\": false},
+    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",

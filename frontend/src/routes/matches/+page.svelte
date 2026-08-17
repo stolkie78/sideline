@@ -89,6 +89,9 @@
 					{#if match.general_notes}
 						<p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{match.general_notes}</p>
 					{/if}
+					{#if match.expand?.created_by}
+						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Aangemaakt door {match.expand.created_by.name || match.expand.created_by.email}</p>
+					{/if}
 				</div>
 			{/each}
 		</div>

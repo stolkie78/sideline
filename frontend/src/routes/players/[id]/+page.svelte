@@ -10,6 +10,7 @@
 	} from '$lib/pocketbase';
 	import type { Player, Competency, PlayerCompetency } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS, CATEGORY_LABELS } from '$lib/types';
+	import { authUser } from '$lib/stores/auth';
 	import CompetencyChart from '$lib/components/CompetencyChart.svelte';
 
 	let player: Player | null = null;
@@ -58,6 +59,7 @@
 				rating: ratingValue,
 				date: new Date().toISOString(),
 				notes: ratingNotes || undefined,
+				created_by: $authUser?.id || undefined,
 			});
 			showRatingForm = false;
 			ratingNotes = '';
