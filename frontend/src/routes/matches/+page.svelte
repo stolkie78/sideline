@@ -15,6 +15,7 @@
 			matches = await pb.collection('matches').getFullList<Match>({
 				sort: '-date',
 				filter: filter || undefined,
+				expand: 'created_by',
 			});
 		} catch (e) {
 			console.error('Failed to load matches:', e);

@@ -15,7 +15,7 @@
 			trainings = await pb.collection('trainings').getFullList<Training>({
 				sort: '-date',
 				filter: filter || undefined,
-				expand: 'template',
+				expand: 'template,created_by',
 			});
 		} catch (e) {
 			console.error('Failed to load trainings:', e);
