@@ -95,10 +95,10 @@
 				await pb.collection('matches').create({
 					date: new Date(dateStr).toISOString(),
 					opponent: opponent || 'Onbekend',
+					home_away: isHomeOurs ? 'home' : 'away',
 					location: m.resolved?.sporthal || '',
 					team: $selectedTeamId || undefined,
 					season: $selectedSeasonId || undefined,
-					status: 'scheduled',
 					nevobo_uuid: m.uuid,
 					nevobo_code: m.code,
 					created_by: $authUser?.id || undefined,

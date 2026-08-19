@@ -1,5 +1,10 @@
 // Nevobo API helper for fetching match schedules
-const NEVOBO_API = 'https://api.nevobo.nl';
+// All requests go through /api/nevobo proxy to avoid CORS issues
+import { base } from '$app/paths';
+
+async function nevoboFetch(path: string): Promise<Response> {
+	return fetch(`${base}/api/nevobo?path=${encodeURIComponent(path)}`);
+}
 
 export interface NevoboMatch {
 	uuid: string;
@@ -52,11 +57,8 @@ export async function getTeamMatches(
 	teamType: string,
 	teamNumber: number
 ): Promise<NevoboMatch[]> {
-	const teamIri = `/competitie/teams/${code.toLowerCase()}/${teamType}/${teamNumber}`;
-	const res = await fetch(
-		`${NEVOBO_API}/competitie/wedstrijden?team=${encodeURIComponent(teamIri)}`,
-		{ headers: { Accept: 'application/json' } }
-	);
+	const path = `/competitie/wedstrijden?team=${encodeURIComponent(`/competitie/teams/${code.toLowerCase()}/${teamType}/${teamNumber}`)}`;
+	const res = await nevoboFetch(path);
 	if (!res.ok) return [];
 	return res.json();
 }
@@ -66,9 +68,7 @@ export async function getTeamMatches(
  */
 export async function resolvePouleIndeling(iri: string): Promise<string> {
 	try {
-		const res = await fetch(`${NEVOBO_API}${iri}`, {
-			headers: { Accept: 'application/json' }
-		});
+		const res = await nevoboFetch(iri);
 		if (!res.ok) return '?';
 		const data: NevoboPouleIndeling = await res.json();
 		return data.omschrijving || '?';
@@ -83,9 +83,7 @@ export async function resolvePouleIndeling(iri: string): Promise<string> {
 export async function resolveSporthal(iri: string): Promise<string> {
 	if (!iri) return '';
 	try {
-		const res = await fetch(`${NEVOBO_API}${iri}`, {
-			headers: { Accept: 'application/json' }
-		});
+		const res = await nevoboFetch(iri);
 		if (!res.ok) return '';
 		const data = await res.json();
 		return data.naam || '';
@@ -99,10 +97,7 @@ export async function resolveSporthal(iri: string): Promise<string> {
  */
 export async function getTeamInfo(code: string, teamType: string, teamNumber: number): Promise<NevoboTeam | null> {
 	try {
-		const res = await fetch(
-			`${NEVOBO_API}/competitie/teams/${code.toLowerCase()}/${teamType}/${teamNumber}`,
-			{ headers: { Accept: 'application/json' } }
-		);
+		const res = await nevoboFetch(`/competitie/teams/${code.toLowerCase()}/${teamType}/${teamNumber}`);
 		if (!res.ok) return null;
 		return res.json();
 	} catch {

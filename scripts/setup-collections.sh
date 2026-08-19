@@ -73,7 +73,10 @@ ensure_collection '{
   "name": "teams",
   "type": "base",
   "fields": [
-    {"name": "name", "type": "text", "required": true}
+    {"name": "name", "type": "text", "required": true},
+    {"name": "nevobo_code", "type": "text", "required": false},
+    {"name": "nevobo_team_type", "type": "text", "required": false},
+    {"name": "nevobo_team_number", "type": "number", "required": false}
   ],
   "listRule": "",
   "viewRule": "",
@@ -205,7 +208,7 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"date\", \"type\": \"date\", \"required\": true},
     {\"name\": \"opponent\", \"type\": \"text\", \"required\": true},
-    {\"name\": \"home_away\", \"type\": \"select\", \"required\": true, \"values\": [\"home\",\"away\"], \"maxSelect\": 1},
+    {\"name\": \"home_away\", \"type\": \"select\", \"required\": false, \"values\": [\"home\",\"away\"], \"maxSelect\": 1},
     {\"name\": \"score_team\", \"type\": \"number\", \"required\": false},
     {\"name\": \"score_opponent\", \"type\": \"number\", \"required\": false},
     {\"name\": \"set_scores\", \"type\": \"json\", \"required\": false},
@@ -216,7 +219,10 @@ ensure_collection "{
     {\"name\": \"game_system\", \"type\": \"json\", \"required\": false},
     {\"name\": \"substitutions\", \"type\": \"json\", \"required\": false},
     {\"name\": \"timeouts\", \"type\": \"json\", \"required\": false},
-    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
+    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
+    {\"name\": \"location\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"nevobo_uuid\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"nevobo_code\", \"type\": \"text\", \"required\": false}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
