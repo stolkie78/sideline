@@ -3,9 +3,10 @@
 	import { goto } from '$app/navigation';
 	import { getPlayers, createTraining, createTrainingAttendance, getTeamPlayers, getTrainingTemplates } from '$lib/pocketbase';
 	import type { Player, AttendanceStatus, TrainingTemplate } from '$lib/types';
-	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS, PHASE_LABELS } from '$lib/types';
+	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { authUser } from '$lib/stores/auth';
+	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 
 	let players: Player[] = [];
 	let templates: TrainingTemplate[] = [];
@@ -19,12 +20,8 @@
 	let selectedTemplate = '';
 	let trainingStatus: 'open' | 'closed' = 'open';
 
-	// Phase fields
-	let formWarmup = '';
-	let formTechnique = '';
-	let formCore1 = '';
-	let formCore2 = '';
-	let formGame = '';
+	// Training content (markdown)
+	let formContent = '';
 
 	// Per-player attendance & rating
 	let playerData: Record<string, {
@@ -62,11 +59,7 @@
 	function applyTemplate() {
 		const t = templates.find(tp => tp.id === selectedTemplate);
 		if (t) {
-			formWarmup = t.warmup || '';
-			formTechnique = t.technique || '';
-			formCore1 = t.core1 || '';
-			formCore2 = t.core2 || '';
-			formGame = t.game || '';
+			formContent = t.content || '';
 			if (t.notes) generalComments = t.notes;
 		}
 	}
@@ -91,11 +84,7 @@
 				season: $selectedSeasonId || undefined,
 				template: selectedTemplate || undefined,
 				status: trainingStatus,
-				warmup: formWarmup || undefined,
-				technique: formTechnique || undefined,
-				core1: formCore1 || undefined,
-				core2: formCore2 || undefined,
-				game: formGame || undefined,
+				content: formContent || undefined,
 				created_by: $authUser?.id || undefined,
 			});
 
@@ -241,29 +230,10 @@
 		</div>
 		{/if}
 
-		<!-- Training phases -->
+		<!-- Training content -->
 		<div class="card space-y-4">
-			<h3 class="font-semibold text-gray-800 dark:text-gray-200">Trainingsfases</h3>
-			<div>
-				<label class="label">{PHASE_LABELS.warmup}</label>
-				<textarea class="input" rows="2" bind:value={formWarmup} placeholder="Warm-up / kracht oefeningen..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.technique}</label>
-				<textarea class="input" rows="2" bind:value={formTechnique} placeholder="Technische oefeningen..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.core1}</label>
-				<textarea class="input" rows="2" bind:value={formCore1} placeholder="Kernoefening 1..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.core2}</label>
-				<textarea class="input" rows="2" bind:value={formCore2} placeholder="Kernoefening 2..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.game}</label>
-				<textarea class="input" rows="2" bind:value={formGame} placeholder="Wedstrijdvorm / game..."></textarea>
-			</div>
+			<h3 class="font-semibold text-gray-800 dark:text-gray-200">Training Beschrijving</h3>
+			<MarkdownEditor bind:value={formContent} placeholder="Beschrijf de training... (gebruik kopjes voor fases, bijv. ## Warm-up)" />
 			<div>
 				<label class="label">Opmerkingen</label>
 				<textarea class="input" rows="2" bind:value={generalComments} placeholder="Extra aandachtspunten..."></textarea>

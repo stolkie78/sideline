@@ -4,8 +4,9 @@
 	import { goto } from '$app/navigation';
 	import { pb, getPlayers, getTeamPlayers, updateTraining, getTrainingAttendance, createTrainingAttendance, updateTrainingAttendance, deleteTrainingAttendance, getTrainingTemplates } from '$lib/pocketbase';
 	import type { Player, Training, TrainingAttendance, AttendanceStatus, TrainingTemplate } from '$lib/types';
-	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS, PHASE_LABELS } from '$lib/types';
+	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 
 	let training: Training | null = null;
 	let players: Player[] = [];
@@ -21,12 +22,8 @@
 	let selectedTemplate = '';
 	let trainingStatus: 'open' | 'closed' = 'closed';
 
-	// Phase fields
-	let formWarmup = '';
-	let formTechnique = '';
-	let formCore1 = '';
-	let formCore2 = '';
-	let formGame = '';
+	// Training content (markdown)
+	let formContent = '';
 
 	// Per-player attendance & rating
 	let playerData: Record<string, {
@@ -46,11 +43,7 @@
 			generalComments = training.general_comments || '';
 			selectedTemplate = training.template || '';
 			trainingStatus = (training.status as 'open' | 'closed') || 'closed';
-			formWarmup = training.warmup || '';
-			formTechnique = training.technique || '';
-			formCore1 = training.core1 || '';
-			formCore2 = training.core2 || '';
-			formGame = training.game || '';
+			formContent = training.content || '';
 
 			// Load templates
 			templates = await getTrainingTemplates();
@@ -101,11 +94,7 @@
 	function applyTemplate() {
 		const t = templates.find(tp => tp.id === selectedTemplate);
 		if (t) {
-			formWarmup = t.warmup || '';
-			formTechnique = t.technique || '';
-			formCore1 = t.core1 || '';
-			formCore2 = t.core2 || '';
-			formGame = t.game || '';
+			formContent = t.content || '';
 			if (t.notes) generalComments = t.notes;
 		}
 	}
@@ -121,11 +110,7 @@
 				general_comments: generalComments || undefined,
 				template: selectedTemplate || undefined,
 				status: trainingStatus,
-				warmup: formWarmup || undefined,
-				technique: formTechnique || undefined,
-				core1: formCore1 || undefined,
-				core2: formCore2 || undefined,
-				game: formGame || undefined,
+				content: formContent || undefined,
 			});
 
 			// Update/create attendance records (only when closed)
@@ -288,29 +273,10 @@
 		</div>
 		{/if}
 
-		<!-- Training phases -->
+		<!-- Training content -->
 		<div class="card space-y-4">
-			<h3 class="font-semibold text-gray-800 dark:text-gray-200">Trainingsfases</h3>
-			<div>
-				<label class="label">{PHASE_LABELS.warmup}</label>
-				<textarea class="input" rows="2" bind:value={formWarmup} placeholder="Warm-up / kracht oefeningen..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.technique}</label>
-				<textarea class="input" rows="2" bind:value={formTechnique} placeholder="Technische oefeningen..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.core1}</label>
-				<textarea class="input" rows="2" bind:value={formCore1} placeholder="Kernoefening 1..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.core2}</label>
-				<textarea class="input" rows="2" bind:value={formCore2} placeholder="Kernoefening 2..."></textarea>
-			</div>
-			<div>
-				<label class="label">{PHASE_LABELS.game}</label>
-				<textarea class="input" rows="2" bind:value={formGame} placeholder="Wedstrijdvorm / game..."></textarea>
-			</div>
+			<h3 class="font-semibold text-gray-800 dark:text-gray-200">Training Beschrijving</h3>
+			<MarkdownEditor bind:value={formContent} placeholder="Beschrijf de training... (gebruik kopjes voor fases, bijv. ## Warm-up)" />
 			<div>
 				<label class="label">Opmerkingen</label>
 				<textarea class="input" rows="2" bind:value={generalComments} placeholder="Extra aandachtspunten..."></textarea>

@@ -168,11 +168,7 @@ ensure_collection "{
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1},
     {\"name\": \"template\", \"type\": \"text\", \"required\": false},
     {\"name\": \"status\", \"type\": \"select\", \"required\": false, \"values\": [\"open\",\"closed\"], \"maxSelect\": 1},
-    {\"name\": \"warmup\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"technique\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"core1\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"core2\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"game\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"content\", \"type\": \"editor\", \"required\": false},
     {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
   ],
   \"listRule\": \"\",
@@ -288,11 +284,7 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"name\", \"type\": \"text\", \"required\": true},
     {\"name\": \"type\", \"type\": \"select\", \"required\": false, \"values\": [\"serve\",\"pass\",\"attack\",\"block\",\"defense\",\"setting\",\"all_round\",\"game\",\"conditioning\"], \"maxSelect\": 1},
-    {\"name\": \"warmup\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"technique\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"core1\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"core2\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"game\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"content\", \"type\": \"editor\", \"required\": false},
     {\"name\": \"notes\", \"type\": \"text\", \"required\": false},
     {\"name\": \"team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1}
@@ -312,11 +304,7 @@ ensure_collection "{
     {\"name\": \"date\", \"type\": \"date\", \"required\": true},
     {\"name\": \"template\", \"type\": \"text\", \"required\": false},
     {\"name\": \"title\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"warmup\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"technique\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"core1\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"core2\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"game\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"content\", \"type\": \"editor\", \"required\": false},
     {\"name\": \"notes\", \"type\": \"text\", \"required\": false},
     {\"name\": \"team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1}

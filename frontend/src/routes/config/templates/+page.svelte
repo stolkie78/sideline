@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { getTrainingTemplates, createTrainingTemplate, updateTrainingTemplate, deleteTrainingTemplate } from '$lib/pocketbase';
-	import type { TrainingTemplate, TrainingType, TrainingPhase } from '$lib/types';
-	import { TRAINING_TYPE_LABELS, PHASE_LABELS, TRAINING_PHASES } from '$lib/types';
+	import type { TrainingTemplate, TrainingType } from '$lib/types';
+	import { TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
-	import { contextFilter } from '$lib/stores/context';
+	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 
 	let templates: TrainingTemplate[] = [];
 	let loading = true;
@@ -13,14 +12,9 @@
 	let editing: TrainingTemplate | null = null;
 	let saving = false;
 
-	// Form
 	let formName = '';
 	let formType: TrainingType = 'all_round';
-	let formWarmup = '';
-	let formTechnique = '';
-	let formCore1 = '';
-	let formCore2 = '';
-	let formGame = '';
+	let formContent = '';
 	let formNotes = '';
 
 	const allTypes = Object.entries(TRAINING_TYPE_LABELS) as [TrainingType, string][];
@@ -42,11 +36,7 @@
 		editing = t;
 		formName = t.name;
 		formType = t.type;
-		formWarmup = t.warmup || '';
-		formTechnique = t.technique || '';
-		formCore1 = t.core1 || '';
-		formCore2 = t.core2 || '';
-		formGame = t.game || '';
+		formContent = t.content || '';
 		formNotes = t.notes || '';
 		showForm = true;
 	}
@@ -55,11 +45,7 @@
 		editing = null;
 		formName = '';
 		formType = 'all_round';
-		formWarmup = '';
-		formTechnique = '';
-		formCore1 = '';
-		formCore2 = '';
-		formGame = '';
+		formContent = '';
 		formNotes = '';
 		showForm = false;
 	}
@@ -71,11 +57,7 @@
 			const data = {
 				name: formName.trim(),
 				type: formType,
-				warmup: formWarmup,
-				technique: formTechnique,
-				core1: formCore1,
-				core2: formCore2,
-				game: formGame,
+				content: formContent,
 				notes: formNotes,
 				team: $selectedTeamId || undefined,
 				season: $selectedSeasonId || undefined,
@@ -121,13 +103,11 @@
 		</button>
 	</div>
 
-	<!-- Form -->
 	{#if showForm}
 		<form class="card space-y-4" on:submit|preventDefault={handleSubmit}>
 			<h3 class="font-semibold text-gray-900 dark:text-white">
 				{editing ? 'Template bewerken' : 'Nieuw template'}
 			</h3>
-
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 				<div>
 					<label class="label" for="t-name">Naam *</label>
@@ -142,34 +122,14 @@
 					</select>
 				</div>
 			</div>
-
-			<div class="space-y-3">
-				<div>
-					<label class="label" for="t-warmup">{PHASE_LABELS.warmup}</label>
-					<textarea id="t-warmup" class="input" rows="2" bind:value={formWarmup} placeholder="Beschrijf de warm-up oefeningen..."></textarea>
-				</div>
-				<div>
-					<label class="label" for="t-tech">{PHASE_LABELS.technique}</label>
-					<textarea id="t-tech" class="input" rows="2" bind:value={formTechnique} placeholder="Technische oefeningen..."></textarea>
-				</div>
-				<div>
-					<label class="label" for="t-core1">{PHASE_LABELS.core1}</label>
-					<textarea id="t-core1" class="input" rows="2" bind:value={formCore1} placeholder="Kernoefening 1..."></textarea>
-				</div>
-				<div>
-					<label class="label" for="t-core2">{PHASE_LABELS.core2}</label>
-					<textarea id="t-core2" class="input" rows="2" bind:value={formCore2} placeholder="Kernoefening 2..."></textarea>
-				</div>
-				<div>
-					<label class="label" for="t-game">{PHASE_LABELS.game}</label>
-					<textarea id="t-game" class="input" rows="2" bind:value={formGame} placeholder="Wedstrijdvorm / game..."></textarea>
-				</div>
-				<div>
-					<label class="label" for="t-notes">Extra notities</label>
-					<textarea id="t-notes" class="input" rows="2" bind:value={formNotes} placeholder="Aandachtspunten, materiaal, etc."></textarea>
-				</div>
+			<div>
+				<label class="label">Training beschrijving</label>
+				<MarkdownEditor bind:value={formContent} placeholder="Beschrijf de training... (gebruik ## kopjes voor fases)" />
 			</div>
-
+			<div>
+				<label class="label" for="t-notes">Extra notities</label>
+				<textarea id="t-notes" class="input" rows="2" bind:value={formNotes} placeholder="Aandachtspunten, materiaal, etc."></textarea>
+			</div>
 			<div class="flex gap-2">
 				<button type="submit" class="btn-primary flex-1" disabled={saving}>
 					{saving ? 'Opslaan...' : editing ? 'Bijwerken' : 'Toevoegen'}
@@ -179,7 +139,6 @@
 		</form>
 	{/if}
 
-	<!-- Template list -->
 	{#if loading}
 		<div class="flex justify-center py-8">
 			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -187,7 +146,7 @@
 	{:else if templates.length === 0}
 		<div class="card text-center py-12 text-gray-500 dark:text-gray-400">
 			<p class="mb-2">Nog geen templates aangemaakt</p>
-			<p class="text-sm">Maak standaard trainingen aan die je kunt hergebruiken in je jaarplan.</p>
+			<p class="text-sm">Maak standaard trainingen aan die je kunt hergebruiken.</p>
 		</div>
 	{:else}
 		<div class="space-y-3">
@@ -201,25 +160,13 @@
 							</span>
 						</div>
 						<div class="flex gap-1">
-							<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-primary-600 text-sm" on:click={() => startEdit(template)}>
-								Bewerk
-							</button>
-							<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 text-sm" on:click={() => handleDelete(template)}>
-								Verwijder
-							</button>
+							<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-primary-600 text-sm" on:click={() => startEdit(template)}>Bewerk</button>
+							<button class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 text-sm" on:click={() => handleDelete(template)}>Verwijder</button>
 						</div>
 					</div>
-					<!-- Phases summary -->
-					<div class="grid grid-cols-1 gap-1.5 text-sm">
-						{#each TRAINING_PHASES as phase}
-							{#if template[phase]}
-								<div class="flex gap-2">
-									<span class="text-xs font-medium text-gray-400 dark:text-gray-500 w-28 flex-shrink-0">{PHASE_LABELS[phase]}</span>
-									<span class="text-gray-700 dark:text-gray-300 line-clamp-1">{template[phase]}</span>
-								</div>
-							{/if}
-						{/each}
-					</div>
+					{#if template.content}
+						<p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3 whitespace-pre-line">{template.content}</p>
+					{/if}
 				</div>
 			{/each}
 		</div>

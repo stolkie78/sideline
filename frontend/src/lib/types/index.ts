@@ -72,11 +72,7 @@ export interface Training extends RecordModel {
 	season?: string;
 	template?: string;
 	status?: 'open' | 'closed';
-	warmup?: string;
-	technique?: string;
-	core1?: string;
-	core2?: string;
-	game?: string;
+	content?: string;
 	created_by?: string;
 	expand?: {
 		template?: TrainingTemplate;
@@ -245,11 +241,7 @@ export const PHASE_LABELS: Record<TrainingPhase, string> = {
 export interface TrainingTemplate extends RecordModel {
 	name: string;
 	type: TrainingType;
-	warmup: string;
-	technique: string;
-	core1: string;
-	core2: string;
-	game: string;
+	content: string;
 	notes: string;
 	team: string;
 	season: string;
@@ -259,11 +251,7 @@ export interface TrainingPlan extends RecordModel {
 	date: string;
 	template: string;
 	title: string;
-	warmup: string;
-	technique: string;
-	core1: string;
-	core2: string;
-	game: string;
+	content: string;
 	notes: string;
 	team: string;
 	season: string;
