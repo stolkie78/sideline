@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getTrainings } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
+	import { marked } from 'marked';
 	import type { Training } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 
 	let trainings: Training[] = [];
 	let loading = true;
+	let expandedId: string | null = null;
 
 	onMount(async () => {
 		try {
@@ -23,6 +24,10 @@
 			loading = false;
 		}
 	});
+
+	function toggleExpand(id: string) {
+		expandedId = expandedId === id ? null : id;
+	}
 </script>
 
 <svelte:head>
@@ -40,8 +45,7 @@
 			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
 		</div>
 	{:else if trainings.length === 0}
-		<div class="card text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
-			
+		<div class="card text-center py-8 text-gray-500 dark:text-gray-400">
 			<p>Nog geen trainingen geregistreerd</p>
 		</div>
 	{:else}
@@ -79,16 +83,41 @@
 									{training.overall_rating}/10
 								</span>
 							{/if}
+							{#if training.content}
+								<button
+									type="button"
+									class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm"
+									title="Bekijk training"
+									on:click={() => toggleExpand(training.id)}
+								>
+									{expandedId === training.id ? '▲ Sluit' : '▼ Bekijk'}
+								</button>
+							{/if}
 							<a href="/trainings/{training.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm" title="Bewerken">
 								Bewerk
 							</a>
 						</div>
 					</div>
-					{#if training.general_comments}
+					{#if training.general_comments && expandedId !== training.id}
 						<p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">{training.general_comments}</p>
 					{/if}
 					{#if training.expand?.created_by}
 						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Aangemaakt door {training.expand.created_by.name || training.expand.created_by.email}</p>
+					{/if}
+
+					<!-- Expanded markdown content -->
+					{#if expandedId === training.id && training.content}
+						<div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+							<div class="prose prose-sm dark:prose-invert max-w-none">
+								{@html marked(training.content, { breaks: true })}
+							</div>
+							{#if training.general_comments}
+								<div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+									<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Opmerkingen</p>
+									<p class="text-sm text-gray-700 dark:text-gray-300">{training.general_comments}</p>
+								</div>
+							{/if}
+						</div>
 					{/if}
 				</div>
 			{/each}
