@@ -16,6 +16,8 @@ export interface NevoboMatch {
 	teams: string[];
 	status: { waarde: string; omschrijving: string };
 	urlDwf?: string;
+	setstanden?: { set: number; team1: number; team2: number }[];
+	uitslag?: { setsTeam1: number; setsTeam2: number };
 }
 
 export interface NevoboTeam {

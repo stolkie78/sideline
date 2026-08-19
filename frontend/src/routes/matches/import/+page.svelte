@@ -102,7 +102,7 @@
 					m.resolved?.home?.toLowerCase().includes(manualCode.toLowerCase());
 				const opponent = isHomeOurs ? m.resolved?.away : m.resolved?.home;
 
-				const nevoboData = {
+				const nevoboData: Record<string, unknown> = {
 					date: new Date(dateStr).toISOString(),
 					opponent: opponent || 'Onbekend',
 					home_away: isHomeOurs ? 'home' : 'away',
@@ -110,6 +110,19 @@
 					nevobo_uuid: m.uuid,
 					nevobo_code: m.code,
 				};
+
+				// Import scores if match has been played
+				if (m.uitslag) {
+					nevoboData.score_team = isHomeOurs ? m.uitslag.setsTeam1 : m.uitslag.setsTeam2;
+					nevoboData.score_opponent = isHomeOurs ? m.uitslag.setsTeam2 : m.uitslag.setsTeam1;
+				}
+				if (m.setstanden && m.setstanden.length > 0) {
+					nevoboData.set_scores = m.setstanden.map(s => ({
+						set: s.set,
+						team: isHomeOurs ? s.team1 : s.team2,
+						opponent: isHomeOurs ? s.team2 : s.team1,
+					}));
+				}
 
 				const existingId = existingByUuid.get(m.uuid);
 				if (existingId) {
