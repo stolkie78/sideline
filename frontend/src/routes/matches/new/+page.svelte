@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { getPlayers, createMatch, createMatchPlayerStats, getTeamPlayers } from '$lib/pocketbase';
 	import type { Player, PlayerPosition, SetScore, GameSystem, SetLineup, SetGameSystem, Substitution, Timeout } from '$lib/types';

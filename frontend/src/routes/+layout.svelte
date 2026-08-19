@@ -4,6 +4,7 @@
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { getTeams, getSeasons, getTeamAccessForUser, grantTeamAccess } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import {

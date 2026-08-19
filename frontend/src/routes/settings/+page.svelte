@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { getTeams, getSeasons, createTeam, createSeason } from '$lib/pocketbase';
 	import { teams as teamsStore, seasons as seasonsStore } from '$lib/stores/context';
 	import type { Team, Season } from '$lib/types';

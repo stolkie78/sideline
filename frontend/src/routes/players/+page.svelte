@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { getPlayers, getFileUrl, createPlayer } from '$lib/pocketbase';
 	import type { Player } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS } from '$lib/types';

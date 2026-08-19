@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { pb } from '$lib/pocketbase';
 	import type { Match, SetScore } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';

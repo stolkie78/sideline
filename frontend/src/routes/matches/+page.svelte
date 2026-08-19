@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { getMatches } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Match } from '$lib/types';

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { pb } from '$lib/pocketbase';
 	import { getPlayers } from '$lib/pocketbase';
 	import type { Player, MatchPlayerStats, PlayerPosition } from '$lib/types';

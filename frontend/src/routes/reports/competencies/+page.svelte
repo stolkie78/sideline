@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { pb, getPlayers, getCompetencies } from '$lib/pocketbase';
 	import type { Player, Competency, PlayerCompetency } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
