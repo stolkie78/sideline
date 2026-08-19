@@ -32,7 +32,10 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Wedstrijden</h2>
-		<a href="{base}/matches/new" class="btn-primary">+ Wedstrijd</a>
+		<div class="flex gap-2">
+			<a href="{base}/matches/import" class="btn-secondary text-sm">📥 Nevobo</a>
+			<a href="{base}/matches/new" class="btn-primary">+ Wedstrijd</a>
+		</div>
 	</div>
 
 	{#if loading}

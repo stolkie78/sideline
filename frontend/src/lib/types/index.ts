@@ -12,6 +12,9 @@ export interface Player extends RecordModel {
 
 export interface Team extends RecordModel {
 	name: string;
+	nevobo_code?: string; // Nevobo verenigingscode (e.g. CKM1H25)
+	nevobo_team_type?: string; // e.g. 'hs', 'ds', 'mb', 'mj'
+	nevobo_team_number?: number; // e.g. 1
 }
 
 export interface Season extends RecordModel {
