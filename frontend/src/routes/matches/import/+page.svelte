@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { pb } from '$lib/pocketbase';
-	import { getTeamMatches, resolvePouleIndeling, resolveSporthal } from '$lib/nevobo';
+	import { getTeamMatches, resolvePouleIndeling, resolveSporthal, NEVOBO_TEAM_TYPES } from '$lib/nevobo';
 	import type { NevoboMatch } from '$lib/nevobo';
 	import type { Team } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -18,16 +18,10 @@
 
 	// Manual config if team doesn't have nevobo settings
 	let manualCode = '';
-	let manualType = 'hs';
+	let manualType = 'meiden-b';
 	let manualNumber = 1;
 
-	const teamTypes = [
-		{ value: 'hs', label: 'Heren' },
-		{ value: 'ds', label: 'Dames' },
-		{ value: 'mj', label: 'Jongens (jeugd)' },
-		{ value: 'mb', label: 'Meisjes (jeugd)' },
-		{ value: 'mc', label: 'Mix (CMV)' },
-	];
+
 
 	onMount(async () => {
 		if ($selectedTeamId) {
@@ -93,9 +87,10 @@
 
 			for (const m of selected) {
 				const dateStr = m.tijdstip || m.datum;
-				const opponent = m.resolved?.home?.toLowerCase().includes(manualCode.toLowerCase())
-					? m.resolved?.away
-					: m.resolved?.home;
+				// Determine opponent: the team that is NOT ours
+				const isHomeOurs = m.resolved?.home?.toLowerCase().includes('zovoc') ||
+					m.resolved?.home?.toLowerCase().includes(manualCode.toLowerCase());
+				const opponent = isHomeOurs ? m.resolved?.away : m.resolved?.home;
 
 				await pb.collection('matches').create({
 					date: new Date(dateStr).toISOString(),
@@ -159,7 +154,7 @@
 			<div>
 				<label class="label">Team type</label>
 				<select class="input" bind:value={manualType}>
-					{#each teamTypes as t}
+					{#each NEVOBO_TEAM_TYPES as t}
 						<option value={t.value}>{t.label}</option>
 					{/each}
 				</select>

@@ -23,48 +23,42 @@ export interface NevoboTeam {
 
 export interface NevoboPouleIndeling {
 	team: string;
-	letter: string;
-	naam?: string;
+	omschrijving: string;
+	indelingsletter: string;
 }
 
-/**
- * Search for teams by name in Nevobo
- */
-export async function searchNevoboTeams(query: string): Promise<NevoboTeam[]> {
-	const res = await fetch(`${NEVOBO_API}/competitie/teams?naam=${encodeURIComponent(query)}`, {
-		headers: { Accept: 'application/json' }
-	});
-	if (!res.ok) return [];
-	return res.json();
-}
+// Team types as used in the Nevobo URL structure
+export const NEVOBO_TEAM_TYPES = [
+	{ value: 'heren', label: 'Heren' },
+	{ value: 'dames', label: 'Dames' },
+	{ value: 'jongens-a', label: 'Jongens A' },
+	{ value: 'jongens-b', label: 'Jongens B' },
+	{ value: 'jongens-c', label: 'Jongens C' },
+	{ value: 'meiden-a', label: 'Meiden A' },
+	{ value: 'meiden-b', label: 'Meiden B' },
+	{ value: 'meiden-c', label: 'Meiden C' },
+	{ value: 'cmv-6', label: 'CMV 6' },
+	{ value: 'cmv-4', label: 'CMV 4' },
+];
 
 /**
- * Get matches for a team by verenigingscode and team type
- * e.g. getTeamMatches('CKM1H25', 'hs', 1) for Vereniging X Heren 1
+ * Get matches for a team using the Nevobo team IRI filter
+ * @param code - Verenigingscode (e.g. CKL9N3N)
+ * @param teamType - Team type slug (e.g. meiden-b, heren, dames)
+ * @param teamNumber - Team number (e.g. 1)
  */
 export async function getTeamMatches(
-	verenigingsCode: string,
+	code: string,
 	teamType: string,
 	teamNumber: number
 ): Promise<NevoboMatch[]> {
-	const code = verenigingsCode.toLowerCase();
-	const type = teamType.toLowerCase();
-
-	// Get matches filtered by vereniging
+	const teamIri = `/competitie/teams/${code.toLowerCase()}/${teamType}/${teamNumber}`;
 	const res = await fetch(
-		`${NEVOBO_API}/competitie/wedstrijden?vereniging=/relatiebeheer/verenigingen/${code}`,
+		`${NEVOBO_API}/competitie/wedstrijden?team=${encodeURIComponent(teamIri)}`,
 		{ headers: { Accept: 'application/json' } }
 	);
 	if (!res.ok) return [];
-	const allMatches: NevoboMatch[] = await res.json();
-
-	// Filter matches that involve this specific team
-	// Team IRIs contain the pattern: verenigingscode/teamtype/volgnummer
-	const teamPattern = `${code}/${type}/${teamNumber}`;
-
-	return allMatches.filter(match => {
-		return match.teams?.some(t => t.toLowerCase().includes(teamPattern));
-	});
+	return res.json();
 }
 
 /**
@@ -75,11 +69,11 @@ export async function resolvePouleIndeling(iri: string): Promise<string> {
 		const res = await fetch(`${NEVOBO_API}${iri}`, {
 			headers: { Accept: 'application/json' }
 		});
-		if (!res.ok) return iri;
-		const data = await res.json();
-		return data.team?.naam || data.naam || iri;
+		if (!res.ok) return '?';
+		const data: NevoboPouleIndeling = await res.json();
+		return data.omschrijving || '?';
 	} catch {
-		return iri;
+		return '?';
 	}
 }
 
@@ -94,8 +88,24 @@ export async function resolveSporthal(iri: string): Promise<string> {
 		});
 		if (!res.ok) return '';
 		const data = await res.json();
-		return data.naam || data.name || '';
+		return data.naam || '';
 	} catch {
 		return '';
+	}
+}
+
+/**
+ * Get team info by code/type/number
+ */
+export async function getTeamInfo(code: string, teamType: string, teamNumber: number): Promise<NevoboTeam | null> {
+	try {
+		const res = await fetch(
+			`${NEVOBO_API}/competitie/teams/${code.toLowerCase()}/${teamType}/${teamNumber}`,
+			{ headers: { Accept: 'application/json' } }
+		);
+		if (!res.ok) return null;
+		return res.json();
+	} catch {
+		return null;
 	}
 }
