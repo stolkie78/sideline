@@ -405,7 +405,7 @@
 		<div class="space-y-3">
 			<div class="flex justify-between items-center">
 				<p class="text-sm text-gray-500 dark:text-gray-400">Herbruikbare trainingstemplates voor snelle planning</p>
-				<a href="/config/templates" class="btn-primary text-sm">Beheren</a>
+				<a href="{base}/config/templates" class="btn-primary text-sm">Beheren</a>
 			</div>
 		</div>
 

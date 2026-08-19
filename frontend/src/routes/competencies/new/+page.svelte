@@ -91,7 +91,7 @@
 			}
 
 			await Promise.all(promises);
-			goto('/reports/competencies');
+			goto(`${base}/reports/competencies`);
 		} catch (e) {
 			console.error('Failed to save measurement:', e);
 			alert('Fout bij opslaan meting');
@@ -218,6 +218,6 @@
 			</div>
 		{/if}
 
-		<a href="/reports/competencies" class="btn-secondary w-full text-center">Annuleren</a>
+		<a href="{base}/reports/competencies" class="btn-secondary w-full text-center">Annuleren</a>
 	</form>
 {/if}

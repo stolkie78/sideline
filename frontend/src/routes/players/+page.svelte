@@ -136,7 +136,7 @@
 	{:else}
 		<div class="space-y-2">
 			{#each players as player}
-				<a href="/players/{player.id}" class="card flex items-center gap-3 hover:shadow-md transition-shadow">
+				<a href="{base}/players/{player.id}" class="card flex items-center gap-3 hover:shadow-md transition-shadow">
 					<!-- Avatar -->
 					<div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
 						{#if player.photo}

@@ -32,14 +32,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - BASE_PATH=${BASE_PATH:-/sideline}
     image: sideline-frontend:latest
     container_name: sideline-frontend
     restart: unless-stopped
     expose:
       - "3000"
     environment:
-      - PUBLIC_POCKETBASE_URL=${PUBLIC_POCKETBASE_URL:-https://api.sideline.example.com}
-      - ORIGIN=${ORIGIN:-https://sideline.example.com}
+      - PUBLIC_POCKETBASE_URL=${PUBLIC_POCKETBASE_URL:-https://www.readplando.com/sideline/api}
+      - ORIGIN=${ORIGIN:-https://www.readplando.com}
     depends_on:
       pocketbase:
         condition: service_healthy

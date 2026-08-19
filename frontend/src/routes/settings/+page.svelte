@@ -148,6 +148,6 @@
 			</form>
 		</div>
 
-		<a href="/" class="btn-secondary w-full text-center">← Terug</a>
+		<a href="{base}/" class="btn-secondary w-full text-center">← Terug</a>
 	</div>
 {/if}

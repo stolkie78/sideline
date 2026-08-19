@@ -32,8 +32,7 @@
 	function insertLink() {
 		const url = prompt('URL invoeren:', 'https://');
 		if (url) {
-			insertAtCursor('[', `](${url})`);
-		}
+			insertAtCursor('[', `](${url})`);		}
 	}
 
 	function insertImage() {

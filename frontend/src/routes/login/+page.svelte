@@ -18,7 +18,7 @@
 		try {
 			await authUser.login();
 			await tick();
-			window.location.href = '/';
+			window.location.href = base + '/';
 		} catch (e: any) {
 			console.error('Login failed:', e);
 			error = e?.message || 'Inloggen mislukt. Is Google OAuth geconfigureerd?';
@@ -36,7 +36,7 @@
 			const model = (pb.authStore as any).record || (pb.authStore as any).model;
 			authUser.set(model as any);
 			await tick();
-			window.location.href = '/';
+			window.location.href = base + '/';
 		} catch (e: any) {
 			console.error('Email login failed:', e);
 			error = 'Onjuist e-mailadres of wachtwoord.';

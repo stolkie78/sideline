@@ -103,7 +103,7 @@
 				await Promise.all(promises);
 			}
 
-			goto('/trainings');
+			goto(`${base}/trainings`);
 		} catch (e) {
 			console.error('Failed to save training:', e);
 			alert('Fout bij opslaan training');
@@ -245,6 +245,6 @@
 			{saving ? 'Opslaan...' : trainingStatus === 'open' ? 'Training klaarzetten' : 'Training Opslaan'}
 		</button>
 
-		<a href="/trainings" class="btn-secondary w-full text-center">Annuleren</a>
+		<a href="{base}/trainings" class="btn-secondary w-full text-center">Annuleren</a>
 	</form>
 {/if}

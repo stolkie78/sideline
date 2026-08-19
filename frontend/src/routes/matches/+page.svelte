@@ -32,7 +32,7 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Wedstrijden</h2>
-		<a href="/matches/new" class="btn-primary">+ Wedstrijd</a>
+		<a href="{base}/matches/new" class="btn-primary">+ Wedstrijd</a>
 	</div>
 
 	{#if loading}
@@ -70,7 +70,7 @@
 									{match.score_team} - {match.score_opponent}
 								</span>
 							{/if}
-							<a href="/matches/{match.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
+							<a href="{base}/matches/{match.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
 								✏️
 							</a>
 						</div>

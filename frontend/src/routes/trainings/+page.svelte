@@ -37,7 +37,7 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Trainingen</h2>
-		<a href="/trainings/new" class="btn-primary">+ Training</a>
+		<a href="{base}/trainings/new" class="btn-primary">+ Training</a>
 	</div>
 
 	{#if loading}
@@ -93,7 +93,7 @@
 									{expandedId === training.id ? '▲ Sluit' : '▼ Bekijk'}
 								</button>
 							{/if}
-							<a href="/trainings/{training.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm" title="Bewerken">
+							<a href="{base}/trainings/{training.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm" title="Bewerken">
 								Bewerk
 							</a>
 						</div>

@@ -55,10 +55,10 @@
 
 		<!-- Quick Actions -->
 		<div class="grid grid-cols-2 gap-3">
-			<a href="/trainings/new" class="btn-primary text-center text-base py-4">
+			<a href="{base}/trainings/new" class="btn-primary text-center text-base py-4">
 				Nieuwe training
 			</a>
-			<a href="/matches/new" class="btn-primary text-center text-base py-4">
+			<a href="{base}/matches/new" class="btn-primary text-center text-base py-4">
 				Nieuwe wedstrijd
 			</a>
 		</div>
@@ -68,7 +68,7 @@
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="font-semibold text-gray-900 dark:text-gray-100">Laatste trainingen</h2>
-					<a href="/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
+					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
 					{#each trainings.slice(0, 3) as training}
@@ -93,7 +93,7 @@
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="font-semibold text-gray-900 dark:text-gray-100">Laatste wedstrijden</h2>
-					<a href="/matches" class="text-sm text-primary-600 hover:underline">Alles</a>
+					<a href="{base}/matches" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
 					{#each matches.slice(0, 3) as match}

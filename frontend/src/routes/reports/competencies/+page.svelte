@@ -113,8 +113,8 @@
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Competenties</h2>
 		<div class="flex gap-2">
-			<a href="/competencies/new" class="btn-primary text-sm">+ Meting</a>
-			<a href="/reports" class="text-sm text-primary-600 hover:underline self-center">← Terug</a>
+			<a href="{base}/competencies/new" class="btn-primary text-sm">+ Meting</a>
+			<a href="{base}/reports" class="text-sm text-primary-600 hover:underline self-center">← Terug</a>
 		</div>
 	</div>
 
@@ -150,7 +150,7 @@
 		<div class="card text-center py-8 text-gray-500 dark:text-gray-400">
 			
 			<p>Nog geen scores ingevoerd.</p>
-			<a href="/competencies/new" class="btn-primary mt-4 inline-block">Eerste meting starten</a>
+			<a href="{base}/competencies/new" class="btn-primary mt-4 inline-block">Eerste meting starten</a>
 		</div>
 
 	<!-- Per Competency View -->

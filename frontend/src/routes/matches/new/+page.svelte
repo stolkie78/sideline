@@ -227,7 +227,7 @@
 				});
 			});
 			await Promise.all(promises);
-			goto('/matches');
+			goto(`${base}/matches`);
 		} catch (e) {
 			console.error('Failed to save match:', e);
 			alert('Fout bij opslaan wedstrijd');
@@ -562,6 +562,6 @@
 			{saving ? 'Opslaan...' : 'Wedstrijd Opslaan'}
 		</button>
 
-		<a href="/matches" class="btn-secondary w-full text-center">Annuleren</a>
+		<a href="{base}/matches" class="btn-secondary w-full text-center">Annuleren</a>
 	</form>
 {/if}

@@ -32,7 +32,7 @@
 
 		const isPublicPath = $page.url.pathname === '/login' || $page.url.pathname === '/auth-debug';
 		if (AUTH_ENABLED && !pb.authStore.isValid && !isPublicPath) {
-			goto('/login');
+			goto(`${base}/login`);
 			return;
 		}
 
@@ -80,7 +80,7 @@
 	});
 
 	$: if (browser && authReady && AUTH_ENABLED && !$isAuthenticated && $page.url.pathname !== '/login' && $page.url.pathname !== '/auth-debug') {
-		goto('/login');
+		goto(`${base}/login`);
 	}
 
 	// Close menu on navigation
@@ -90,7 +90,7 @@
 
 	function handleLogout() {
 		authUser.logout();
-		goto('/login');
+		goto(`${base}/login`);
 	}
 
 	function toggleDarkMode() {
@@ -141,7 +141,7 @@
 	<header class="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
 		<div class="flex items-center justify-between px-5 py-3 max-w-2xl mx-auto">
 			<!-- Left: Logo + Title -->
-			<a href="/" class="flex items-center gap-3">
+			<a href="{base}/" class="flex items-center gap-3">
 				<img src="/logo.svg" alt="SideLine" class="h-9 w-9 rounded-lg" />
 				<div class="leading-tight">
 					<span class="text-base font-bold text-gray-900 dark:text-white">SideLine</span>

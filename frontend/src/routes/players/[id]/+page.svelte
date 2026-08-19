@@ -104,7 +104,7 @@
 					{STATUS_LABELS[player.status]}
 				</span>
 			</div>
-			<a href="/players/{player.id}/edit" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
+			<a href="{base}/players/{player.id}/edit" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
 				✏️
 			</a>
 		</div>
@@ -176,11 +176,11 @@
 		</div>
 
 		<!-- Back button -->
-		<a href="/players" class="btn-secondary w-full text-center">← Terug naar spelers</a>
+		<a href="{base}/players" class="btn-secondary w-full text-center">← Terug naar spelers</a>
 	</div>
 {:else}
 	<div class="card text-center py-8">
 		<p class="text-gray-500 dark:text-gray-400 dark:text-gray-500">Speler niet gevonden</p>
-		<a href="/players" class="btn-secondary mt-4">← Terug</a>
+		<a href="{base}/players" class="btn-secondary mt-4">← Terug</a>
 	</div>
 {/if}

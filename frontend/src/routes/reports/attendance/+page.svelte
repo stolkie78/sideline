@@ -79,7 +79,7 @@
 {:else}
 	<div class="space-y-4">
 		<div class="flex items-center gap-2">
-			<a href="/reports" class="text-primary-600 text-sm">← Rapportages</a>
+			<a href="{base}/reports" class="text-primary-600 text-sm">← Rapportages</a>
 		</div>
 
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">📊 Trainingsaanwezigheid</h2>

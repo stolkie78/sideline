@@ -183,7 +183,7 @@
 			});
 			await Promise.all(promises);
 
-			goto('/matches');
+			goto(`${base}/matches`);
 		} catch (e) {
 			console.error('Failed to update match:', e);
 			alert('Fout bij bijwerken wedstrijd');
@@ -200,7 +200,7 @@
 				await deleteMatchPlayerStats(stat.id);
 			}
 			await pb.collection('matches').delete(match.id);
-			goto('/matches');
+			goto(`${base}/matches`);
 		} catch (e) {
 			console.error('Failed to delete match:', e);
 			alert('Fout bij verwijderen');
@@ -404,7 +404,7 @@
 		<button type="submit" class="btn-primary w-full text-lg py-4" disabled={saving}>
 			{saving ? 'Opslaan...' : '✓ Wijzigingen opslaan'}
 		</button>
-		<a href="/matches" class="btn-secondary w-full text-center">Annuleren</a>
+		<a href="{base}/matches" class="btn-secondary w-full text-center">Annuleren</a>
 	</form>
 {:else}
 	<p class="text-center text-gray-500 py-8">Wedstrijd niet gevonden</p>

@@ -84,7 +84,7 @@
 	</div>
 {:else}
 	<div class="space-y-4">
-		<a href="/reports" class="text-primary-600 text-sm">← Rapportages</a>
+		<a href="{base}/reports" class="text-primary-600 text-sm">← Rapportages</a>
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">🎯 Punten per positie</h2>
 
 		{#if playerPositionStats.length === 0}

@@ -1,10 +1,22 @@
-# SideLine Caddyfile - Automatic HTTPS reverse proxy
-# Replace sideline.example.com with your actual domain
+# SideLine on www.readplando.com/sideline
+# PocketBase API at /sideline/api, Frontend at /sideline
 
-{$DOMAIN:sideline.example.com} {
-	reverse_proxy frontend:3000
-}
+www.readplando.com {
+	# PocketBase API + Admin
+	handle_path /sideline/api/* {
+		reverse_proxy pocketbase:8090
+	}
 
-api.{$DOMAIN:sideline.example.com} {
-	reverse_proxy pocketbase:8090
+	# PocketBase OAuth redirect
+	handle /sideline/api/oauth2-redirect {
+		reverse_proxy pocketbase:8090
+	}
+
+	# Frontend app
+	handle_path /sideline/* {
+		reverse_proxy frontend:3000
+	}
+
+	# Redirect /sideline to /sideline/
+	redir /sideline /sideline/ 301
 }

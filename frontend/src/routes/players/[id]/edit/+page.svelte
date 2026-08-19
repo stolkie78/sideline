@@ -60,7 +60,7 @@
 			if (formPhoto && formPhoto[0]) data.append('photo', formPhoto[0]);
 
 			await updatePlayer(player.id, data);
-			goto(`/players/${player.id}`);
+			goto(`${base}/players/${player.id}`);
 		} catch (e) {
 			console.error('Failed to update player:', e);
 			alert('Fout bij bijwerken speler');
@@ -74,7 +74,7 @@
 		if (!confirm(`Weet je zeker dat je ${player.name} wilt verwijderen?`)) return;
 		try {
 			await deletePlayer(player.id);
-			goto('/players');
+			goto(`${base}/players`);
 		} catch (e) {
 			console.error('Failed to delete player:', e);
 			alert('Fout bij verwijderen (mogelijk zijn er nog gekoppelde gegevens)');
@@ -156,7 +156,7 @@
 		<button type="submit" class="btn-primary w-full" disabled={saving}>
 			{saving ? 'Opslaan...' : '✓ Wijzigingen opslaan'}
 		</button>
-		<a href="/players/{player.id}" class="btn-secondary w-full text-center">Annuleren</a>
+		<a href="{base}/players/{player.id}" class="btn-secondary w-full text-center">Annuleren</a>
 	</form>
 {:else}
 	<p class="text-center text-gray-500 py-8">Speler niet gevonden</p>
