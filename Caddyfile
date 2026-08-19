@@ -1,0 +1,10 @@
+# SideLine Caddyfile - Automatic HTTPS reverse proxy
+# Replace sideline.example.com with your actual domain
+
+{$DOMAIN:sideline.example.com} {
+	reverse_proxy frontend:3000
+}
+
+api.{$DOMAIN:sideline.example.com} {
+	reverse_proxy pocketbase:8090
+}
