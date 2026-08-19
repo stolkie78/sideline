@@ -15,6 +15,7 @@
 	let matches: (NevoboMatch & { resolved?: { home: string; away: string; sporthal: string }; selected: boolean })[] = [];
 	let error = '';
 	let importCount = 0;
+	let updateCount = 0;
 
 	// Manual config if team doesn't have nevobo settings
 	let manualCode = '';
@@ -81,29 +82,49 @@
 	async function importSelected() {
 		importing = true;
 		importCount = 0;
+		updateCount = 0;
 
 		try {
 			const selected = matches.filter(m => m.selected);
 
+			// Fetch existing matches with nevobo_uuid to detect duplicates
+			const existingMatches = await pb.collection('matches').getFullList({
+				filter: `team = "${$selectedTeamId}"`,
+				fields: 'id,nevobo_uuid'
+			});
+			const existingByUuid = new Map(
+				existingMatches.filter(m => m.nevobo_uuid).map(m => [m.nevobo_uuid, m.id])
+			);
+
 			for (const m of selected) {
 				const dateStr = m.tijdstip || m.datum;
-				// Determine opponent: the team that is NOT ours
 				const isHomeOurs = m.resolved?.home?.toLowerCase().includes('zovoc') ||
 					m.resolved?.home?.toLowerCase().includes(manualCode.toLowerCase());
 				const opponent = isHomeOurs ? m.resolved?.away : m.resolved?.home;
 
-				await pb.collection('matches').create({
+				const nevoboData = {
 					date: new Date(dateStr).toISOString(),
 					opponent: opponent || 'Onbekend',
 					home_away: isHomeOurs ? 'home' : 'away',
 					location: m.resolved?.sporthal || '',
-					team: $selectedTeamId || undefined,
-					season: $selectedSeasonId || undefined,
 					nevobo_uuid: m.uuid,
 					nevobo_code: m.code,
-					created_by: $authUser?.id || undefined,
-				});
-				importCount++;
+				};
+
+				const existingId = existingByUuid.get(m.uuid);
+				if (existingId) {
+					// Update only Nevobo-sourced fields, preserve user data
+					await pb.collection('matches').update(existingId, nevoboData);
+					updateCount++;
+				} else {
+					await pb.collection('matches').create({
+						...nevoboData,
+						team: $selectedTeamId || undefined,
+						season: $selectedSeasonId || undefined,
+						created_by: $authUser?.id || undefined,
+					});
+					importCount++;
+				}
 			}
 
 			// Save nevobo config to team if changed
@@ -224,9 +245,9 @@
 				disabled={importing || matches.filter(m => m.selected).length === 0}
 			>
 				{#if importing}
-					Importeren... ({importCount}/{matches.filter(m => m.selected).length})
+					Importeren... ({importCount + updateCount}/{matches.filter(m => m.selected).length})
 				{:else}
-					📥 {matches.filter(m => m.selected).length} wedstrijden importeren
+					📥 {matches.filter(m => m.selected).length} wedstrijden importeren / bijwerken
 				{/if}
 			</button>
 		</div>
