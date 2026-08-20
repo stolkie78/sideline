@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { authUser } from '$lib/stores/auth';
 	import { pb } from '$lib/pocketbase';
 	import { tick } from 'svelte';
