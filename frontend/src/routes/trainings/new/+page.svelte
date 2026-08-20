@@ -8,6 +8,39 @@
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { authUser } from '$lib/stores/auth';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import { aiConfig } from '$lib/stores/ai';
+
+	let aiPrompt = '';
+	let aiGenerating = false;
+	let aiError = '';
+
+	async function generateWithAI() {
+		if (!aiPrompt.trim() || !$aiConfig.apiKey) return;
+		aiGenerating = true;
+		aiError = '';
+		try {
+			const res = await fetch(`${base}/api/ai`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					prompt: aiPrompt,
+					provider: $aiConfig.provider,
+					apiKey: $aiConfig.apiKey,
+					model: $aiConfig.model || undefined
+				})
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				aiError = data.error || 'Onbekende fout';
+			} else {
+				formContent = data.content || '';
+			}
+		} catch (e) {
+			aiError = String(e);
+		} finally {
+			aiGenerating = false;
+		}
+	}
 
 	let players: Player[] = [];
 	let templates: TrainingTemplate[] = [];
@@ -234,6 +267,38 @@
 		<!-- Training content -->
 		<div class="card space-y-4">
 			<h3 class="font-semibold text-gray-800 dark:text-gray-200">Training Beschrijving</h3>
+
+			<!-- AI Generate -->
+			{#if $aiConfig.apiKey}
+				<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg space-y-2">
+					<label class="label text-purple-700 dark:text-purple-300">🤖 Genereer met AI</label>
+					<div class="flex gap-2">
+						<input
+							class="input flex-1"
+							type="text"
+							bind:value={aiPrompt}
+							placeholder="bijv. Training voor meiden B, focus op bovenhands spel en verdediging, 90 min"
+							on:keydown={(e) => e.key === 'Enter' && generateWithAI()}
+						/>
+						<button
+							type="button"
+							class="btn-primary text-sm whitespace-nowrap"
+							disabled={aiGenerating || !aiPrompt.trim()}
+							on:click={generateWithAI}
+						>
+							{aiGenerating ? '⏳...' : '✨ Genereer'}
+						</button>
+					</div>
+					{#if aiError}
+						<p class="text-xs text-red-500">{aiError}</p>
+					{/if}
+				</div>
+			{:else}
+				<a href="{base}/config" class="text-xs text-gray-400 hover:text-primary-500">
+					💡 Configureer een AI-model in Configuratie → AI om trainingen te genereren
+				</a>
+			{/if}
+
 			<MarkdownEditor bind:value={formContent} placeholder="Beschrijf de training... (gebruik kopjes voor fases, bijv. ## Warm-up)" />
 			<div>
 				<label class="label">Opmerkingen</label>

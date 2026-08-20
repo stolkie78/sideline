@@ -6,11 +6,23 @@
 	import type { Player, Training, Match } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
+	import { marked } from 'marked';
 
 	let players: Player[] = [];
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
 	let loading = true;
+
+	// Upcoming items (future dates)
+	$: upcomingMatches = matches
+		.filter(m => new Date(m.date) >= new Date())
+		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+		.slice(0, 5);
+
+	$: readyTrainings = trainings
+		.filter(t => t.content && t.content.trim().length > 0)
+		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+		.slice(0, 3);
 
 	onMount(async () => {
 		try {
@@ -64,51 +76,85 @@
 			</a>
 		</div>
 
-		<!-- Recent Trainings -->
-		{#if trainings.length > 0}
+		<!-- Upcoming Matches -->
+		{#if upcomingMatches.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="font-semibold text-gray-900 dark:text-gray-100">Laatste trainingen</h2>
-					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📅 Komende wedstrijden</h2>
+					<a href="{base}/matches" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
-					{#each trainings.slice(0, 3) as training}
-						<div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-							<span class="text-sm text-gray-700 dark:text-gray-300">{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-							{#if training.overall_rating}
-								<span class="text-sm font-semibold {
-									training.overall_rating >= 7 ? 'text-green-600' :
-									training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
-								}">
-									{training.overall_rating}/10
-								</span>
-							{/if}
-						</div>
+					{#each upcomingMatches as match}
+						<a href="{base}/matches/{match.id}" class="block p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+							<div class="flex justify-between items-start">
+								<div>
+									<span class="text-sm font-medium text-gray-800 dark:text-gray-200">{match.opponent}</span>
+									<span class="text-xs text-gray-400 ml-1">{match.home_away === 'home' ? '(Thuis)' : '(Uit)'}</span>
+								</div>
+							</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
+								<span>📆 {new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+								<span>⏰ {new Date(match.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span>
+								{#if match.location}
+									<span>📍 {match.location}</span>
+								{/if}
+							</div>
+						</a>
 					{/each}
 				</div>
 			</div>
 		{/if}
 
-		<!-- Recent Matches -->
-		{#if matches.length > 0}
+		<!-- Ready Trainings -->
+		{#if readyTrainings.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="font-semibold text-gray-900 dark:text-gray-100">Laatste wedstrijden</h2>
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📋 Klaargezette trainingen</h2>
+					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
+				</div>
+				<div class="space-y-3">
+					{#each readyTrainings as training}
+						<a href="{base}/trainings/{training.id}/edit" class="block p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+							<div class="flex justify-between items-center">
+								<span class="text-sm text-gray-700 dark:text-gray-300">
+									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+								</span>
+								{#if training.overall_rating}
+									<span class="text-sm font-semibold {
+										training.overall_rating >= 7 ? 'text-green-600' :
+										training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
+									}">
+										{training.overall_rating}/10
+									</span>
+								{/if}
+							</div>
+							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none">
+								{@html marked(training.content?.slice(0, 200) || '', { breaks: true })}
+							</div>
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Recent Matches (played) -->
+		{#if matches.filter(m => m.score_team !== undefined && m.score_team !== null).length > 0}
+			<div class="card">
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">🏐 Uitslagen</h2>
 					<a href="{base}/matches" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
-					{#each matches.slice(0, 3) as match}
-						{@const won = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team > match.score_opponent}
+					{#each matches.filter(m => m.score_team !== undefined && m.score_team !== null).slice(0, 5) as match}
+						{@const won = match.score_team > match.score_opponent}
 						<div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
 							<div>
 								<span class="text-sm font-medium text-gray-800 dark:text-gray-200">{match.opponent}</span>
 								<span class="text-xs text-gray-400 ml-1.5">{match.home_away === 'home' ? 'Thuis' : 'Uit'}</span>
 							</div>
-							{#if match.score_team !== undefined && match.score_opponent !== undefined}
-								<span class="text-sm font-bold {won ? 'text-green-600' : 'text-red-500'}">
-									{match.score_team}–{match.score_opponent}
-								</span>
-							{/if}
+							<span class="text-sm font-bold {won ? 'text-green-600' : 'text-red-500'}">
+								{match.score_team}–{match.score_opponent}
+							</span>
 						</div>
 					{/each}
 				</div>

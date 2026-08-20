@@ -22,8 +22,20 @@
 	import type { Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 
+	import { aiConfig, AI_MODELS } from '$lib/stores/ai';
+	import type { AIConfig } from '$lib/stores/ai';
+
 	// Tab state
-	let activeTab: 'competencies' | 'teams' | 'templates' | 'access' = 'competencies';
+	let activeTab: 'competencies' | 'teams' | 'templates' | 'access' | 'ai' = 'competencies';
+
+	// === AI Config ===
+	let aiProvider: AIConfig['provider'] = $aiConfig.provider;
+	let aiApiKey: string = $aiConfig.apiKey;
+	let aiModel: string = $aiConfig.model;
+
+	function saveAIConfig() {
+		aiConfig.set({ provider: aiProvider, apiKey: aiApiKey, model: aiModel });
+	}
 
 	// === Competencies ===
 	let competencies: Competency[] = [];
@@ -279,6 +291,15 @@
 			on:click={() => { activeTab = 'access'; loadAccess(); }}>
 			Toegang
 		</button>
+		<button
+			class="pb-2 text-sm font-medium transition-colors {
+				activeTab === 'ai'
+					? 'text-primary-600 border-b-2 border-primary-600'
+					: 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+			}"
+			on:click={() => { activeTab = 'ai'; }}>
+			🤖 AI
+		</button>
 	</div>
 
 	<!-- Competencies Tab -->
@@ -504,6 +525,57 @@
 					</div>
 				</div>
 			{/if}
+		</div>
+	{:else if activeTab === 'ai'}
+		<div class="space-y-4">
+			<div class="card space-y-4">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">🤖 AI Configuratie</h3>
+				<p class="text-sm text-gray-500 dark:text-gray-400">
+					Koppel een AI-model om automatisch trainingsplannen te genereren. Je API key wordt lokaal opgeslagen.
+				</p>
+
+				<div>
+					<label class="label">Provider</label>
+					<select class="input" bind:value={aiProvider} on:change={() => { aiModel = ''; saveAIConfig(); }}>
+						<option value="openai">OpenAI (GPT)</option>
+						<option value="gemini">Google Gemini</option>
+					</select>
+				</div>
+
+				<div>
+					<label class="label">API Key</label>
+					<input
+						class="input"
+						type="password"
+						bind:value={aiApiKey}
+						on:blur={saveAIConfig}
+						placeholder={aiProvider === 'openai' ? 'sk-...' : 'AIza...'}
+					/>
+					<p class="text-xs text-gray-400 mt-1">
+						{#if aiProvider === 'openai'}
+							Maak een key aan op <a href="https://platform.openai.com/api-keys" target="_blank" class="text-primary-500 hover:underline">platform.openai.com</a>
+						{:else}
+							Maak een key aan op <a href="https://aistudio.google.com/apikey" target="_blank" class="text-primary-500 hover:underline">aistudio.google.com</a>
+						{/if}
+					</p>
+				</div>
+
+				<div>
+					<label class="label">Model</label>
+					<select class="input" bind:value={aiModel} on:change={saveAIConfig}>
+						<option value="">Standaard</option>
+						{#each AI_MODELS[aiProvider] as m}
+							<option value={m.value}>{m.label}</option>
+						{/each}
+					</select>
+				</div>
+
+				{#if aiApiKey}
+					<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-green-700 dark:text-green-300">
+						✅ AI is geconfigureerd — je ziet een "Genereer met AI" knop bij het aanmaken van trainingen.
+					</div>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
