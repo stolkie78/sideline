@@ -87,7 +87,8 @@ ensure_collection '{
     {"name": "name", "type": "text", "required": true},
     {"name": "nevobo_code", "type": "text", "required": false},
     {"name": "nevobo_team_type", "type": "text", "required": false},
-    {"name": "nevobo_team_number", "type": "number", "required": false}
+    {"name": "nevobo_team_number", "type": "number", "required": false},
+    {"name": "nevobo_url", "type": "url", "required": false}
   ],
   "listRule": "",
   "viewRule": "",
