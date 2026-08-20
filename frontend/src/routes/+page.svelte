@@ -14,6 +14,13 @@
 	let loading = true;
 	let expandedTraining: string | null = null;
 
+	function printTraining(training: Training) {
+		const date = new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+		const html = `<!DOCTYPE html><html><head><title>Training ${date}</title><style>body{font-family:sans-serif;max-width:700px;margin:0 auto;padding:20px}h1{font-size:1.3em;border-bottom:2px solid #2563eb;padding-bottom:8px}h2{font-size:1.1em;margin-top:16px}</style></head><body><h1>🏐 Training ${date}</h1>${marked(training.content || '', { breaks: true })}</body></html>`;
+		const w = window.open('', '_blank');
+		if (w) { w.document.write(html); w.document.close(); w.print(); }
+	}
+
 	// Upcoming items (future dates)
 	$: upcomingMatches = matches
 		.filter(m => new Date(m.date) >= new Date())
@@ -139,6 +146,7 @@
 									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
 										{@html marked(training.content, { breaks: true })}
 									</div>
+									<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
 								{/if}
 							{/if}
 						</div>
@@ -183,6 +191,7 @@
 									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
 										{@html marked(training.content, { breaks: true })}
 									</div>
+									<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
 								{/if}
 							{/if}
 						</div>
