@@ -27,7 +27,15 @@
 	onMount(async () => {
 		if ($selectedTeamId) {
 			team = await pb.collection('teams').getOne<Team>($selectedTeamId);
-			if (team.nevobo_code) {
+			// Parse nevobo_url if available: https://www.volleybal.nl/competitie/vereniging/{code}/{type}/{number}
+			if (team.nevobo_url) {
+				const match = team.nevobo_url.match(/\/vereniging\/([^/]+)\/([^/]+)\/(\d+)/);
+				if (match) {
+					manualCode = match[1];
+					manualType = match[2];
+					manualNumber = parseInt(match[3]);
+				}
+			} else if (team.nevobo_code) {
 				manualCode = team.nevobo_code;
 				manualType = team.nevobo_team_type || 'hs';
 				manualNumber = team.nevobo_team_number || 1;
