@@ -53,7 +53,7 @@ services:
     expose:
       - "3000"
     environment:
-      - PUBLIC_POCKETBASE_URL=${SITE_URL:-http://localhost}/api
+      - PUBLIC_POCKETBASE_URL=${SITE_URL:-http://localhost}
       - ORIGIN=${SITE_URL:-http://localhost}
       - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
       - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
