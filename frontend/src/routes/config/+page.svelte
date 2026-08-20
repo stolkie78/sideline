@@ -200,25 +200,57 @@
 		}
 	}
 
+	let inviteSuccess = '';
+	let inviteLink = '';
+
 	async function handleInvite() {
 		if (!inviteEmail.trim() || !$selectedTeamId) return;
 		inviteError = '';
+		inviteSuccess = '';
+		inviteLink = '';
 		inviting = true;
 		try {
+			// First check if user already exists and has access
 			const user = await findUserByEmail(inviteEmail.trim());
-			if (!user) {
-				inviteError = 'Gebruiker niet gevonden. Ze moeten eerst inloggen via Google.';
+			if (user) {
+				const existing = accessList.find(a => a.user === user.id);
+				if (existing) {
+					inviteError = 'Deze gebruiker heeft al toegang tot dit team.';
+					return;
+				}
+				// User exists, grant directly
+				await grantTeamAccess({ user: user.id, team: $selectedTeamId, role: inviteRole });
+				inviteEmail = '';
+				inviteSuccess = 'Toegang direct verleend (gebruiker bestaat al).';
+				await loadAccess();
 				return;
 			}
-			// Check if already has access
-			const existing = accessList.find(a => a.user === user.id);
-			if (existing) {
-				inviteError = 'Deze gebruiker heeft al toegang tot dit team.';
-				return;
+
+			// User doesn't exist — send invitation email
+			const teamObj = teams.find(t => t.id === $selectedTeamId);
+			const res = await fetch(`${base}/api/invite`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					email: inviteEmail.trim(),
+					team: $selectedTeamId,
+					teamName: teamObj?.name || 'Team',
+					role: inviteRole,
+					invitedBy: pb.authStore.record?.id,
+					siteUrl: window.location.origin
+				})
+			});
+			const data = await res.json();
+			if (!res.ok) {
+				inviteError = data.error || 'Fout bij uitnodigen';
+			} else if (data.emailSent) {
+				inviteSuccess = `✉️ Uitnodiging verstuurd naar ${inviteEmail}`;
+				inviteEmail = '';
+			} else {
+				inviteSuccess = data.message || 'Uitnodiging aangemaakt';
+				inviteLink = data.inviteLink || '';
+				inviteEmail = '';
 			}
-			await grantTeamAccess({ user: user.id, team: $selectedTeamId, role: inviteRole });
-			inviteEmail = '';
-			await loadAccess();
 		} catch (e: any) {
 			inviteError = e?.message || 'Fout bij uitnodigen';
 		} finally {
@@ -482,6 +514,16 @@
 				</div>
 				{#if inviteError}
 					<p class="text-sm text-red-500 dark:text-red-400">{inviteError}</p>
+				{/if}
+				{#if inviteSuccess}
+					<p class="text-sm text-green-600 dark:text-green-400">{inviteSuccess}</p>
+				{/if}
+				{#if inviteLink}
+					<div class="p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs break-all">
+						<span class="text-gray-500">Link:</span>
+						<a href={inviteLink} class="text-primary-600 hover:underline">{inviteLink}</a>
+						<button class="ml-2 text-primary-600" on:click={() => navigator.clipboard.writeText(inviteLink)}>📋 Kopieer</button>
+					</div>
 				{/if}
 			</form>
 

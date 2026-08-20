@@ -17,10 +17,23 @@
 		}
 		loading = false;
 	});
+
+	function exportPDF() {
+		window.print();
+	}
 </script>
 
 <svelte:head>
 	<title>Training - SetBaas</title>
+	<style>
+		@media print {
+			nav, header, .no-print, button, a.btn-primary { display: none !important; }
+			body { background: white !important; color: black !important; }
+			.card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+			.dark\:prose-invert { color: black !important; }
+			.print-header { display: block !important; }
+		}
+	</style>
 </svelte:head>
 
 {#if loading}
@@ -35,7 +48,10 @@
 			<h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">
 				Training {new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 			</h1>
-			<a href="{base}/trainings/{training.id}/edit" class="btn-primary text-sm">✏️ Bewerken</a>
+			<div class="flex gap-2 no-print">
+				<button on:click={exportPDF} class="btn-secondary text-sm">📄 PDF</button>
+				<a href="{base}/trainings/{training.id}/edit" class="btn-primary text-sm">✏️ Bewerken</a>
+			</div>
 		</div>
 
 		{#if training.overall_rating}

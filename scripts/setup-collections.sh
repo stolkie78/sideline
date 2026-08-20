@@ -358,6 +358,26 @@ ensure_collection "{
   \"deleteRule\": \"\"
 }"
 
+# === 15. Invitations ===
+ensure_collection "{
+  \"name\": \"invitations\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"email\", \"type\": \"email\", \"required\": true},
+    {\"name\": \"token\", \"type\": \"text\", \"required\": true},
+    {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"viewer\"], \"maxSelect\": 1},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"pending\",\"accepted\",\"expired\"], \"maxSelect\": 1},
+    {\"name\": \"invited_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
+    {\"name\": \"expires_at\", \"type\": \"date\", \"required\": true}
+  ],
+  \"listRule\": \"\",
+  \"viewRule\": \"\",
+  \"createRule\": \"\",
+  \"updateRule\": \"\",
+  \"deleteRule\": \"\"
+}"
+
 echo ""
 echo "🔐 Configuring Google OAuth..."
 

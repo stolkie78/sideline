@@ -31,7 +31,7 @@
 		// Mark auth as ready - pb.authStore is already loaded from localStorage at this point
 		authReady = true;
 
-		const isPublicPath = $page.url.pathname === '/login' || $page.url.pathname === '/auth-debug';
+		const isPublicPath = $page.url.pathname === '/login' || $page.url.pathname === '/auth-debug' || $page.url.pathname.startsWith('/invite');
 		if (AUTH_ENABLED && !pb.authStore.isValid && !isPublicPath) {
 			goto(`${base}/login`);
 			return;
@@ -80,7 +80,7 @@
 		}
 	});
 
-	$: if (browser && authReady && AUTH_ENABLED && !$isAuthenticated && $page.url.pathname !== '/login' && $page.url.pathname !== '/auth-debug') {
+	$: if (browser && authReady && AUTH_ENABLED && !$isAuthenticated && $page.url.pathname !== '/login' && $page.url.pathname !== '/auth-debug' && !$page.url.pathname.startsWith('/invite')) {
 		goto(`${base}/login`);
 	}
 
