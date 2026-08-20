@@ -6,8 +6,8 @@
 set -e
 
 PB_URL="${1:-http://localhost:8090}"
-ADMIN_EMAIL="${2:-admin@teamtracker.nl}"
-ADMIN_PASSWORD="${3:-TeamTracker2026!}"
+ADMIN_EMAIL="${PB_ADMIN_EMAIL:-${2:-admin@teamtracker.nl}}"
+ADMIN_PASSWORD="${PB_ADMIN_PASSWORD:-${3:-TeamTracker2026!}}"
 
 echo "🏐 SideLine — Setting up PocketBase collections at $PB_URL"
 
@@ -20,10 +20,16 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-# Ensure superuser exists (works when run from host with docker available)
+# Ensure superuser exists
+# Method 1: Try docker exec (when running from host)
 if command -v docker &> /dev/null && docker ps --filter name=teamtracker-pb --format '{{.Names}}' 2>/dev/null | grep -q teamtracker-pb; then
   docker exec teamtracker-pb pocketbase superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASSWORD" 2>/dev/null || true
 fi
+
+# Method 2: Try creating via API (works on fresh install when no superusers exist)
+curl -sf "$PB_URL/api/collections/_superusers/records" \
+  -X POST -H "Content-Type: application/json" \
+  -d "{\"email\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\",\"passwordConfirm\":\"$ADMIN_PASSWORD\"}" > /dev/null 2>&1 || true
 
 # Authenticate
 TOKEN=$(curl -sf "$PB_URL/api/collections/_superusers/auth-with-password" \
