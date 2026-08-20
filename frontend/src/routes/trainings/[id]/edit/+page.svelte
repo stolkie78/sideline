@@ -31,6 +31,8 @@
 					fullPrompt += `\n\nHuidige periodisering: "${currentPeriod.name}" (fase: ${currentPeriod.phase || 'onbekend'})\nDoelen voor deze periode:\n${goals.join('\n')}`;
 				}
 			}
+			const controller = new AbortController();
+			const timeout = setTimeout(() => controller.abort(), 60000);
 			const res = await fetch(`${base}/api/ai`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -40,8 +42,10 @@
 					apiKey: $aiConfig.apiKey,
 					model: $aiConfig.model || undefined,
 					systemPrompt: $aiConfig.systemPrompt || DEFAULT_SYSTEM_PROMPT
-				})
+				}),
+				signal: controller.signal
 			});
+			clearTimeout(timeout);
 			const data = await res.json();
 			if (!res.ok) aiError = data.error || 'Onbekende fout';
 			else formContent = data.content || '';
