@@ -3,6 +3,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { getPlayers, createTraining, createTrainingAttendance, getTeamPlayers, getTrainingTemplates } from '$lib/pocketbase';
+	import { pb } from '$lib/pocketbase';
 	import type { Player, AttendanceStatus, TrainingTemplate } from '$lib/types';
 	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -14,16 +15,32 @@
 	let aiGenerating = false;
 	let aiError = '';
 
+	// Current periodization
+	let currentPeriod: any = null;
+
 	async function generateWithAI() {
 		if (!aiPrompt.trim() || !$aiConfig.apiKey) return;
 		aiGenerating = true;
 		aiError = '';
 		try {
+			// Build context with periodization goals
+			let fullPrompt = aiPrompt;
+			if (currentPeriod) {
+				const goals = [];
+				if (currentPeriod.goals_technical) goals.push(`Technisch: ${currentPeriod.goals_technical}`);
+				if (currentPeriod.goals_tactical) goals.push(`Tactisch: ${currentPeriod.goals_tactical}`);
+				if (currentPeriod.goals_physical) goals.push(`Fysiek: ${currentPeriod.goals_physical}`);
+				if (currentPeriod.goals_mental) goals.push(`Mentaal: ${currentPeriod.goals_mental}`);
+				if (goals.length > 0) {
+					fullPrompt += `\n\nHuidige periodisering: "${currentPeriod.name}" (fase: ${currentPeriod.phase || 'onbekend'})\nDoelen voor deze periode:\n${goals.join('\n')}`;
+				}
+			}
+
 			const res = await fetch(`${base}/api/ai`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					prompt: aiPrompt,
+					prompt: fullPrompt,
 					provider: $aiConfig.provider,
 					apiKey: $aiConfig.apiKey,
 					model: $aiConfig.model || undefined,
@@ -69,6 +86,16 @@
 		try {
 			// Load templates (global, not filtered by team/season)
 			templates = await getTrainingTemplates();
+
+			// Load current periodization period
+			const today = new Date().toISOString().slice(0, 10);
+			try {
+				const periods = await pb.collection('season_periods').getFullList({
+					filter: `start_date <= "${today}" && end_date >= "${today}"${$selectedTeamId ? ` && team = "${$selectedTeamId}"` : ''}`,
+					sort: '-start_date'
+				});
+				if (periods.length > 0) currentPeriod = periods[0];
+			} catch (e) { /* no periods configured */ }
 
 			// Load team players for current context, fallback to all active players
 			if ($selectedTeamId && $selectedSeasonId) {
@@ -269,10 +296,31 @@
 		<div class="card space-y-4">
 			<h3 class="font-semibold text-gray-800 dark:text-gray-200">Training Beschrijving</h3>
 
+			<!-- Current Periodization -->
+			{#if currentPeriod}
+				<div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+					<div class="flex items-center gap-2 mb-2">
+						<span class="text-sm font-semibold text-blue-700 dark:text-blue-300">📅 Huidige periode: {currentPeriod.name}</span>
+						{#if currentPeriod.phase}
+							<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300">{currentPeriod.phase}</span>
+						{/if}
+					</div>
+					<div class="grid grid-cols-2 gap-1 text-xs text-gray-600 dark:text-gray-400">
+						{#if currentPeriod.goals_technical}<p>🎯 <strong>Technisch:</strong> {currentPeriod.goals_technical}</p>{/if}
+						{#if currentPeriod.goals_tactical}<p>🧠 <strong>Tactisch:</strong> {currentPeriod.goals_tactical}</p>{/if}
+						{#if currentPeriod.goals_physical}<p>💪 <strong>Fysiek:</strong> {currentPeriod.goals_physical}</p>{/if}
+						{#if currentPeriod.goals_mental}<p>🧘 <strong>Mentaal:</strong> {currentPeriod.goals_mental}</p>{/if}
+					</div>
+				</div>
+			{/if}
+
 			<!-- AI Generate -->
 			{#if $aiConfig.apiKey}
 				<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg space-y-2">
 					<label class="label text-purple-700 dark:text-purple-300">🤖 Genereer met AI</label>
+					{#if currentPeriod}
+						<p class="text-xs text-purple-600 dark:text-purple-400">ℹ️ De periodiseringsdoelen worden automatisch meegestuurd als context voor de AI.</p>
+					{/if}
 					<div class="flex gap-2">
 						<input
 							class="input flex-1"
