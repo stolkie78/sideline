@@ -135,6 +135,15 @@
 		}
 	}
 
+	async function saveTeamNevoboUrl(team: Team, url: string) {
+		try {
+			await pb.collection('teams').update(team.id, { nevobo_url: url });
+		} catch (e) {
+			console.error('Failed to save nevobo_url:', e);
+			alert('Fout bij opslaan URL');
+		}
+	}
+
 	async function handleAddSeason() {
 		savingSeason = true;
 		try {
@@ -361,10 +370,22 @@
 			<div class="card space-y-3">
 				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Teams</h3>
 				{#if teams.length > 0}
-					<div class="space-y-1">
+					<div class="space-y-3">
 						{#each teams as team}
-							<div class="flex items-center gap-2 py-1.5 border-b border-gray-50 dark:border-gray-700 last:border-0">
-								<span class="text-sm font-medium flex-1">{team.name}</span>
+							<div class="p-3 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2">
+								<span class="text-sm font-medium">{team.name}</span>
+								<div class="flex gap-2 items-center">
+									<input
+										class="input text-xs flex-1"
+										type="url"
+										placeholder="Nevobo URL (bijv. https://www.volleybal.nl/competitie/...)"
+										value={team.nevobo_url || ''}
+										on:blur={(e) => saveTeamNevoboUrl(team, e.currentTarget.value)}
+									/>
+									{#if team.nevobo_url}
+										<a href={team.nevobo_url} target="_blank" class="text-blue-400 text-xs hover:underline">↗</a>
+									{/if}
+								</div>
 							</div>
 						{/each}
 					</div>

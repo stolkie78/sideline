@@ -15,6 +15,7 @@ export interface Team extends RecordModel {
 	nevobo_code?: string; // Nevobo verenigingscode (e.g. CKM1H25)
 	nevobo_team_type?: string; // e.g. 'hs', 'ds', 'mb', 'mj'
 	nevobo_team_number?: number; // e.g. 1
+	nevobo_url?: string; // URL to team page on volleybal.nl
 }
 
 export interface Season extends RecordModel {
