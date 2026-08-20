@@ -1,3 +1,8 @@
+# Production environment: setbaas.nl (HTTPS via Let's Encrypt)
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml --profile setup run --rm pb-setup
+
 services:
   caddy:
     image: caddy:2-alpine
@@ -6,8 +11,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -32,16 +38,14 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - BASE_PATH=${BASE_PATH:-/setbaas}
     image: setbaas-frontend:latest
     container_name: setbaas-frontend
     restart: unless-stopped
     expose:
       - "3000"
     environment:
-      - PUBLIC_POCKETBASE_URL=${PUBLIC_POCKETBASE_URL:-https://www.readplando.com/setbaas/api}
-      - ORIGIN=${ORIGIN:-https://www.readplando.com}
+      - PUBLIC_POCKETBASE_URL=https://setbaas.nl/api
+      - ORIGIN=https://setbaas.nl
     depends_on:
       pocketbase:
         condition: service_healthy
@@ -54,7 +58,13 @@ services:
         condition: service_healthy
     volumes:
       - ./scripts:/scripts
-    entrypoint: ["sh", "-c", "apk add --no-cache curl jq > /dev/null 2>&1 && sh /scripts/setup-collections.sh http://pocketbase:8090"]
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        apk add --no-cache curl jq docker-cli > /dev/null 2>&1
+        docker exec setbaas-pb pocketbase superuser upsert "$$PB_ADMIN_EMAIL" "$$PB_ADMIN_PASSWORD" 2>/dev/null || true
+        sh /scripts/setup-collections.sh http://pocketbase:8090
     environment:
       - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
       - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}

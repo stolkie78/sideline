@@ -87,7 +87,7 @@ make logs      # Tail container logs
 - Poort 80 + 443 open (voor Caddy HTTPS)
 - Minimaal 1 GB RAM, 10 GB disk
 
-### Stap-voor-stap deployment
+### Stap-voor-stap deployment (setbaas.nl)
 
 ```bash
 # 1. Installeer Docker (als dat nog niet is gedaan)
@@ -100,44 +100,45 @@ git clone https://github.com/stolkie78/setbaas.git
 cd setbaas
 
 # 3. Configureer environment
-cp .env.production .env
+cp .env.example .env
 nano .env
 # Minimaal invullen:
-#   DOMAIN=www.readplando.com
-#   BASE_PATH=/setbaas
-#   PB_ADMIN_EMAIL=admin@setbaas.app
+#   PB_ADMIN_EMAIL=admin@setbaas.nl
 #   PB_ADMIN_PASSWORD=<sterk wachtwoord>
 #   GOOGLE_CLIENT_ID=<van Google Cloud Console>
 #   GOOGLE_CLIENT_SECRET=<van Google Cloud Console>
 
 # 4. Eerste deployment (inclusief collection setup)
-./scripts/deploy-prod.sh setup
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml --profile setup run --rm pb-setup
 
 # 5. Updates deployen
-git pull
-./scripts/deploy-prod.sh
+git pull && docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### Wat het deploy script doet
+### HTTPS / Let's Encrypt
 
-1. Bouwt de frontend Docker image met `BASE_PATH`
-2. Start Caddy + PocketBase + Frontend via `docker-compose.prod.yml`
-3. Caddy verzorgt automatisch HTTPS via Let's Encrypt
-4. Bij `setup`: draait het collection setup script voor PocketBase
+Caddy regelt automatisch een Let's Encrypt certificaat voor `setbaas.nl`:
+- Poort **80** en **443** moeten open staan op de server
+- DNS A-record voor `setbaas.nl` moet naar het server IP wijzen
+- Caddy handelt certificate provisioning, renewal en OCSP stapling automatisch af
+- `www.setbaas.nl` wordt automatisch geredirect naar `setbaas.nl`
 
 ### Docker Compose bestanden
 
 | Bestand | Gebruik |
 |---------|---------|
 | `docker-compose.yml` | Lokale development (geen Caddy, poort 3000+8090) |
-| `docker-compose.prod.yml` | Productie (Caddy reverse proxy, HTTPS, volumes) |
+| `docker-compose.local.yml` | LAN deployment op `setbaas.local` (HTTP only) |
+| `docker-compose.prod.yml` | Productie op `setbaas.nl` (HTTPS via Let's Encrypt) |
 
 ### URLs na deployment
 
 | URL | Functie |
 |-----|---------|
-| `https://www.readplando.com/setbaas/` | Frontend app |
-| `https://www.readplando.com/setbaas/api/` | PocketBase REST API |
+| `https://setbaas.nl/` | Frontend app |
+| `https://setbaas.nl/api/` | PocketBase REST API |
+| `https://setbaas.nl/_/` | PocketBase Admin UI |
 | `https://www.readplando.com/setbaas/api/_/` | PocketBase Admin UI |
 
 ### Google OAuth configuratie
