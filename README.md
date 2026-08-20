@@ -2,6 +2,8 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling.
 
+**Live:** [setbaas.nl](https://setbaas.nl)
+
 ## Tech Stack
 
 | Component | Technologie |
@@ -19,18 +21,19 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Trainingen** — Markdown beschrijving met rich editor, templates, aanwezigheid + scores
 - **Wedstrijden** — Per-set lineups (pos 1-6), spelsysteem, wissels, timeouts
 - **Competenties** — 4x per seizoen meetbaar, eigenaarschap per meting
-- **Seizoen periodisering** — Technisch/Tactisch/Fysiek/Mentaal doelen
+- **Seizoen periodisering** — Technisch/Tactisch/Fysiek/Mentaal doelen per fase
+- **PDF Export** — Training exporteren als PDF vanuit dashboard of detailpagina
 
 ### Integraties
-- **Nevobo Import** — Automatisch wedstrijdschema ophalen van de Nederlandse Volleybal Bond API. Supports upsert: herimporteren werkt bestaande wedstrijden bij (datum, locatie, scores) zonder je eigen data te overschrijven
-- **AI Training Generator** — Genereer trainingsplannen met OpenAI GPT of Google Gemini. Configureerbare systeem prompt voor team-specifieke volleybal-AI
+- **Nevobo Import** — Automatisch wedstrijdschema ophalen van volleybal.nl
+- **AI Training Generator** — Genereer trainingsplannen met OpenAI GPT of Google Gemini, inclusief periodiseringsdoelen als context
+- **Email Uitnodigingen** — Nodig teamleden uit via email (SMTP) of deelbare link
 
 ### Platform
 - **Auth** — Google OAuth + email/password, multi-user met team_access (admin/coach/viewer)
-- **Ownership** — Wie heeft een training klaargezet of scores ingevoerd
-- **Dashboard** — Komende wedstrijden (datum, tijd, locatie), klaargezette trainingen met content preview, gespeelde uitslagen
+- **Dashboard** — Open trainingen, afgeronde trainingen (met scores), komende wedstrijden, gespeelde uitslagen
 - **Dark mode** — Standaard aan
-- **Subpath deployment** — Draait op `/setbaas` subpath (configureerbaar)
+- **PWA** — Installeerbaar op mobiel
 
 ---
 
@@ -39,212 +42,191 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 ### Vereisten
 
 - Docker & Docker Compose
-- Node.js 20+ (alleen voor frontend dev buiten Docker)
 
 ### Starten
 
 ```bash
 # Clone
-git clone https://github.com/stolkie78/setbaas.git
-cd setbaas
+git clone https://github.com/stolkie78/sideline.git
+cd sideline
 
 # Configuratie
-cp .env.production .env
-# Vul je credentials in:
+cp .env.example .env
 nano .env
+# Minimaal invullen: PB_ADMIN_EMAIL + PB_ADMIN_PASSWORD
 
 # Start (eerste keer)
-docker compose up -d
+docker compose up -d --build
 docker compose --profile setup run --rm pb-setup
 
-# Daarna alleen:
+# Daarna:
 docker compose up -d
 ```
 
 De app draait op:
 - **Frontend:** http://localhost:3000
-- **PocketBase API:** http://localhost:8090
 - **PocketBase Admin:** http://localhost:8090/_/
-
-### Makefile shortcuts
-
-```bash
-make up        # Start containers
-make down      # Stop containers
-make rebuild   # Rebuild + restart frontend
-make setup     # Run PocketBase collection setup
-make logs      # Tail container logs
-```
 
 ---
 
-## Productie Deployment (Docker Linux)
+## Productie Deployment
 
 ### Vereisten
 
-- Linux server (Ubuntu 22.04+ aanbevolen) met Docker + Docker Compose
+- Linux server met Docker + Docker Compose
 - Domein met DNS A-record naar je server
-- Poort 80 + 443 open (voor Caddy HTTPS)
-- Minimaal 1 GB RAM, 10 GB disk
+- Poort 80 + 443 open
 
-### Stap-voor-stap deployment (setbaas.nl)
+### Deployment
 
 ```bash
-# 1. Installeer Docker (als dat nog niet is gedaan)
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-# Log opnieuw in
-
-# 2. Clone op de server
-git clone https://github.com/stolkie78/setbaas.git
+# 1. Clone op de server
+git clone https://github.com/stolkie78/sideline.git setbaas
 cd setbaas
 
-# 3. Configureer environment
+# 2. Configureer
 cp .env.example .env
 nano .env
-# Minimaal invullen:
+# Invullen:
+#   DOMAIN=setbaas.nl
+#   ENABLE_SSL=true
+#   SITE_URL=https://setbaas.nl
 #   PB_ADMIN_EMAIL=admin@setbaas.nl
 #   PB_ADMIN_PASSWORD=<sterk wachtwoord>
 #   GOOGLE_CLIENT_ID=<van Google Cloud Console>
 #   GOOGLE_CLIENT_SECRET=<van Google Cloud Console>
 
-# 4. Eerste deployment (inclusief collection setup)
+# 3. Start + setup
 docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml --profile setup run --rm pb-setup
 
-# 5. Updates deployen
+# 4. Updates deployen
 git pull && docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-### HTTPS / Let's Encrypt
+### HTTPS
 
-Caddy regelt automatisch een Let's Encrypt certificaat voor `setbaas.nl`:
-- Poort **80** en **443** moeten open staan op de server
-- DNS A-record voor `setbaas.nl` moet naar het server IP wijzen
-- Caddy handelt certificate provisioning, renewal en OCSP stapling automatisch af
-- `www.setbaas.nl` wordt automatisch geredirect naar `setbaas.nl`
+Caddy regelt automatisch Let's Encrypt certificaten:
+- Poort 80 + 443 moeten open staan
+- DNS A-record moet naar het server IP wijzen
+- `www.setbaas.nl` → automatisch redirect naar `setbaas.nl`
 
-### Docker Compose bestanden
+### Google OAuth
 
-| Bestand | Gebruik |
-|---------|---------|
-| `docker-compose.yml` | Lokale development (geen Caddy, poort 3000+8090) |
-| `docker-compose.local.yml` | LAN deployment op `setbaas.local` (HTTP only) |
-| `docker-compose.prod.yml` | Productie op `setbaas.nl` (HTTPS via Let's Encrypt) |
-
-### URLs na deployment
-
-| URL | Functie |
-|-----|---------|
-| `https://setbaas.nl/` | Frontend app |
-| `https://setbaas.nl/api/` | PocketBase REST API |
-| `https://setbaas.nl/_/` | PocketBase Admin UI |
-| `https://www.readplando.com/setbaas/api/_/` | PocketBase Admin UI |
-
-### Google OAuth configuratie
-
-Na deployment, update de **Authorized redirect URI** in de [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
-
+Redirect URIs in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
 ```
-https://www.readplando.com/setbaas/api/oauth2-redirect
-```
-
-### Onderhoud
-
-```bash
-# Logs bekijken
-docker compose -f docker-compose.prod.yml logs -f
-
-# Herstart na config wijziging
-docker compose -f docker-compose.prod.yml restart
-
-# Backend data backup (SQLite)
-docker compose -f docker-compose.prod.yml exec pocketbase cp /pb/pb_data/data.db /pb/pb_data/backup.db
-
-# Volledige rebuild
-docker compose -f docker-compose.prod.yml build --no-cache
-docker compose -f docker-compose.prod.yml up -d
+https://setbaas.nl/api/oauth2-redirect
+https://www.setbaas.nl/api/oauth2-redirect
 ```
 
 ---
 
-## Azure Container Apps Deployment
+## Backup & Restore
 
-Een alternatieve deployment op Azure Container Apps (Bicep):
+### Backup maken
 
 ```bash
-# Login
-az login
+# Op de server:
+./scripts/backup.sh
 
-# Deploy
-./infra/deploy.sh
+# Of naar specifieke locatie:
+./scripts/backup.sh /mnt/backups
+
+# Backup downloaden naar lokale machine:
+scp user@server:/path/to/setbaas/backups/setbaas_backup_*.tar.gz ~/backups/
 ```
 
-Zie `infra/main.bicep` voor de volledige infrastructuur definitie.
+Het script:
+- Kopieert de PocketBase database + uploads uit de Docker container
+- Maakt een gecomprimeerd `.tar.gz` archief met timestamp
+- Behoudt de laatste 7 backups, oudere worden automatisch opgeruimd
 
-Geschatte kosten: **€5-16/maand** (consumption plan).
+### Automatische backup (cron)
+
+```bash
+# Op de server:
+crontab -e
+# Voeg toe (dagelijks om 3:00):
+0 3 * * * cd /path/to/setbaas && ./scripts/backup.sh >> /var/log/setbaas-backup.log 2>&1
+```
+
+### Restore
+
+```bash
+# 1. Stop de containers
+docker compose -f docker-compose.prod.yml down
+
+# 2. Pak de backup uit
+mkdir -p /tmp/restore
+tar -xzf backups/setbaas_backup_YYYYMMDD_HHMMSS.tar.gz -C /tmp/restore
+
+# 3. Kopieer database terug
+docker compose -f docker-compose.prod.yml up -d pocketbase
+docker compose -f docker-compose.prod.yml cp /tmp/restore/data.db pocketbase:/pb/pb_data/data.db
+docker compose -f docker-compose.prod.yml cp /tmp/restore/storage pocketbase:/pb/pb_data/storage
+
+# 4. Herstart
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d
+
+# 5. Opruimen
+rm -rf /tmp/restore
+```
+
+---
+
+## Email Uitnodigingen (SMTP)
+
+Om uitnodigingen per email te versturen, configureer SMTP in `.env`:
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=jouw@gmail.com
+SMTP_PASS=<app-password>
+SMTP_FROM=noreply@setbaas.nl
+```
+
+> **Tip:** Gebruik een [Google App Password](https://myaccount.google.com/apppasswords) voor Gmail.
+
+Zonder SMTP worden uitnodigingen aangemaakt met een deelbare link die je handmatig kunt kopiëren.
 
 ---
 
 ## AI Configuratie
 
-SetBaas ondersteunt AI-gegenereerde trainingsplannen via OpenAI of Google Gemini.
-
-### Setup
-
 1. Ga naar **Configuratie → AI** in de app
 2. Kies provider: **OpenAI (GPT)** of **Google Gemini**
-3. Vul je API key in:
-   - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-   - Gemini: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+3. Vul je API key in
 4. Kies een model (optioneel)
-
-### Beschikbare modellen
 
 | Provider | Model | Omschrijving |
 |----------|-------|-------------|
 | OpenAI | `gpt-4o-mini` | Snel en goedkoop |
 | OpenAI | `gpt-4o` | Beste kwaliteit |
-| OpenAI | `gpt-4.1-mini` | Nieuwste mini model |
-| Gemini | `gemini-2.5-flash` | Snel |
-| Gemini | `gemini-3.1-pro-preview` | Beste kwaliteit |
+| Gemini | `gemini-3.6-flash` | Snel (standaard) |
 
-### Systeem prompt
-
-De AI stuurt altijd een volleybal-specifieke systeem prompt mee, geoptimaliseerd voor meiden B (14-16 jaar). Deze prompt zorgt voor:
-- Gestructureerde trainingsplannen in Markdown
-- Oefeningen met naam, doel, uitleg, duur en variaties
-- Opbouw van techniek → toepassing → spelvorm
-- 90 minuten standaard trainingsduur
-
-Je kunt de systeem prompt aanpassen in **Configuratie → AI** voor jouw specifieke teamcontext.
-
-### Gebruik
-
-Bij **Nieuwe training** verschijnt een "Genereer met AI" prompt veld. Voorbeeld prompts:
-- "Training focus op bovenhands spel, 90 minuten"
-- "Verdedigingstraining met veel balrally oefeningen"
-- "Wedstrijdvoorbereiding tegen sterk blokkend team"
+De AI gebruikt automatisch de **periodiseringsdoelen** van de huidige periode als extra context.
 
 ---
 
-## Nevobo Integratie
+## Environment Variables
 
-Import wedstrijdschema's direct vanuit de Nederlandse Volleybal Bond (Nevobo) API.
-
-### Configuratie
-
-1. Ga naar **Configuratie → Teams** en vul de Nevobo URL in bij je team
-2. Ga naar **Wedstrijden → 📥 Nevobo** om het importscherm te openen
-3. Vul je verenigingscode in (bijv. `CKL9N3N` voor Zovoc)
-4. Selecteer teamtype en nummer
-
-### Features
-
-- **Automatisch ophalen** van wedstrijdschema met datum, tijd, locatie, tegenstander
-- **Thuis/Uit detectie** op basis van teamnaam
-- **Upsert bij herimport** — bestaande wedstrijden worden bijgewerkt (datum, locatie, scores) zonder je eigen data (lineups, notities, wissels) te overschrijven
-- **Scores importeren** zodra wedstrijden gespeeld zijn (setstanden + uitslag)
+| Variable | Beschrijving | Voorbeeld |
+|----------|-------------|-----------|
+| `DOMAIN` | Productie domein | `setbaas.nl` |
+| `ENABLE_SSL` | HTTPS via Let's Encrypt | `true` / `false` |
+| `SITE_URL` | Volledige site URL | `https://setbaas.nl` |
+| `HTTP_PORT` | HTTP poort (standaard 80) | `80` |
+| `PB_ADMIN_EMAIL` | PocketBase admin email | `admin@setbaas.nl` |
+| `PB_ADMIN_PASSWORD` | PocketBase admin wachtwoord | (secret) |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | `*.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | (secret) |
+| `SMTP_HOST` | SMTP server | `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP poort | `587` |
+| `SMTP_USER` | SMTP gebruiker | `jouw@gmail.com` |
+| `SMTP_PASS` | SMTP wachtwoord | (secret) |
+| `SMTP_FROM` | Afzender email | `noreply@setbaas.nl` |
 
 ---
 
@@ -255,110 +237,14 @@ Import wedstrijdschema's direct vanuit de Nederlandse Volleybal Bond (Nevobo) AP
 │  Caddy (reverse proxy, auto HTTPS)          │
 │  :80 / :443                                 │
 ├─────────────────────────────────────────────┤
-│  /setbaas/*        → Frontend (:3000)      │
-│  /setbaas/api/*    → PocketBase (:8090)    │
+│  /api/nevobo  → Frontend (:3000)           │
+│  /api/ai      → Frontend (:3000)           │
+│  /api/invite  → Frontend (:3000)           │
+│  /api/*       → PocketBase (:8090)         │
+│  /_/*         → PocketBase (:8090)         │
+│  /*           → Frontend (:3000)           │
 └─────────────────────────────────────────────┘
-         │                      │
-    ┌────▼────┐          ┌──────▼──────┐
-    │ SvelteKit│          │ PocketBase  │
-    │ Node.js  │          │ SQLite      │
-    │ :3000    │◄────────►│ :8090       │
-    └──────────┘  API     └─────────────┘
-         │                      │
-    ┌────▼────┐          ┌──────▼──────┐
-    │ /api/ai │          │ pb_data/    │
-    │ /api/   │          │ (volume)    │
-    │ nevobo  │          └─────────────┘
-    └─────────┘
 ```
-
-### Server-side proxy routes
-
-| Route | Doel |
-|-------|------|
-| `/api/nevobo` | CORS proxy voor Nevobo API (api.nevobo.nl) |
-| `/api/ai` | AI generation endpoint (OpenAI/Gemini) |
-
----
-
-## Project Structuur
-
-```
-├── frontend/                   # SvelteKit app
-│   ├── src/
-│   │   ├── lib/
-│   │   │   ├── components/     # MarkdownEditor etc.
-│   │   │   ├── stores/         # Auth, context, AI config stores
-│   │   │   ├── types/          # TypeScript interfaces
-│   │   │   ├── pocketbase.ts   # PocketBase SDK + API functies
-│   │   │   └── nevobo.ts       # Nevobo API helper
-│   │   └── routes/
-│   │       ├── api/
-│   │       │   ├── ai/         # AI generation endpoint
-│   │       │   └── nevobo/     # Nevobo CORS proxy
-│   │       ├── matches/
-│   │       │   └── import/     # Nevobo match import page
-│   │       ├── trainings/      # Training CRUD
-│   │       ├── config/         # Configuratie (teams, AI, etc.)
-│   │       └── +page.svelte    # Dashboard
-│   ├── Dockerfile
-│   ├── svelte.config.js        # Base path configuratie
-│   └── tailwind.config.js
-├── infra/                      # Azure Bicep deployment
-│   ├── main.bicep
-│   ├── main.bicepparam
-│   └── deploy.sh
-├── scripts/
-│   ├── setup-collections.sh    # Idempotent PB setup
-│   └── deploy-prod.sh          # Productie deploy script
-├── docker-compose.yml          # Lokale development
-├── docker-compose.prod.yml     # Productie (met Caddy)
-├── Caddyfile                   # Reverse proxy config
-├── Dockerfile.pocketbase       # PB image voor ACR
-├── .env.production             # Env template
-├── .env                        # Lokale secrets (gitignored)
-└── Makefile
-```
-
----
-
-## Environment Variables
-
-| Variable | Beschrijving | Voorbeeld |
-|----------|-------------|-----------|
-| `DOMAIN` | Productie domein | `www.readplando.com` |
-| `BASE_PATH` | Subpath voor SvelteKit | `/setbaas` |
-| `PUBLIC_POCKETBASE_URL` | PB API URL (voor frontend) | `https://www.readplando.com/setbaas/api` |
-| `ORIGIN` | Frontend origin | `https://www.readplando.com` |
-| `PB_ADMIN_EMAIL` | PocketBase admin email | `admin@setbaas.app` |
-| `PB_ADMIN_PASSWORD` | PocketBase admin wachtwoord | (secret) |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | `*.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | (secret) |
-
-> **Let op:** AI API keys worden **niet** server-side opgeslagen. Ze staan in de browser's localStorage en worden per-request meegestuurd naar de `/api/ai` proxy.
-
----
-
-## PocketBase Collections
-
-Het setup script (`scripts/setup-collections.sh`) maakt automatisch alle benodigde collections aan:
-
-| Collection | Beschrijving |
-|-----------|-------------|
-| `teams` | Teams (naam, nevobo_code, nevobo_url) |
-| `seasons` | Seizoenen (naam, start/eind jaar) |
-| `players` | Spelers (naam, foto, positie, status) |
-| `team_players` | Koppeling speler↔team↔seizoen |
-| `competencies` | Competentie definities |
-| `player_competencies` | Scores per speler per competentie |
-| `trainings` | Trainingen (markdown content, score, status) |
-| `training_templates` | Herbruikbare training templates |
-| `training_attendance` | Aanwezigheid + individuele scores |
-| `training_plans` | Jaarplanning |
-| `matches` | Wedstrijden (nevobo_uuid voor sync, locatie, scores) |
-| `match_sets` | Per-set data |
-| `season_periods` | Periodisering fases |
-| `team_access` | Gebruikersrechten per team |
 
 ---
 
@@ -366,9 +252,12 @@ Het setup script (`scripts/setup-collections.sh`) maakt automatisch alle benodig
 
 | Tag | Beschrijving |
 |-----|-------------|
-| v0.1 | Eerste werkende versie (auth, spelers, trainingen, wedstrijden) |
-| v0.2 | Idempotent setup, data safety, default seeding |
-| v0.3 | Markdown editor, Nevobo import, AI integratie, dashboard, subpath deployment |
+| v1.0 | Eerste productie release (auth, spelers, trainingen, wedstrijden, Nevobo, AI, logo) |
+| v1.1 | Periodisering in training formulier + AI context |
+| v1.2 | Dashboard: Open status op geplande trainingen |
+| v1.3 | Dashboard: Open/Afgerond trainingen gescheiden (max 3 per sectie) |
+| v1.4 | Email uitnodigingssysteem, PDF export, Gemini 3.6 |
+| v1.5 | Productie fixes: OAuth, Caddy routing, trusted proxy, PB URL |
 
 ---
 
