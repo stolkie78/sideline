@@ -25,9 +25,8 @@
 		.slice(0, 5);
 
 	$: recentTrainings = trainings
-		.filter(t => new Date(t.date) < new Date())
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-		.slice(0, 3);
+		.slice(0, 5);
 
 	onMount(async () => {
 		try {
@@ -146,7 +145,7 @@
 		{#if recentTrainings.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="font-semibold text-gray-900 dark:text-gray-100">✅ Afgelopen trainingen</h2>
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">🏋️ Trainingen</h2>
 					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
@@ -157,6 +156,9 @@
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
+									<span class="text-xs px-2 py-0.5 rounded-full {training.status === 'closed' ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'}">
+										{training.status === 'closed' ? 'Afgerond' : 'Open'}
+									</span>
 									{#if training.overall_rating}
 										<span class="text-sm font-semibold {
 											training.overall_rating >= 7 ? 'text-green-600' :
