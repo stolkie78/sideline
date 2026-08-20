@@ -138,14 +138,14 @@
 		{/if}
 
 		<!-- Recent Matches (played) -->
-		{#if matches.filter(m => m.score_team !== undefined && m.score_team !== null).length > 0}
+		{#if matches.filter(m => (m.score_team || m.score_opponent) && new Date(m.date) < new Date()).length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="font-semibold text-gray-900 dark:text-gray-100">🏐 Uitslagen</h2>
 					<a href="{base}/matches" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
-					{#each matches.filter(m => m.score_team !== undefined && m.score_team !== null).slice(0, 5) as match}
+					{#each matches.filter(m => (m.score_team || m.score_opponent) && new Date(m.date) < new Date()).slice(0, 5) as match}
 						{@const won = match.score_team > match.score_opponent}
 						<div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
 							<div>
