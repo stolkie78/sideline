@@ -1,0 +1,67 @@
+# Local production environment: sideline.local
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.local.yml --profile setup run --rm pb-setup
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: sideline-local-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile
+    depends_on:
+      - frontend
+      - pocketbase
+
+  pocketbase:
+    image: ghcr.io/muchobien/pocketbase:latest
+    container_name: sideline-local-pb
+    restart: unless-stopped
+    expose:
+      - "8090"
+    volumes:
+      - pb_local_data:/pb/pb_data
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: sideline-frontend-local:latest
+    container_name: sideline-local-frontend
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      - PUBLIC_POCKETBASE_URL=http://sideline.local/api
+      - ORIGIN=http://sideline.local
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+
+  pb-setup:
+    image: alpine:3.19
+    container_name: sideline-local-pb-setup
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    entrypoint: ["sh", "-c", "apk add --no-cache curl jq > /dev/null 2>&1 && sh /scripts/setup-collections.sh http://pocketbase:8090"]
+    environment:
+      - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL:-admin@teamtracker.nl}
+      - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD:-TeamTracker2026!}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    restart: "no"
+    profiles: ["setup"]
+
+volumes:
+  pb_local_data:

@@ -1,0 +1,14 @@
+# SideLine local production environment on sideline.local
+# No HTTPS — Caddy serves HTTP only on port 80
+
+http://sideline.local {
+	# PocketBase API + Admin
+	handle_path /api/* {
+		reverse_proxy pocketbase:8090
+	}
+
+	# Frontend app
+	handle /* {
+		reverse_proxy frontend:3000
+	}
+}
