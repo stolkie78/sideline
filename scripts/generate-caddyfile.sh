@@ -9,12 +9,24 @@ if [ "$ENABLE_SSL" = "true" ]; then
 cat <<EOF
 # SetBaas — HTTPS via Let's Encrypt
 ${DOMAIN} {
+    # SvelteKit API routes (must be before PocketBase catch-all)
+    handle /api/nevobo* {
+        reverse_proxy frontend:3000
+    }
+    handle /api/ai* {
+        reverse_proxy frontend:3000
+    }
+    handle /api/invite* {
+        reverse_proxy frontend:3000
+    }
+    # PocketBase API
     handle /api/* {
         reverse_proxy pocketbase:8090
     }
     handle /_/* {
         reverse_proxy pocketbase:8090
     }
+    # Frontend (SvelteKit)
     handle {
         reverse_proxy frontend:3000
     }
@@ -27,12 +39,24 @@ else
 cat <<EOF
 # SetBaas — HTTP only
 :80 {
+    # SvelteKit API routes (must be before PocketBase catch-all)
+    handle /api/nevobo* {
+        reverse_proxy frontend:3000
+    }
+    handle /api/ai* {
+        reverse_proxy frontend:3000
+    }
+    handle /api/invite* {
+        reverse_proxy frontend:3000
+    }
+    # PocketBase API
     handle /api/* {
         reverse_proxy pocketbase:8090
     }
     handle /_/* {
         reverse_proxy pocketbase:8090
     }
+    # Frontend (SvelteKit)
     handle {
         reverse_proxy frontend:3000
     }
