@@ -370,7 +370,7 @@ if [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; then
   curl -sf "$PB_URL/api/collections/users" -H "Authorization: ******" | jq \
     --arg cid "$GOOGLE_CLIENT_ID" \
     --arg csec "$GOOGLE_CLIENT_SECRET" \
-    '.oauth2 = {"enabled": true, "mappedFields": {"id": "", "name": "name", "avatarURL": "avatar"}, "providers": [{"name": "google", "clientId": \$cid, "clientSecret": \$csec, "authURL": "", "tokenURL": "", "displayName": "Google", "pkce": null}]}' \
+    '.oauth2 = {"enabled": true, "mappedFields": {"id": "", "name": "name", "avatarURL": "avatar"}, "providers": [{"name": "google", "clientId": $cid, "clientSecret": $csec, "authURL": "", "tokenURL": "", "displayName": "Google", "pkce": null}]}' \
     | curl -sf "$PB_URL/api/collections/users" -X PATCH \
     -H "Authorization: ******" -H "Content-Type: application/json" \
     -d @- > /dev/null
