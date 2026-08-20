@@ -9,13 +9,13 @@ if [ "$ENABLE_SSL" = "true" ]; then
 cat <<EOF
 # SetBaas — HTTPS via Let's Encrypt
 ${DOMAIN} {
-    handle_path /api/* {
+    handle /api/* {
         reverse_proxy pocketbase:8090
     }
-    handle_path /_/* {
+    handle /_/* {
         reverse_proxy pocketbase:8090
     }
-    handle /* {
+    handle {
         reverse_proxy frontend:3000
     }
 }
@@ -26,14 +26,14 @@ EOF
 else
 cat <<EOF
 # SetBaas — HTTP only
-http://${DOMAIN} {
-    handle_path /api/* {
+:80 {
+    handle /api/* {
         reverse_proxy pocketbase:8090
     }
-    handle_path /_/* {
+    handle /_/* {
         reverse_proxy pocketbase:8090
     }
-    handle /* {
+    handle {
         reverse_proxy frontend:3000
     }
 }
