@@ -10,17 +10,27 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 | **Backend** | PocketBase (SQLite + Auth + File Storage + REST API) |
 | **Reverse Proxy** | Caddy (automatisch HTTPS) |
 | **Deployment** | Docker Compose |
+| **AI** | OpenAI GPT / Google Gemini (optioneel) |
 
 ## Features
 
+### Kernfuncties
 - **Spelersbeheer** — Foto, positie(s), status, competenties per seizoen
 - **Trainingen** — Markdown beschrijving met rich editor, templates, aanwezigheid + scores
 - **Wedstrijden** — Per-set lineups (pos 1-6), spelsysteem, wissels, timeouts
 - **Competenties** — 4x per seizoen meetbaar, eigenaarschap per meting
 - **Seizoen periodisering** — Technisch/Tactisch/Fysiek/Mentaal doelen
+
+### Integraties
+- **Nevobo Import** — Automatisch wedstrijdschema ophalen van de Nederlandse Volleybal Bond API. Supports upsert: herimporteren werkt bestaande wedstrijden bij (datum, locatie, scores) zonder je eigen data te overschrijven
+- **AI Training Generator** — Genereer trainingsplannen met OpenAI GPT of Google Gemini. Configureerbare systeem prompt voor team-specifieke volleybal-AI
+
+### Platform
 - **Auth** — Google OAuth + email/password, multi-user met team_access (admin/coach/viewer)
 - **Ownership** — Wie heeft een training klaargezet of scores ingevoerd
+- **Dashboard** — Komende wedstrijden (datum, tijd, locatie), klaargezette trainingen met content preview, gespeelde uitslagen
 - **Dark mode** — Standaard aan
+- **Subpath deployment** — Draait op `/sideline` subpath (configureerbaar)
 
 ---
 
@@ -72,28 +82,55 @@ make logs      # Tail container logs
 
 ### Vereisten
 
-- Linux server met Docker + Docker Compose
+- Linux server (Ubuntu 22.04+ aanbevolen) met Docker + Docker Compose
 - Domein met DNS A-record naar je server
-- Poort 80 + 443 open
+- Poort 80 + 443 open (voor Caddy HTTPS)
+- Minimaal 1 GB RAM, 10 GB disk
 
-### Deploy naar www.readplando.com/sideline
+### Stap-voor-stap deployment
 
 ```bash
-# 1. Clone op de server
+# 1. Installeer Docker (als dat nog niet is gedaan)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Log opnieuw in
+
+# 2. Clone op de server
 git clone https://github.com/stolkie78/sideline.git
 cd sideline
 
-# 2. Configureer
+# 3. Configureer environment
 cp .env.production .env
-nano .env  # Vul in: PB_ADMIN_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+nano .env
+# Minimaal invullen:
+#   DOMAIN=www.readplando.com
+#   BASE_PATH=/sideline
+#   PB_ADMIN_EMAIL=admin@sideline.app
+#   PB_ADMIN_PASSWORD=<sterk wachtwoord>
+#   GOOGLE_CLIENT_ID=<van Google Cloud Console>
+#   GOOGLE_CLIENT_SECRET=<van Google Cloud Console>
 
-# 3. Deploy (eerste keer met setup)
+# 4. Eerste deployment (inclusief collection setup)
 ./scripts/deploy-prod.sh setup
 
-# 4. Updates deployen
+# 5. Updates deployen
 git pull
 ./scripts/deploy-prod.sh
 ```
+
+### Wat het deploy script doet
+
+1. Bouwt de frontend Docker image met `BASE_PATH`
+2. Start Caddy + PocketBase + Frontend via `docker-compose.prod.yml`
+3. Caddy verzorgt automatisch HTTPS via Let's Encrypt
+4. Bij `setup`: draait het collection setup script voor PocketBase
+
+### Docker Compose bestanden
+
+| Bestand | Gebruik |
+|---------|---------|
+| `docker-compose.yml` | Lokale development (geen Caddy, poort 3000+8090) |
+| `docker-compose.prod.yml` | Productie (Caddy reverse proxy, HTTPS, volumes) |
 
 ### URLs na deployment
 
@@ -109,6 +146,23 @@ Na deployment, update de **Authorized redirect URI** in de [Google Cloud Console
 
 ```
 https://www.readplando.com/sideline/api/oauth2-redirect
+```
+
+### Onderhoud
+
+```bash
+# Logs bekijken
+docker compose -f docker-compose.prod.yml logs -f
+
+# Herstart na config wijziging
+docker compose -f docker-compose.prod.yml restart
+
+# Backend data backup (SQLite)
+docker compose -f docker-compose.prod.yml exec pocketbase cp /pb/pb_data/data.db /pb/pb_data/backup.db
+
+# Volledige rebuild
+docker compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ---
@@ -131,6 +185,68 @@ Geschatte kosten: **€5-16/maand** (consumption plan).
 
 ---
 
+## AI Configuratie
+
+SideLine ondersteunt AI-gegenereerde trainingsplannen via OpenAI of Google Gemini.
+
+### Setup
+
+1. Ga naar **Configuratie → AI** in de app
+2. Kies provider: **OpenAI (GPT)** of **Google Gemini**
+3. Vul je API key in:
+   - OpenAI: [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+   - Gemini: [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+4. Kies een model (optioneel)
+
+### Beschikbare modellen
+
+| Provider | Model | Omschrijving |
+|----------|-------|-------------|
+| OpenAI | `gpt-4o-mini` | Snel en goedkoop |
+| OpenAI | `gpt-4o` | Beste kwaliteit |
+| OpenAI | `gpt-4.1-mini` | Nieuwste mini model |
+| Gemini | `gemini-2.5-flash` | Snel |
+| Gemini | `gemini-3.1-pro-preview` | Beste kwaliteit |
+
+### Systeem prompt
+
+De AI stuurt altijd een volleybal-specifieke systeem prompt mee, geoptimaliseerd voor meiden B (14-16 jaar). Deze prompt zorgt voor:
+- Gestructureerde trainingsplannen in Markdown
+- Oefeningen met naam, doel, uitleg, duur en variaties
+- Opbouw van techniek → toepassing → spelvorm
+- 90 minuten standaard trainingsduur
+
+Je kunt de systeem prompt aanpassen in **Configuratie → AI** voor jouw specifieke teamcontext.
+
+### Gebruik
+
+Bij **Nieuwe training** verschijnt een "Genereer met AI" prompt veld. Voorbeeld prompts:
+- "Training focus op bovenhands spel, 90 minuten"
+- "Verdedigingstraining met veel balrally oefeningen"
+- "Wedstrijdvoorbereiding tegen sterk blokkend team"
+
+---
+
+## Nevobo Integratie
+
+Import wedstrijdschema's direct vanuit de Nederlandse Volleybal Bond (Nevobo) API.
+
+### Configuratie
+
+1. Ga naar **Configuratie → Teams** en vul de Nevobo URL in bij je team
+2. Ga naar **Wedstrijden → 📥 Nevobo** om het importscherm te openen
+3. Vul je verenigingscode in (bijv. `CKL9N3N` voor Zovoc)
+4. Selecteer teamtype en nummer
+
+### Features
+
+- **Automatisch ophalen** van wedstrijdschema met datum, tijd, locatie, tegenstander
+- **Thuis/Uit detectie** op basis van teamnaam
+- **Upsert bij herimport** — bestaande wedstrijden worden bijgewerkt (datum, locatie, scores) zonder je eigen data (lineups, notities, wissels) te overschrijven
+- **Scores importeren** zodra wedstrijden gespeeld zijn (setstanden + uitslag)
+
+---
+
 ## Architectuur
 
 ```
@@ -147,12 +263,20 @@ Geschatte kosten: **€5-16/maand** (consumption plan).
     │ Node.js  │          │ SQLite      │
     │ :3000    │◄────────►│ :8090       │
     └──────────┘  API     └─────────────┘
-                                │
-                          ┌─────▼─────┐
-                          │ pb_data/  │
-                          │ (volume)  │
-                          └───────────┘
+         │                      │
+    ┌────▼────┐          ┌──────▼──────┐
+    │ /api/ai │          │ pb_data/    │
+    │ /api/   │          │ (volume)    │
+    │ nevobo  │          └─────────────┘
+    └─────────┘
 ```
+
+### Server-side proxy routes
+
+| Route | Doel |
+|-------|------|
+| `/api/nevobo` | CORS proxy voor Nevobo API (api.nevobo.nl) |
+| `/api/ai` | AI generation endpoint (OpenAI/Gemini) |
 
 ---
 
@@ -163,10 +287,19 @@ Geschatte kosten: **€5-16/maand** (consumption plan).
 │   ├── src/
 │   │   ├── lib/
 │   │   │   ├── components/     # MarkdownEditor etc.
-│   │   │   ├── stores/         # Auth, context stores
+│   │   │   ├── stores/         # Auth, context, AI config stores
 │   │   │   ├── types/          # TypeScript interfaces
-│   │   │   └── pocketbase.ts   # PocketBase SDK + API functies
-│   │   └── routes/             # SvelteKit pages
+│   │   │   ├── pocketbase.ts   # PocketBase SDK + API functies
+│   │   │   └── nevobo.ts       # Nevobo API helper
+│   │   └── routes/
+│   │       ├── api/
+│   │       │   ├── ai/         # AI generation endpoint
+│   │       │   └── nevobo/     # Nevobo CORS proxy
+│   │       ├── matches/
+│   │       │   └── import/     # Nevobo match import page
+│   │       ├── trainings/      # Training CRUD
+│   │       ├── config/         # Configuratie (teams, AI, etc.)
+│   │       └── +page.svelte    # Dashboard
 │   ├── Dockerfile
 │   ├── svelte.config.js        # Base path configuratie
 │   └── tailwind.config.js
@@ -201,6 +334,8 @@ Geschatte kosten: **€5-16/maand** (consumption plan).
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | `*.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | (secret) |
 
+> **Let op:** AI API keys worden **niet** server-side opgeslagen. Ze staan in de browser's localStorage en worden per-request meegestuurd naar de `/api/ai` proxy.
+
 ---
 
 ## PocketBase Collections
@@ -209,8 +344,8 @@ Het setup script (`scripts/setup-collections.sh`) maakt automatisch alle benodig
 
 | Collection | Beschrijving |
 |-----------|-------------|
-| `teams` | Teams (naam) |
-| `seasons` | Seizoenen (naam, start/eind datum) |
+| `teams` | Teams (naam, nevobo_code, nevobo_url) |
+| `seasons` | Seizoenen (naam, start/eind jaar) |
 | `players` | Spelers (naam, foto, positie, status) |
 | `team_players` | Koppeling speler↔team↔seizoen |
 | `competencies` | Competentie definities |
@@ -219,7 +354,7 @@ Het setup script (`scripts/setup-collections.sh`) maakt automatisch alle benodig
 | `training_templates` | Herbruikbare training templates |
 | `training_attendance` | Aanwezigheid + individuele scores |
 | `training_plans` | Jaarplanning |
-| `matches` | Wedstrijden |
+| `matches` | Wedstrijden (nevobo_uuid voor sync, locatie, scores) |
 | `match_sets` | Per-set data |
 | `season_periods` | Periodisering fases |
 | `team_access` | Gebruikersrechten per team |
@@ -232,6 +367,7 @@ Het setup script (`scripts/setup-collections.sh`) maakt automatisch alle benodig
 |-----|-------------|
 | v0.1 | Eerste werkende versie (auth, spelers, trainingen, wedstrijden) |
 | v0.2 | Idempotent setup, data safety, default seeding |
+| v0.3 | Markdown editor, Nevobo import, AI integratie, dashboard, subpath deployment |
 
 ---
 
