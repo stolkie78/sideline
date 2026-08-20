@@ -20,14 +20,15 @@
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 		.slice(0, 2);
 
-	$: upcomingTrainings = trainings
-		.filter(t => new Date(t.date) >= new Date())
+	$: openTrainings = trainings
+		.filter(t => t.status === 'open')
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-		.slice(0, 5);
+		.slice(0, 3);
 
-	$: recentTrainings = trainings
+	$: closedTrainings = trainings
+		.filter(t => t.status === 'closed')
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-		.slice(0, 5);
+		.slice(0, 3);
 
 	onMount(async () => {
 		try {
@@ -110,24 +111,22 @@
 			</div>
 		{/if}
 
-		<!-- Upcoming Trainings -->
-		{#if upcomingTrainings.length > 0}
+		<!-- Open Trainings -->
+		{#if openTrainings.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📋 Geplande trainingen</h2>
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📋 Open trainingen</h2>
 					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
-					{#each upcomingTrainings as training}
+					{#each openTrainings as training}
 						<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
 							<div class="flex justify-between items-center">
 								<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600">
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
-									<span class="text-xs px-2 py-0.5 rounded-full {training.status === 'open' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : training.content ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
-										{training.status === 'open' ? 'Open' : training.content ? 'Klaar' : 'Nog invullen'}
-									</span>
+									<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Open</span>
 									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
 								</div>
 							</div>
@@ -148,24 +147,22 @@
 			</div>
 		{/if}
 
-		<!-- Recent Trainings (completed) -->
-		{#if recentTrainings.length > 0}
+		<!-- Closed Trainings -->
+		{#if closedTrainings.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="font-semibold text-gray-900 dark:text-gray-100">🏋️ Trainingen</h2>
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">✅ Afgeronde trainingen</h2>
 					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
-					{#each recentTrainings as training}
+					{#each closedTrainings as training}
 						<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
 							<div class="flex justify-between items-center">
 								<a href="{base}/trainings/{training.id}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600">
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
-									<span class="text-xs px-2 py-0.5 rounded-full {training.status === 'closed' ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'}">
-										{training.status === 'closed' ? 'Afgerond' : 'Open'}
-									</span>
+									<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Afgerond</span>
 									{#if training.overall_rating}
 										<span class="text-sm font-semibold {
 											training.overall_rating >= 7 ? 'text-green-600' :
