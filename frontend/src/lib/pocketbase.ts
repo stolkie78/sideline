@@ -16,9 +16,9 @@ import type {
 	SeasonPeriod,
 } from '$lib/types';
 
-// PocketBase URL: use env variable or default to localhost
+// PocketBase URL: in browser use same origin (proxied via Caddy), server-side use env var
 const pbUrl = typeof window !== 'undefined'
-	? (window as any).__POCKETBASE_URL__ || 'http://localhost:8090'
+	? (window.location.origin || 'http://localhost:8090')
 	: import.meta.env.PUBLIC_POCKETBASE_URL || 'http://localhost:8090';
 
 export const pb = new PocketBase(pbUrl);
