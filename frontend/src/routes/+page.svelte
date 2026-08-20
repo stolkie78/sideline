@@ -17,7 +17,7 @@
 	$: upcomingMatches = matches
 		.filter(m => new Date(m.date) >= new Date())
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-		.slice(0, 5);
+		.slice(0, 2);
 
 	$: upcomingTrainings = trainings
 		.filter(t => new Date(t.date) >= new Date())
@@ -119,21 +119,24 @@
 				</div>
 				<div class="space-y-3">
 					{#each upcomingTrainings as training}
-						<a href="{base}/trainings/{training.id}/edit" class="block p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+						<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
 							<div class="flex justify-between items-center">
-								<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+								<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600">
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-								</span>
-								<span class="text-xs px-2 py-0.5 rounded-full {training.content ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
-									{training.content ? 'Klaar' : 'Nog invullen'}
-								</span>
+								</a>
+								<div class="flex items-center gap-2">
+									<span class="text-xs px-2 py-0.5 rounded-full {training.content ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
+										{training.content ? 'Klaar' : 'Nog invullen'}
+									</span>
+									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
+								</div>
 							</div>
 							{#if training.content}
-								<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none">
+								<a href="{base}/trainings/{training.id}" class="block text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none hover:text-gray-700">
 									{@html marked(training.content?.slice(0, 200) || '', { breaks: true })}
-								</div>
+								</a>
 							{/if}
-						</a>
+						</div>
 					{/each}
 				</div>
 			</div>
@@ -148,26 +151,29 @@
 				</div>
 				<div class="space-y-3">
 					{#each recentTrainings as training}
-						<a href="{base}/trainings/{training.id}/edit" class="block p-3 rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+						<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
 							<div class="flex justify-between items-center">
-								<span class="text-sm text-gray-700 dark:text-gray-300">
+								<a href="{base}/trainings/{training.id}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600">
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-								</span>
-								{#if training.overall_rating}
-									<span class="text-sm font-semibold {
-										training.overall_rating >= 7 ? 'text-green-600' :
-										training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
-									}">
-										{training.overall_rating}/10
-									</span>
-								{/if}
+								</a>
+								<div class="flex items-center gap-2">
+									{#if training.overall_rating}
+										<span class="text-sm font-semibold {
+											training.overall_rating >= 7 ? 'text-green-600' :
+											training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
+										}">
+											{training.overall_rating}/10
+										</span>
+									{/if}
+									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
+								</div>
 							</div>
 							{#if training.content}
-								<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none">
+								<a href="{base}/trainings/{training.id}" class="block text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none hover:text-gray-700">
 									{@html marked(training.content?.slice(0, 200) || '', { breaks: true })}
-								</div>
+								</a>
 							{/if}
-						</a>
+						</div>
 					{/each}
 				</div>
 			</div>
