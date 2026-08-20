@@ -6,8 +6,13 @@
 set -e
 
 PB_URL="${1:-http://localhost:8090}"
-ADMIN_EMAIL="${PB_ADMIN_EMAIL:-${2:-admin@teamtracker.nl}}"
-ADMIN_PASSWORD="${PB_ADMIN_PASSWORD:-${3:-TeamTracker2026!}}"
+ADMIN_EMAIL="${PB_ADMIN_EMAIL:-${2:-}}"
+ADMIN_PASSWORD="${PB_ADMIN_PASSWORD:-${3:-}}"
+
+if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PASSWORD" ]; then
+  echo "❌ PB_ADMIN_EMAIL and PB_ADMIN_PASSWORD must be set (via env or arguments)"
+  exit 1
+fi
 
 echo "🏐 SideLine — Setting up PocketBase collections at $PB_URL"
 
