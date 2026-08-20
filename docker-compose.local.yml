@@ -27,9 +27,11 @@ services:
     environment:
       - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}
       - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
-    command: >
-      sh -c "/pocketbase superuser upsert \"$$PB_ADMIN_EMAIL\" \"$$PB_ADMIN_PASSWORD\" 2>/dev/null;
-             /pocketbase serve --http=0.0.0.0:8090"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        /pocketbase superuser upsert "$$PB_ADMIN_EMAIL" "$$PB_ADMIN_PASSWORD" 2>/dev/null || true
+        exec /pocketbase serve --http=0.0.0.0:8090
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:8090/api/health || exit 1
       interval: 10s
