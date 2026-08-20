@@ -12,6 +12,7 @@
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
 	let loading = true;
+	let expandedTraining: string | null = null;
 
 	// Upcoming items (future dates)
 	$: upcomingMatches = matches
@@ -131,9 +132,15 @@
 								</div>
 							</div>
 							{#if training.content}
-								<a href="{base}/trainings/{training.id}" class="block text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none hover:text-gray-700">
-									{@html marked(training.content?.slice(0, 200) || '', { breaks: true })}
-								</a>
+								<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
+									class="text-xs text-primary-600 hover:text-primary-800 mt-1">
+									{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
+								</button>
+								{#if expandedTraining === training.id}
+									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
+										{@html marked(training.content, { breaks: true })}
+									</div>
+								{/if}
 							{/if}
 						</div>
 					{/each}
@@ -171,9 +178,15 @@
 								</div>
 							</div>
 							{#if training.content}
-								<a href="{base}/trainings/{training.id}" class="block text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 prose prose-sm dark:prose-invert max-w-none hover:text-gray-700">
-									{@html marked(training.content?.slice(0, 200) || '', { breaks: true })}
-								</a>
+								<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
+									class="text-xs text-primary-600 hover:text-primary-800 mt-1">
+									{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
+								</button>
+								{#if expandedTraining === training.id}
+									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
+										{@html marked(training.content, { breaks: true })}
+									</div>
+								{/if}
 							{/if}
 						</div>
 					{/each}
