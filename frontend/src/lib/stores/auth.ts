@@ -52,6 +52,12 @@ function createAuthStore() {
 		},
 		logout: () => {
 			pb.authStore.clear();
+			// Clear all cached app data
+			try {
+				localStorage.removeItem('selectedTeamId');
+				localStorage.removeItem('selectedSeasonId');
+				localStorage.removeItem('ai_config');
+			} catch {}
 			set(null);
 		},
 	};
