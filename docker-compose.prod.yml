@@ -86,6 +86,7 @@ services:
       - PB_ADMIN_PASSWORD=${PB_ADMIN_PASSWORD}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - SITE_URL=${SITE_URL:-}
     restart: "no"
     profiles: ["setup"]
 

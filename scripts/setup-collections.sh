@@ -381,6 +381,14 @@ ensure_collection "{
 echo ""
 echo "🔐 Configuring Google OAuth..."
 
+# Set PocketBase application URL for OAuth redirects
+SITE_URL="${SITE_URL:-}"
+if [ -n "$SITE_URL" ]; then
+  curl -sf "$PB_URL/api/settings" -X PATCH \
+    -H "Authorization: $TOKEN" -H "Content-Type: application/json" \
+    -d "{\"meta\": {\"appURL\": \"$SITE_URL\"}}" > /dev/null && echo "  ✓ App URL set to $SITE_URL" || echo "  ⚠ Could not set app URL (older PB version?)"
+fi
+
 # Configure OAuth if env vars are set
 GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
 GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
