@@ -386,7 +386,7 @@ SITE_URL="${SITE_URL:-}"
 if [ -n "$SITE_URL" ]; then
   curl -sf "$PB_URL/api/settings" -X PATCH \
     -H "Authorization: $TOKEN" -H "Content-Type: application/json" \
-    -d "{\"meta\": {\"appURL\": \"$SITE_URL\"}}" > /dev/null && echo "  ✓ App URL set to $SITE_URL" || echo "  ⚠ Could not set app URL (older PB version?)"
+    -d "{\"meta\": {\"appURL\": \"$SITE_URL\"}, \"trustedProxy\": {\"headers\": [\"X-Forwarded-For\", \"X-Forwarded-Proto\", \"X-Forwarded-Host\"], \"useLeftmostIP\": true}}" > /dev/null && echo "  ✓ App URL set to $SITE_URL (with trusted proxy)" || echo "  ⚠ Could not set app URL (older PB version?)"
 fi
 
 # Configure OAuth if env vars are set
