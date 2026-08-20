@@ -29,7 +29,7 @@ fi
 TOKEN=$(curl -sf "$PB_URL/api/collections/_superusers/auth-with-password" \
   -X POST -H "Content-Type: application/json" \
   -d "{\"identity\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+  | jq -r '.token')
 
 if [ -z "$TOKEN" ]; then
   echo "❌ Failed to authenticate as superuser"
@@ -41,7 +41,7 @@ echo "✅ Authenticated as $ADMIN_EMAIL"
 # Usage: ensure_collection '{"name":"...", "type":"...", "fields":[...], ...}'
 ensure_collection() {
   local DEF="$1"
-  local NAME=$(echo "$DEF" | python3 -c "import sys,json; print(json.load(sys.stdin)['name'])")
+  local NAME=$(echo "$DEF" | jq -r '.name')
 
   # Check if collection exists
   local STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$PB_URL/api/collections/$NAME" \
@@ -62,7 +62,7 @@ ensure_collection() {
 # Helper to get collection ID by name (for relations)
 get_col_id() {
   curl -sf "$PB_URL/api/collections/$1" -H "Authorization: Bearer $TOKEN" \
-    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])"
+    | jq -r '.id'
 }
 
 echo ""
@@ -355,25 +355,12 @@ GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 
 if [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; then
   # Enable OAuth2 on users collection
-  curl -sf "$PB_URL/api/collections/users" -H "Authorization: Bearer $TOKEN" | python3 -c "
-import sys, json, os
-d = json.load(sys.stdin)
-d['oauth2'] = {
-    'enabled': True,
-    'mappedFields': {'id': '', 'name': 'name', 'avatarURL': 'avatar'},
-    'providers': [{
-        'name': 'google',
-        'clientId': os.environ['GOOGLE_CLIENT_ID'],
-        'clientSecret': os.environ['GOOGLE_CLIENT_SECRET'],
-        'authURL': '',
-        'tokenURL': '',
-        'displayName': 'Google',
-        'pkce': None
-    }]
-}
-print(json.dumps(d))
-" | curl -sf "$PB_URL/api/collections/users" -X PATCH \
-    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  curl -sf "$PB_URL/api/collections/users" -H "Authorization: ******" | jq \
+    --arg cid "$GOOGLE_CLIENT_ID" \
+    --arg csec "$GOOGLE_CLIENT_SECRET" \
+    '.oauth2 = {"enabled": true, "mappedFields": {"id": "", "name": "name", "avatarURL": "avatar"}, "providers": [{"name": "google", "clientId": \$cid, "clientSecret": \$csec, "authURL": "", "tokenURL": "", "displayName": "Google", "pkce": null}]}' \
+    | curl -sf "$PB_URL/api/collections/users" -X PATCH \
+    -H "Authorization: ******" -H "Content-Type: application/json" \
     -d @- > /dev/null
   echo "  ✓ Google OAuth enabled"
 else
@@ -385,12 +372,12 @@ echo "🏐 Seeding default team & season..."
 
 # Create default team if none exists
 TEAM_COUNT=$(curl -sf "$PB_URL/api/collections/teams/records?perPage=1" \
-  -H "Authorization: Bearer $TOKEN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalItems',0))")
+  -H "Authorization: Bearer $TOKEN" | jq -r ".totalItems // 0")
 
 if [ "$TEAM_COUNT" = "0" ]; then
   TEAM_ID=$(curl -sf "$PB_URL/api/collections/teams/records" -X POST \
     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-    -d '{"name":"Zovoc MB1"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+    -d '{"name":"Zovoc MB1"}' | jq -r '.id')
   echo "  ✓ Team 'Zovoc MB1' created ($TEAM_ID)"
 else
   echo "  ✓ Team exists (skipped)"
@@ -398,7 +385,7 @@ fi
 
 # Create default season if none exists
 SEASON_COUNT=$(curl -sf "$PB_URL/api/collections/seasons/records?perPage=1" \
-  -H "Authorization: Bearer $TOKEN" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalItems',0))")
+  -H "Authorization: Bearer $TOKEN" | jq -r ".totalItems // 0")
 
 if [ "$SEASON_COUNT" = "0" ]; then
   curl -sf "$PB_URL/api/collections/seasons/records" -X POST \

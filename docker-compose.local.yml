@@ -9,7 +9,7 @@ services:
     container_name: sideline-local-caddy
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${HTTP_PORT:-80}:80"
     volumes:
       - ./Caddyfile.local:/etc/caddy/Caddyfile
     depends_on:
