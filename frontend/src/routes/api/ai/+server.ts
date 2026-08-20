@@ -41,7 +41,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			const data = await res.json();
 			content = data.choices?.[0]?.message?.content || '';
 		} else if (provider === 'gemini') {
-			const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash'}:generateContent?key=${apiKey}`;
+			const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-3.6-flash'}:generateContent?key=${apiKey}`;
 			const res = await fetch(apiUrl, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },

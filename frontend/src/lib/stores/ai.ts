@@ -70,7 +70,7 @@ export const AI_MODELS = {
 		{ value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
 	],
 	gemini: [
-		{ value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (snel)' },
+		{ value: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash (snel)' },
 		{ value: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (beste)' },
 	]
 };
