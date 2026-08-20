@@ -248,7 +248,7 @@
 </script>
 
 <svelte:head>
-	<title>Configuratie - SideLine</title>
+	<title>Configuratie - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

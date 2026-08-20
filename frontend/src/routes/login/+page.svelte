@@ -47,7 +47,7 @@
 </script>
 
 <svelte:head>
-	<title>Inloggen - SideLine</title>
+	<title>Inloggen - SetBaas</title>
 </svelte:head>
 
 <div class="flex flex-col items-center justify-center min-h-[70vh] px-4">
@@ -55,12 +55,12 @@
 		<!-- Logo -->
 		<img
 			src="/logo.svg"
-			alt="SideLine"
+			alt="SetBaas"
 			class="h-24 w-24 mx-auto rounded-2xl object-cover shadow-lg dark:shadow-none dark:drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
 		/>
 
 		<div>
-			<h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">SideLine</h1>
+			<h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">SetBaas</h1>
 			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 				Volleybal Team Management
 			</p>

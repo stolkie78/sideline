@@ -239,7 +239,7 @@
 </script>
 
 <svelte:head>
-	<title>Nieuwe Wedstrijd - SideLine</title>
+	<title>Nieuwe Wedstrijd - SetBaas</title>
 </svelte:head>
 
 {#if loading}

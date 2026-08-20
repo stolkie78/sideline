@@ -1,5 +1,5 @@
-// SideLine - Azure Container Apps Infrastructure
-// Deploy: az deployment group create -g sideline-rg -f infra/main.bicep -p infra/main.bicepparam
+// SetBaas - Azure Container Apps Infrastructure
+// Deploy: az deployment group create -g setbaas-rg -f infra/main.bicep -p infra/main.bicepparam
 
 @description('Environment name (dev, staging, prod)')
 param environment string = 'prod'
@@ -23,8 +23,8 @@ param googleClientId string
 @secure()
 param googleClientSecret string
 
-var prefix = 'sideline-${environment}'
-var acrName = replace('sideline${environment}acr', '-', '')
+var prefix = 'setbaas-${environment}'
+var acrName = replace('setbaas${environment}acr', '-', '')
 
 // Container Registry
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
@@ -150,7 +150,7 @@ resource pocketbase 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'pocketbase'
-          image: '${acr.properties.loginServer}/sideline-pocketbase:latest'
+          image: '${acr.properties.loginServer}/setbaas-pocketbase:latest'
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
@@ -216,7 +216,7 @@ resource frontend 'Microsoft.App/containerApps@2023-05-01' = {
       containers: [
         {
           name: 'frontend'
-          image: '${acr.properties.loginServer}/sideline-frontend:latest'
+          image: '${acr.properties.loginServer}/setbaas-frontend:latest'
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'

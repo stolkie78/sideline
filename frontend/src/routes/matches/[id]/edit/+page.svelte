@@ -210,7 +210,7 @@
 </script>
 
 <svelte:head>
-	<title>Bewerk Wedstrijd - SideLine</title>
+	<title>Bewerk Wedstrijd - SetBaas</title>
 </svelte:head>
 
 {#if loading}

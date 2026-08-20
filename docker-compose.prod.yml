@@ -1,7 +1,7 @@
 services:
   caddy:
     image: caddy:2-alpine
-    container_name: sideline-caddy
+    container_name: setbaas-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -16,7 +16,7 @@ services:
 
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
-    container_name: sideline-pb
+    container_name: setbaas-pb
     restart: unless-stopped
     expose:
       - "8090"
@@ -33,14 +33,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - BASE_PATH=${BASE_PATH:-/sideline}
-    image: sideline-frontend:latest
-    container_name: sideline-frontend
+        - BASE_PATH=${BASE_PATH:-/setbaas}
+    image: setbaas-frontend:latest
+    container_name: setbaas-frontend
     restart: unless-stopped
     expose:
       - "3000"
     environment:
-      - PUBLIC_POCKETBASE_URL=${PUBLIC_POCKETBASE_URL:-https://www.readplando.com/sideline/api}
+      - PUBLIC_POCKETBASE_URL=${PUBLIC_POCKETBASE_URL:-https://www.readplando.com/setbaas/api}
       - ORIGIN=${ORIGIN:-https://www.readplando.com}
     depends_on:
       pocketbase:
@@ -48,7 +48,7 @@ services:
 
   pb-setup:
     image: alpine:3.19
-    container_name: sideline-pb-setup
+    container_name: setbaas-pb-setup
     depends_on:
       pocketbase:
         condition: service_healthy

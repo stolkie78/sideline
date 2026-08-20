@@ -32,7 +32,7 @@
 </script>
 
 <svelte:head>
-	<title>Trainingen - SideLine</title>
+	<title>Trainingen - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

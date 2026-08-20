@@ -143,9 +143,9 @@
 		<div class="flex items-center justify-between px-5 py-3 max-w-2xl mx-auto">
 			<!-- Left: Logo + Title -->
 			<a href="{base}/" class="flex items-center gap-3">
-				<img src="/logo.svg" alt="SideLine" class="h-9 w-9 rounded-lg" />
+				<img src="/logo.svg" alt="SetBaas" class="h-9 w-9 rounded-lg" />
 				<div class="leading-tight">
-					<span class="text-base font-bold text-gray-900 dark:text-white">SideLine</span>
+					<span class="text-base font-bold text-gray-900 dark:text-white">SetBaas</span>
 					<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentTeamName} · {currentSeasonName}</span>
 				</div>
 			</a>

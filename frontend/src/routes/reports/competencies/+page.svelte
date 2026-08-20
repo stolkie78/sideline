@@ -107,7 +107,7 @@
 </script>
 
 <svelte:head>
-	<title>Competentie Rapport - SideLine</title>
+	<title>Competentie Rapport - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

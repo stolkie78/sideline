@@ -76,7 +76,7 @@
 </script>
 
 <svelte:head>
-	<title>Punten per positie - SideLine</title>
+	<title>Punten per positie - SetBaas</title>
 </svelte:head>
 
 {#if loading}

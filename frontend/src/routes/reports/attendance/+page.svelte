@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head>
-	<title>Trainingsaanwezigheid - SideLine</title>
+	<title>Trainingsaanwezigheid - SetBaas</title>
 </svelte:head>
 
 {#if loading}

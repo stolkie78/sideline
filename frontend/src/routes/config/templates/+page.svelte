@@ -89,7 +89,7 @@
 </script>
 
 <svelte:head>
-	<title>Trainingstemplates - SideLine</title>
+	<title>Trainingstemplates - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-6">

@@ -162,7 +162,7 @@
 </script>
 
 <svelte:head>
-	<title>Bewerk Training - SideLine</title>
+	<title>Bewerk Training - SetBaas</title>
 </svelte:head>
 
 {#if loading}

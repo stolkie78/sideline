@@ -26,7 +26,7 @@
 
 	async function testLogin() {
 		try {
-			const result = await pb.collection('users').authWithPassword('coach@sideline.app', 'SideLine2026!');
+			const result = await pb.collection('users').authWithPassword('coach@setbaas.app', 'SetBaas2026!');
 			loginResult = 'SUCCESS: ' + JSON.stringify({ id: result.record?.id, email: result.record?.email, token: result.token?.substring(0, 20) });
 			updateDebug();
 		} catch (e: any) {
@@ -42,7 +42,7 @@
 	<pre class="bg-gray-100 p-4 rounded mb-4 whitespace-pre-wrap">{debugInfo}</pre>
 	
 	<button on:click={testLogin} class="bg-blue-500 text-white px-4 py-2 rounded mb-4">
-		Test Login (coach@sideline.app)
+		Test Login (coach@setbaas.app)
 	</button>
 	
 	<h2 class="text-lg font-bold mt-4">Login Result:</h2>

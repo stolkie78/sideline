@@ -1,6 +1,6 @@
 #!/bin/bash
 # setup-collections.sh — Idempotent PocketBase collection setup
-# Run after PocketBase is healthy. Creates/updates all collections needed by SideLine.
+# Run after PocketBase is healthy. Creates/updates all collections needed by SetBaas.
 # Usage: ./scripts/setup-collections.sh [PB_URL] [ADMIN_EMAIL] [ADMIN_PASSWORD]
 
 set -e
@@ -14,7 +14,7 @@ if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PASSWORD" ]; then
   exit 1
 fi
 
-echo "🏐 SideLine — Setting up PocketBase collections at $PB_URL"
+echo "🏐 SetBaas — Setting up PocketBase collections at $PB_URL"
 
 # Wait for PocketBase to be ready
 for i in $(seq 1 30); do
@@ -27,8 +27,8 @@ done
 
 # Ensure superuser exists
 # Method 1: Try docker exec (when running from host)
-if command -v docker &> /dev/null && docker ps --filter name=teamtracker-pb --format '{{.Names}}' 2>/dev/null | grep -q teamtracker-pb; then
-  docker exec teamtracker-pb pocketbase superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASSWORD" 2>/dev/null || true
+if command -v docker &> /dev/null && docker ps --filter name=setbaas-pb --format '{{.Names}}' 2>/dev/null | grep -q setbaas-pb; then
+  docker exec setbaas-pb pocketbase superuser upsert "$ADMIN_EMAIL" "$ADMIN_PASSWORD" 2>/dev/null || true
 fi
 
 # Method 2: Try creating via API (works on fresh install when no superusers exist)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SideLine - Deploy to Azure Container Apps
+# SetBaas - Deploy to Azure Container Apps
 # Prerequisites: az cli logged in, .env file present
 set -euo pipefail
 
@@ -11,11 +11,11 @@ if [ -f "$ROOT_DIR/.env" ]; then
   set -a && . "$ROOT_DIR/.env" && set +a
 fi
 
-RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-sideline-rg}"
+RESOURCE_GROUP="${AZURE_RESOURCE_GROUP:-setbaas-rg}"
 LOCATION="${AZURE_LOCATION:-westeurope}"
 ENVIRONMENT="${AZURE_ENVIRONMENT:-prod}"
 
-echo "=== SideLine Azure Deployment ==="
+echo "=== SetBaas Azure Deployment ==="
 echo "Resource Group: $RESOURCE_GROUP"
 echo "Location: $LOCATION"
 echo "Environment: $ENVIRONMENT"
@@ -47,23 +47,23 @@ echo "→ Logging into ACR..."
 az acr login --name "${ACR_SERVER%%.*}"
 
 echo "→ Building and pushing PocketBase image..."
-docker build -t "$ACR_SERVER/sideline-pocketbase:latest" -f "$ROOT_DIR/Dockerfile.pocketbase" "$ROOT_DIR"
-docker push "$ACR_SERVER/sideline-pocketbase:latest"
+docker build -t "$ACR_SERVER/setbaas-pocketbase:latest" -f "$ROOT_DIR/Dockerfile.pocketbase" "$ROOT_DIR"
+docker push "$ACR_SERVER/setbaas-pocketbase:latest"
 
 echo "→ Building and pushing Frontend image..."
-docker build -t "$ACR_SERVER/sideline-frontend:latest" -f "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
+docker build -t "$ACR_SERVER/setbaas-frontend:latest" -f "$ROOT_DIR/frontend/Dockerfile" "$ROOT_DIR/frontend" \
   --build-arg PUBLIC_POCKETBASE_URL="$PB_URL"
-docker push "$ACR_SERVER/sideline-frontend:latest"
+docker push "$ACR_SERVER/setbaas-frontend:latest"
 
 # 4. Update container apps with new images
 echo "→ Updating container apps..."
-az containerapp update --name "sideline-${ENVIRONMENT}-pocketbase" \
+az containerapp update --name "setbaas-${ENVIRONMENT}-pocketbase" \
   --resource-group "$RESOURCE_GROUP" \
-  --image "$ACR_SERVER/sideline-pocketbase:latest" --output none
+  --image "$ACR_SERVER/setbaas-pocketbase:latest" --output none
 
-az containerapp update --name "sideline-${ENVIRONMENT}-frontend" \
+az containerapp update --name "setbaas-${ENVIRONMENT}-frontend" \
   --resource-group "$RESOURCE_GROUP" \
-  --image "$ACR_SERVER/sideline-frontend:latest" --output none
+  --image "$ACR_SERVER/setbaas-frontend:latest" --output none
 
 # 5. Run setup (collections + seeding)
 echo "→ Running PocketBase setup..."

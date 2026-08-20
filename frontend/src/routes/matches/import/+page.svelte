@@ -163,7 +163,7 @@
 </script>
 
 <svelte:head>
-	<title>Nevobo Import - SideLine</title>
+	<title>Nevobo Import - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

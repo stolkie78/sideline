@@ -84,7 +84,7 @@
 </script>
 
 <svelte:head>
-	<title>Bewerk Speler - SideLine</title>
+	<title>Bewerk Speler - SetBaas</title>
 </svelte:head>
 
 {#if loading}

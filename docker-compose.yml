@@ -1,7 +1,7 @@
 services:
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
-    container_name: teamtracker-pb
+    container_name: setbaas-pb
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -16,7 +16,7 @@ services:
 
   pb-setup:
     image: python:3.12-alpine
-    container_name: teamtracker-pb-setup
+    container_name: setbaas-pb-setup
     depends_on:
       pocketbase:
         condition: service_healthy
@@ -31,7 +31,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: teamtracker-frontend
+    container_name: setbaas-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"

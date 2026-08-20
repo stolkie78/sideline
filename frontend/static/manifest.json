@@ -1,6 +1,6 @@
 {
-	"name": "TeamTracker",
-	"short_name": "TeamTracker",
+	"name": "SetBaas",
+	"short_name": "SetBaas",
 	"description": "Volleybal Team Management App",
 	"start_url": "/",
 	"display": "standalone",

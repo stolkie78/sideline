@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SideLine - Deploy to Docker Linux server
+# SetBaas - Deploy to Docker Linux server
 # Usage: ./deploy.sh [setup]
 #   - Without args: builds and starts the app
 #   - With 'setup': also runs PocketBase collection setup
@@ -15,7 +15,7 @@ if [ ! -f .env ]; then
   exit 1
 fi
 
-echo "=== SideLine Production Deploy ==="
+echo "=== SetBaas Production Deploy ==="
 
 # Build and start
 echo "→ Building containers..."

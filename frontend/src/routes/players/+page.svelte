@@ -71,7 +71,7 @@
 </script>
 
 <svelte:head>
-	<title>Spelers - SideLine</title>
+	<title>Spelers - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

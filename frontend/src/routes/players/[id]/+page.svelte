@@ -76,7 +76,7 @@
 </script>
 
 <svelte:head>
-	<title>{player?.name || 'Speler'} - SideLine</title>
+	<title>{player?.name || 'Speler'} - SetBaas</title>
 </svelte:head>
 
 {#if loading}

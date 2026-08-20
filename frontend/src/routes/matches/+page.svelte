@@ -27,7 +27,7 @@
 </script>
 
 <svelte:head>
-	<title>Wedstrijden - SideLine</title>
+	<title>Wedstrijden - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

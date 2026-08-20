@@ -35,7 +35,7 @@ const DEFAULT_CONFIG: AIConfig = {
 function loadConfig(): AIConfig {
 	if (!browser) return DEFAULT_CONFIG;
 	try {
-		const stored = localStorage.getItem('sideline_ai_config');
+		const stored = localStorage.getItem('setbaas_ai_config');
 		return stored ? { ...DEFAULT_CONFIG, ...JSON.parse(stored) } : DEFAULT_CONFIG;
 	} catch {
 		return DEFAULT_CONFIG;
@@ -48,13 +48,13 @@ function createAIConfigStore() {
 	return {
 		subscribe,
 		set: (value: AIConfig) => {
-			if (browser) localStorage.setItem('sideline_ai_config', JSON.stringify(value));
+			if (browser) localStorage.setItem('setbaas_ai_config', JSON.stringify(value));
 			set(value);
 		},
 		update: (fn: (config: AIConfig) => AIConfig) => {
 			update((current) => {
 				const next = fn(current);
-				if (browser) localStorage.setItem('sideline_ai_config', JSON.stringify(next));
+				if (browser) localStorage.setItem('setbaas_ai_config', JSON.stringify(next));
 				return next;
 			});
 		}

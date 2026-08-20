@@ -1,22 +1,22 @@
-# SideLine on www.readplando.com/sideline
-# PocketBase API at /sideline/api, Frontend at /sideline
+# SetBaas on www.readplando.com/setbaas
+# PocketBase API at /setbaas/api, Frontend at /setbaas
 
 www.readplando.com {
 	# PocketBase API + Admin
-	handle_path /sideline/api/* {
+	handle_path /setbaas/api/* {
 		reverse_proxy pocketbase:8090
 	}
 
 	# PocketBase OAuth redirect
-	handle /sideline/api/oauth2-redirect {
+	handle /setbaas/api/oauth2-redirect {
 		reverse_proxy pocketbase:8090
 	}
 
 	# Frontend app
-	handle_path /sideline/* {
+	handle_path /setbaas/* {
 		reverse_proxy frontend:3000
 	}
 
-	# Redirect /sideline to /sideline/
-	redir /sideline /sideline/ 301
+	# Redirect /setbaas to /setbaas/
+	redir /setbaas /setbaas/ 301
 }

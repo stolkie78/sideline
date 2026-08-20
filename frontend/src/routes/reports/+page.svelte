@@ -24,7 +24,7 @@
 </script>
 
 <svelte:head>
-	<title>Rapportages - SideLine</title>
+	<title>Rapportages - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-4">

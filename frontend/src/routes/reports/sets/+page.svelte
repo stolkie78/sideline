@@ -68,7 +68,7 @@
 </script>
 
 <svelte:head>
-	<title>Sets overzicht - SideLine</title>
+	<title>Sets overzicht - SetBaas</title>
 </svelte:head>
 
 {#if loading}

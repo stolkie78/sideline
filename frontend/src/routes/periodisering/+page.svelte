@@ -113,7 +113,7 @@
 </script>
 
 <svelte:head>
-	<title>Periodisering - SideLine</title>
+	<title>Periodisering - SetBaas</title>
 </svelte:head>
 
 <div class="space-y-6">

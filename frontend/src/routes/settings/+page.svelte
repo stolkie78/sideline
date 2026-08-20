@@ -72,7 +72,7 @@
 </script>
 
 <svelte:head>
-	<title>Instellingen - SideLine</title>
+	<title>Instellingen - SetBaas</title>
 </svelte:head>
 
 {#if loading}

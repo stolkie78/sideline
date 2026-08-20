@@ -1,4 +1,4 @@
-# Local production environment: sideline.local
+# Local production environment: setbaas.local
 # Usage:
 #   docker compose -f docker-compose.local.yml up -d
 #   docker compose -f docker-compose.local.yml --profile setup run --rm pb-setup
@@ -6,7 +6,7 @@
 services:
   caddy:
     image: caddy:2-alpine
-    container_name: sideline-local-caddy
+    container_name: setbaas-local-caddy
     restart: unless-stopped
     ports:
       - "${HTTP_PORT:-80}:80"
@@ -18,7 +18,7 @@ services:
 
   pocketbase:
     image: ghcr.io/muchobien/pocketbase:latest
-    container_name: sideline-local-pb
+    container_name: setbaas-local-pb
     restart: unless-stopped
     expose:
       - "8090"
@@ -34,21 +34,21 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: sideline-frontend-local:latest
-    container_name: sideline-local-frontend
+    image: setbaas-frontend-local:latest
+    container_name: setbaas-local-frontend
     restart: unless-stopped
     expose:
       - "3000"
     environment:
-      - PUBLIC_POCKETBASE_URL=http://sideline.local/api
-      - ORIGIN=http://sideline.local
+      - PUBLIC_POCKETBASE_URL=http://setbaas.local/api
+      - ORIGIN=http://setbaas.local
     depends_on:
       pocketbase:
         condition: service_healthy
 
   pb-setup:
     image: alpine:3.19
-    container_name: sideline-local-pb-setup
+    container_name: setbaas-local-pb-setup
     depends_on:
       pocketbase:
         condition: service_healthy
@@ -59,7 +59,7 @@ services:
     command:
       - |
         apk add --no-cache curl jq docker-cli > /dev/null 2>&1
-        docker exec sideline-local-pb pocketbase superuser upsert "$$PB_ADMIN_EMAIL" "$$PB_ADMIN_PASSWORD" 2>/dev/null || true
+        docker exec setbaas-local-pb pocketbase superuser upsert "$$PB_ADMIN_EMAIL" "$$PB_ADMIN_PASSWORD" 2>/dev/null || true
         sh /scripts/setup-collections.sh http://pocketbase:8090
     environment:
       - PB_ADMIN_EMAIL=${PB_ADMIN_EMAIL}

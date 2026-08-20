@@ -1,4 +1,4 @@
-# 🏐 SideLine — Volleybal Team Management PWA
+# 🏐 SetBaas — Volleybal Team Management PWA
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling.
 
@@ -30,7 +30,7 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Ownership** — Wie heeft een training klaargezet of scores ingevoerd
 - **Dashboard** — Komende wedstrijden (datum, tijd, locatie), klaargezette trainingen met content preview, gespeelde uitslagen
 - **Dark mode** — Standaard aan
-- **Subpath deployment** — Draait op `/sideline` subpath (configureerbaar)
+- **Subpath deployment** — Draait op `/setbaas` subpath (configureerbaar)
 
 ---
 
@@ -45,8 +45,8 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 
 ```bash
 # Clone
-git clone https://github.com/stolkie78/sideline.git
-cd sideline
+git clone https://github.com/stolkie78/setbaas.git
+cd setbaas
 
 # Configuratie
 cp .env.production .env
@@ -96,16 +96,16 @@ sudo usermod -aG docker $USER
 # Log opnieuw in
 
 # 2. Clone op de server
-git clone https://github.com/stolkie78/sideline.git
-cd sideline
+git clone https://github.com/stolkie78/setbaas.git
+cd setbaas
 
 # 3. Configureer environment
 cp .env.production .env
 nano .env
 # Minimaal invullen:
 #   DOMAIN=www.readplando.com
-#   BASE_PATH=/sideline
-#   PB_ADMIN_EMAIL=admin@sideline.app
+#   BASE_PATH=/setbaas
+#   PB_ADMIN_EMAIL=admin@setbaas.app
 #   PB_ADMIN_PASSWORD=<sterk wachtwoord>
 #   GOOGLE_CLIENT_ID=<van Google Cloud Console>
 #   GOOGLE_CLIENT_SECRET=<van Google Cloud Console>
@@ -136,16 +136,16 @@ git pull
 
 | URL | Functie |
 |-----|---------|
-| `https://www.readplando.com/sideline/` | Frontend app |
-| `https://www.readplando.com/sideline/api/` | PocketBase REST API |
-| `https://www.readplando.com/sideline/api/_/` | PocketBase Admin UI |
+| `https://www.readplando.com/setbaas/` | Frontend app |
+| `https://www.readplando.com/setbaas/api/` | PocketBase REST API |
+| `https://www.readplando.com/setbaas/api/_/` | PocketBase Admin UI |
 
 ### Google OAuth configuratie
 
 Na deployment, update de **Authorized redirect URI** in de [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
 
 ```
-https://www.readplando.com/sideline/api/oauth2-redirect
+https://www.readplando.com/setbaas/api/oauth2-redirect
 ```
 
 ### Onderhoud
@@ -187,7 +187,7 @@ Geschatte kosten: **€5-16/maand** (consumption plan).
 
 ## AI Configuratie
 
-SideLine ondersteunt AI-gegenereerde trainingsplannen via OpenAI of Google Gemini.
+SetBaas ondersteunt AI-gegenereerde trainingsplannen via OpenAI of Google Gemini.
 
 ### Setup
 
@@ -254,8 +254,8 @@ Import wedstrijdschema's direct vanuit de Nederlandse Volleybal Bond (Nevobo) AP
 │  Caddy (reverse proxy, auto HTTPS)          │
 │  :80 / :443                                 │
 ├─────────────────────────────────────────────┤
-│  /sideline/*        → Frontend (:3000)      │
-│  /sideline/api/*    → PocketBase (:8090)    │
+│  /setbaas/*        → Frontend (:3000)      │
+│  /setbaas/api/*    → PocketBase (:8090)    │
 └─────────────────────────────────────────────┘
          │                      │
     ┌────▼────┐          ┌──────▼──────┐
@@ -326,10 +326,10 @@ Import wedstrijdschema's direct vanuit de Nederlandse Volleybal Bond (Nevobo) AP
 | Variable | Beschrijving | Voorbeeld |
 |----------|-------------|-----------|
 | `DOMAIN` | Productie domein | `www.readplando.com` |
-| `BASE_PATH` | Subpath voor SvelteKit | `/sideline` |
-| `PUBLIC_POCKETBASE_URL` | PB API URL (voor frontend) | `https://www.readplando.com/sideline/api` |
+| `BASE_PATH` | Subpath voor SvelteKit | `/setbaas` |
+| `PUBLIC_POCKETBASE_URL` | PB API URL (voor frontend) | `https://www.readplando.com/setbaas/api` |
 | `ORIGIN` | Frontend origin | `https://www.readplando.com` |
-| `PB_ADMIN_EMAIL` | PocketBase admin email | `admin@sideline.app` |
+| `PB_ADMIN_EMAIL` | PocketBase admin email | `admin@setbaas.app` |
 | `PB_ADMIN_PASSWORD` | PocketBase admin wachtwoord | (secret) |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | `*.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | (secret) |

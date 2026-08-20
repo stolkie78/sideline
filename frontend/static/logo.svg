@@ -2,7 +2,7 @@
   <!-- Background circle -->
   <circle cx="256" cy="256" r="240" fill="#1e293b"/>
   
-  <!-- Volleyball court sideline - vertical stripe -->
+  <!-- Volleyball court setbaas - vertical stripe -->
   <rect x="168" y="80" width="8" height="352" rx="4" fill="#f59e0b" opacity="0.9"/>
   
   <!-- Stylized volleyball - clean circle with characteristic curves -->
@@ -13,6 +13,6 @@
   <path d="M 225 220 Q 290 240 320 256 Q 350 272 415 292" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
   <path d="M 225 292 Q 290 272 320 256 Q 350 240 415 220" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round"/>
   
-  <!-- Accent dot on the sideline -->
+  <!-- Accent dot on the setbaas -->
   <circle cx="172" cy="256" r="12" fill="#f59e0b"/>
 </svg>

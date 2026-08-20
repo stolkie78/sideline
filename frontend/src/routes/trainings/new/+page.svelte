@@ -149,7 +149,7 @@
 </script>
 
 <svelte:head>
-	<title>Nieuwe Training - SideLine</title>
+	<title>Nieuwe Training - SetBaas</title>
 </svelte:head>
 
 {#if loading}

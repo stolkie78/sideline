@@ -41,7 +41,7 @@
 </script>
 
 <svelte:head>
-	<title>SideLine - Dashboard</title>
+	<title>SetBaas - Dashboard</title>
 </svelte:head>
 
 {#if loading}

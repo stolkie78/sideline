@@ -110,7 +110,7 @@
 </script>
 
 <svelte:head>
-	<title>Nieuwe Meting - SideLine</title>
+	<title>Nieuwe Meting - SetBaas</title>
 </svelte:head>
 
 {#if loading}
