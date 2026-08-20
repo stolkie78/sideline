@@ -22,7 +22,7 @@
 	import type { Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 
-	import { aiConfig, AI_MODELS } from '$lib/stores/ai';
+	import { aiConfig, AI_MODELS, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
 	import type { AIConfig } from '$lib/stores/ai';
 
 	// Tab state
@@ -32,9 +32,10 @@
 	let aiProvider: AIConfig['provider'] = $aiConfig.provider;
 	let aiApiKey: string = $aiConfig.apiKey;
 	let aiModel: string = $aiConfig.model;
+	let aiSystemPrompt: string = $aiConfig.systemPrompt;
 
 	function saveAIConfig() {
-		aiConfig.set({ provider: aiProvider, apiKey: aiApiKey, model: aiModel });
+		aiConfig.set({ provider: aiProvider, apiKey: aiApiKey, model: aiModel, systemPrompt: aiSystemPrompt });
 	}
 
 	// === Competencies ===
@@ -298,7 +299,7 @@
 					: 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
 			}"
 			on:click={() => { activeTab = 'ai'; }}>
-			🤖 AI
+			AI
 		</button>
 	</div>
 
@@ -529,7 +530,7 @@
 	{:else if activeTab === 'ai'}
 		<div class="space-y-4">
 			<div class="card space-y-4">
-				<h3 class="font-semibold text-gray-800 dark:text-gray-200">🤖 AI Configuratie</h3>
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">AI Configuratie</h3>
 				<p class="text-sm text-gray-500 dark:text-gray-400">
 					Koppel een AI-model om automatisch trainingsplannen te genereren. Je API key wordt lokaal opgeslagen.
 				</p>
@@ -575,6 +576,25 @@
 						✅ AI is geconfigureerd — je ziet een "Genereer met AI" knop bij het aanmaken van trainingen.
 					</div>
 				{/if}
+
+				<div>
+					<label class="label">Systeem prompt (volleybal-AI persoonlijkheid)</label>
+					<textarea
+						class="input text-xs font-mono"
+						rows="10"
+						bind:value={aiSystemPrompt}
+						on:blur={saveAIConfig}
+						placeholder={DEFAULT_SYSTEM_PROMPT}
+					></textarea>
+					<p class="text-xs text-gray-400 mt-1">
+						Laat leeg voor de standaard volleybal meiden-B coach prompt. Pas aan voor jouw team-specifieke context.
+					</p>
+					{#if aiSystemPrompt}
+						<button type="button" class="text-xs text-primary-500 mt-1 hover:underline" on:click={() => { aiSystemPrompt = ''; saveAIConfig(); }}>
+							Reset naar standaard
+						</button>
+					{/if}
+				</div>
 			</div>
 		</div>
 	{/if}

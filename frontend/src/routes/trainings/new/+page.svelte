@@ -8,7 +8,7 @@
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { authUser } from '$lib/stores/auth';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
-	import { aiConfig } from '$lib/stores/ai';
+	import { aiConfig, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
 
 	let aiPrompt = '';
 	let aiGenerating = false;
@@ -26,7 +26,8 @@
 					prompt: aiPrompt,
 					provider: $aiConfig.provider,
 					apiKey: $aiConfig.apiKey,
-					model: $aiConfig.model || undefined
+					model: $aiConfig.model || undefined,
+					systemPrompt: $aiConfig.systemPrompt || DEFAULT_SYSTEM_PROMPT
 				})
 			});
 			const data = await res.json();

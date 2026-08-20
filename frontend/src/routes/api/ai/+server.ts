@@ -1,7 +1,7 @@
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { prompt, provider, apiKey, model } = await request.json();
+	const { prompt, provider, apiKey, model, systemPrompt: customSystemPrompt } = await request.json();
 
 	if (!prompt || !provider || !apiKey) {
 		return new Response(JSON.stringify({ error: 'Missing prompt, provider or apiKey' }), {
@@ -10,9 +10,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 	}
 
-	const systemPrompt = `Je bent een ervaren volleybalcoach-assistent. Genereer trainingsplannen in Markdown format. 
-Gebruik headers (##), lijsten, en duidelijke structuur. Focus op praktische oefeningen met tijdsindicatie.
-Geef per oefening: naam, doel, beschrijving, duur, variaties.`;
+	const systemPrompt = customSystemPrompt || `Je bent een ervaren volleybalcoach-assistent gespecialiseerd in jeugdvolleybal. Genereer trainingsplannen in Markdown format met headers (##), duidelijke structuur, en per oefening: naam, doel, uitleg, duur, variatie.`;
 
 	try {
 		let content = '';
