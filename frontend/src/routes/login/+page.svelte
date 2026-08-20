@@ -55,7 +55,7 @@
 	<div class="card w-full max-w-sm text-center space-y-6 py-8">
 		<!-- Logo -->
 		<img
-			src="/logo.svg"
+			src="/logo.png"
 			alt="SetBaas"
 			class="h-24 w-24 mx-auto rounded-2xl object-cover shadow-lg dark:shadow-none dark:drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]"
 		/>
