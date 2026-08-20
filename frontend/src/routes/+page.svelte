@@ -125,8 +125,8 @@
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
-									<span class="text-xs px-2 py-0.5 rounded-full {training.content ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
-										{training.content ? 'Klaar' : 'Nog invullen'}
+									<span class="text-xs px-2 py-0.5 rounded-full {training.status === 'open' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : training.content ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
+										{training.status === 'open' ? 'Open' : training.content ? 'Klaar' : 'Nog invullen'}
 									</span>
 									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
 								</div>
