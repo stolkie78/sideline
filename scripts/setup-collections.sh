@@ -366,15 +366,20 @@ GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
 GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 
 if [ -n "$GOOGLE_CLIENT_ID" ] && [ -n "$GOOGLE_CLIENT_SECRET" ]; then
-  # Enable OAuth2 on users collection
-  curl -sf "$PB_URL/api/collections/users" -H "Authorization: ******" | jq \
-    --arg cid "$GOOGLE_CLIENT_ID" \
-    --arg csec "$GOOGLE_CLIENT_SECRET" \
-    '.oauth2 = {"enabled": true, "mappedFields": {"id": "", "name": "name", "avatarURL": "avatar"}, "providers": [{"name": "google", "clientId": $cid, "clientSecret": $csec, "authURL": "", "tokenURL": "", "displayName": "Google", "pkce": null}]}' \
-    | curl -sf "$PB_URL/api/collections/users" -X PATCH \
-    -H "Authorization: ******" -H "Content-Type: application/json" \
-    -d @- > /dev/null
-  echo "  ✓ Google OAuth enabled"
+  # Enable OAuth2 on users collection via direct PATCH
+  OAUTH_BODY=$(cat <<EOJSON
+{
+  "oauth2": {
+    "enabled": true,
+    "mappedFields": {"id": "", "name": "name", "avatarURL": "avatar"},
+    "providers": [{"name": "google", "clientId": "$GOOGLE_CLIENT_ID", "clientSecret": "$GOOGLE_CLIENT_SECRET", "authURL": "", "tokenURL": "", "displayName": "Google", "pkce": null}]
+  }
+}
+EOJSON
+)
+  curl -sf "$PB_URL/api/collections/users" -X PATCH \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d "$OAUTH_BODY" > /dev/null && echo "  ✓ Google OAuth enabled" || echo "  ✗ OAuth configuration failed"
 else
   echo "  ⚠ Skipped (set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET env vars)"
 fi
