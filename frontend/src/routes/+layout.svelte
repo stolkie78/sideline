@@ -15,6 +15,7 @@
 	} from '$lib/stores/context';
 	import { authUser, isAuthenticated, AUTH_ENABLED } from '$lib/stores/auth';
 	import type { Team, Season } from '$lib/types';
+	import { version } from '../../package.json';
 
 	let darkMode = true;
 	let showContextPicker = false;
@@ -143,9 +144,9 @@
 		<div class="flex items-center justify-between px-5 py-3 max-w-2xl mx-auto">
 			<!-- Left: Logo + Title -->
 			<a href="{base}/" class="flex items-center gap-3">
-				<img src="/logo.svg" alt="SetBaas" class="h-9 w-9 rounded-lg" />
+				<img src="/logo.svg" alt="SetBaas" class="h-10 w-10" />
 				<div class="leading-tight">
-					<span class="text-base font-bold text-gray-900 dark:text-white">SetBaas</span>
+					<span class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">SetBaas</span>
 					<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentTeamName} · {currentSeasonName}</span>
 				</div>
 			</a>
@@ -190,10 +191,14 @@
 		<div class="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" on:click={() => (menuOpen = false)} on:keydown={() => {}}></div>
 
 		<!-- Menu panel -->
-		<nav class="fixed top-0 right-0 z-50 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl border-l border-gray-200 dark:border-gray-800 overflow-y-auto">
-			<div class="p-6">
+		<nav class="fixed top-0 right-0 z-50 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl border-l border-gray-200 dark:border-gray-800 overflow-y-auto flex flex-col">
+			<div class="p-6 flex-1">
 				<!-- Close button -->
-				<div class="flex justify-end mb-6">
+				<div class="flex justify-between items-center mb-6">
+					<div class="flex items-center gap-2">
+						<img src="/logo.svg" alt="SetBaas" class="h-8 w-8" />
+						<span class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">SetBaas</span>
+					</div>
 					<button on:click={() => (menuOpen = false)} class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500">
 						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -256,6 +261,13 @@
 						</button>
 					</div>
 				{/if}
+			</div>
+
+			<!-- Version footer -->
+			<div class="p-6 pt-0">
+				<div class="border-t border-gray-200 dark:border-gray-700 pt-4 text-center">
+					<span class="text-xs text-gray-400 dark:text-gray-600">SetBaas v{version}</span>
+				</div>
 			</div>
 		</nav>
 	{/if}
