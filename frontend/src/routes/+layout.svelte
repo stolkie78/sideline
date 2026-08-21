@@ -14,6 +14,7 @@
 		seasons as seasonsStore,
 	} from '$lib/stores/context';
 	import { authUser, isAuthenticated, AUTH_ENABLED } from '$lib/stores/auth';
+	import { userRole, isCoachOrAdmin, loadUserRoles, clearUserRoles } from '$lib/stores/role';
 	import type { Team, Season } from '$lib/types';
 	import { version } from '../../package.json';
 
@@ -76,6 +77,11 @@
 			if (!$selectedSeasonId && localSeasons.length > 0) {
 				$selectedSeasonId = localSeasons[0].id;
 			}
+
+			// Load user roles after teams are ready
+			if (AUTH_ENABLED && pb.authStore.isValid) {
+				await loadUserRoles();
+			}
 		} catch (e) {
 			console.error('Failed to load teams/seasons:', e);
 		}
@@ -91,6 +97,7 @@
 	}
 
 	function handleLogout() {
+		clearUserRoles();
 		authUser.logout();
 		goto(`${base}/login`);
 	}
@@ -110,15 +117,19 @@
 	$: currentTeamName = localTeams.find((t) => t.id === $selectedTeamId)?.name || 'Team';
 	$: currentSeasonName = localSeasons.find((s) => s.id === $selectedSeasonId)?.name || 'Seizoen';
 
-	const navItems = [
-		{ href: '/', label: 'Dashboard' },
-		{ href: '/players', label: 'Spelers' },
-		{ href: '/trainings', label: 'Trainingen' },
-		{ href: '/matches', label: 'Wedstrijden' },
-		{ href: '/periodisering', label: 'Periodisering' },
-		{ href: '/reports', label: 'Rapporten' },
-		{ href: '/config', label: 'Configuratie' },
+	const allNavItems = [
+		{ href: '/', label: 'Dashboard', roles: ['admin', 'coach', 'player'] },
+		{ href: '/players', label: 'Spelers', roles: ['admin', 'coach'] },
+		{ href: '/trainings', label: 'Trainingen', roles: ['admin', 'coach'] },
+		{ href: '/matches', label: 'Wedstrijden', roles: ['admin', 'coach'] },
+		{ href: '/periodisering', label: 'Periodisering', roles: ['admin', 'coach'] },
+		{ href: '/reports', label: 'Rapporten', roles: ['admin', 'coach'] },
+		{ href: '/config', label: 'Configuratie', roles: ['admin'] },
 	];
+
+	$: navItems = allNavItems.filter(item =>
+		!$userRole || item.roles.includes($userRole)
+	);
 </script>
 
 <svelte:head>
@@ -253,6 +264,13 @@
 								<div class="min-w-0 flex-1">
 									<span class="text-sm font-medium text-gray-800 dark:text-gray-200 block truncate">{$authUser.name || '—'}</span>
 									<span class="text-xs text-gray-400 dark:text-gray-500 block truncate">{$authUser.email}</span>
+								{#if $userRole}
+									<span class="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full
+										{$userRole === 'admin' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+										 $userRole === 'coach' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+										 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}"
+									>{$userRole}</span>
+								{/if}
 								</div>
 							</div>
 						{/if}

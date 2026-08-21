@@ -6,7 +6,9 @@
 	import type { Player, Training, Match } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
+	import { userRole } from '$lib/stores/role';
 	import { marked } from 'marked';
+	import PlayerDashboard from '$lib/components/PlayerDashboard.svelte';
 
 	let players: Player[] = [];
 	let trainings: Training[] = [];
@@ -57,7 +59,9 @@
 	<title>SetBaas - Dashboard</title>
 </svelte:head>
 
-{#if loading}
+{#if $userRole === 'player'}
+	<PlayerDashboard />
+{:else if loading}
 	<div class="flex justify-center py-12">
 		<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
 	</div>

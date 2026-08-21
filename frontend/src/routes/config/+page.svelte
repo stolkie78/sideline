@@ -185,7 +185,7 @@
 	const ROLE_LABELS: Record<string, string> = {
 		admin: 'Admin',
 		coach: 'Coach',
-		viewer: 'Kijker',
+		player: 'Teamlid',
 	};
 
 	async function loadAccess() {
@@ -506,7 +506,7 @@
 					<select class="input w-28" bind:value={inviteRole}>
 						<option value="admin">Admin</option>
 						<option value="coach">Coach</option>
-						<option value="viewer">Kijker</option>
+						<option value="player">Teamlid</option>
 					</select>
 					<button type="submit" class="btn-primary text-sm" disabled={inviting}>
 						{inviting ? '...' : 'Toevoegen'}
@@ -556,7 +556,7 @@
 									on:change={(e) => handleRoleChange(access, e.currentTarget.value)}>
 									<option value="admin">Admin</option>
 									<option value="coach">Coach</option>
-									<option value="viewer">Kijker</option>
+									<option value="player">Teamlid</option>
 								</select>
 								<button
 									class="text-xs text-red-500 hover:underline"

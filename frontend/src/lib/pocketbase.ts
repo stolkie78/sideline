@@ -14,6 +14,8 @@ import type {
 	TrainingTemplate,
 	TrainingPlan,
 	SeasonPeriod,
+	PlayerAvailability,
+	AvailabilityStatus,
 } from '$lib/types';
 
 // PocketBase URL: in browser use same origin (proxied via Caddy), server-side use env var
@@ -276,7 +278,7 @@ export interface TeamAccess {
 	id: string;
 	user: string;
 	team: string;
-	role: 'admin' | 'coach' | 'viewer';
+	role: 'admin' | 'coach' | 'player';
 	expand?: {
 		user?: { id: string; email: string; name: string };
 		team?: Team;
@@ -384,4 +386,72 @@ export async function updateSeasonPeriod(id: string, data: Partial<SeasonPeriod>
 
 export async function deleteSeasonPeriod(id: string): Promise<boolean> {
 	return pb.collection('season_periods').delete(id);
+}
+
+// === Player Availability ===
+
+export async function getAvailabilityForTraining(trainingId: string): Promise<PlayerAvailability[]> {
+	return pb.collection('player_availability').getFullList<PlayerAvailability>({
+		filter: `training = "${trainingId}"`,
+		expand: 'player',
+	});
+}
+
+export async function getAvailabilityForMatch(matchId: string): Promise<PlayerAvailability[]> {
+	return pb.collection('player_availability').getFullList<PlayerAvailability>({
+		filter: `match = "${matchId}"`,
+		expand: 'player',
+	});
+}
+
+export async function getAvailabilityForPlayer(playerId: string): Promise<PlayerAvailability[]> {
+	return pb.collection('player_availability').getFullList<PlayerAvailability>({
+		filter: `player = "${playerId}"`,
+		expand: 'training,match',
+		sort: '-created',
+	});
+}
+
+export async function setAvailability(data: {
+	player: string;
+	training?: string;
+	match?: string;
+	status: AvailabilityStatus;
+	reason?: string;
+}): Promise<PlayerAvailability> {
+	// Upsert: check if availability already exists for this player+training/match
+	const filterParts = [`player = "${data.player}"`];
+	if (data.training) filterParts.push(`training = "${data.training}"`);
+	if (data.match) filterParts.push(`match = "${data.match}"`);
+
+	try {
+		const existing = await pb.collection('player_availability').getFirstListItem<PlayerAvailability>(
+			filterParts.join(' && ')
+		);
+		return pb.collection('player_availability').update<PlayerAvailability>(existing.id, data);
+	} catch {
+		return pb.collection('player_availability').create<PlayerAvailability>(data);
+	}
+}
+
+// === Player-User Linking ===
+
+export async function getPlayerByUserId(userId: string): Promise<Player | null> {
+	try {
+		return await pb.collection('players').getFirstListItem<Player>(`user_id = "${userId}"`);
+	} catch {
+		return null;
+	}
+}
+
+export async function getPlayerByEmail(email: string): Promise<Player | null> {
+	try {
+		return await pb.collection('players').getFirstListItem<Player>(`email = "${email}"`);
+	} catch {
+		return null;
+	}
+}
+
+export async function linkPlayerToUser(playerId: string, userId: string): Promise<Player> {
+	return pb.collection('players').update<Player>(playerId, { user_id: userId });
 }

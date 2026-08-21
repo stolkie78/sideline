@@ -122,7 +122,9 @@ ensure_collection '{
     {"name": "photo", "type": "file", "required": false, "maxSelect": 1, "maxSize": 5242880, "mimeTypes": ["image/jpeg","image/png","image/webp"], "thumbs": ["100x100","200x200"]},
     {"name": "position", "type": "select", "required": false, "values": ["setter","outside_hitter","opposite","middle_blocker","libero","defensive_specialist"], "maxSelect": 6},
     {"name": "status", "type": "select", "required": true, "values": ["active","injured","inactive"], "maxSelect": 1},
-    {"name": "jersey_number", "type": "number", "required": false}
+    {"name": "jersey_number", "type": "number", "required": false},
+    {"name": "email", "type": "email", "required": false},
+    {"name": "user_id", "type": "relation", "required": false, "collectionId": "_pb_users_auth_", "maxSelect": 1}
   ],
   "listRule": "",
   "viewRule": "",
@@ -286,7 +288,7 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"user\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
-    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"viewer\"], \"maxSelect\": 1}
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"player\"], \"maxSelect\": 1}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
@@ -366,7 +368,7 @@ ensure_collection "{
     {\"name\": \"email\", \"type\": \"email\", \"required\": true},
     {\"name\": \"token\", \"type\": \"text\", \"required\": true},
     {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
-    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"viewer\"], \"maxSelect\": 1},
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"player\"], \"maxSelect\": 1},
     {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"pending\",\"accepted\",\"expired\"], \"maxSelect\": 1},
     {\"name\": \"invited_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"expires_at\", \"type\": \"date\", \"required\": true}
@@ -380,6 +382,26 @@ ensure_collection "{
 
 echo ""
 echo "🔐 Configuring Google OAuth..."
+
+# === 16. Player Availability ===
+TRAININGS_ID=$(get_col_id "trainings")
+MATCHES_ID=$(get_col_id "matches")
+ensure_collection "{
+  \"name\": \"player_availability\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
+    {\"name\": \"training\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TRAININGS_ID\", \"maxSelect\": 1},
+    {\"name\": \"match\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$MATCHES_ID\", \"maxSelect\": 1},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"available\",\"unavailable\",\"uncertain\"], \"maxSelect\": 1},
+    {\"name\": \"reason\", \"type\": \"text\", \"required\": false}
+  ],
+  \"listRule\": \"\",
+  \"viewRule\": \"\",
+  \"createRule\": \"\",
+  \"updateRule\": \"\",
+  \"deleteRule\": \"\"
+}"
 
 # Set PocketBase application URL for OAuth redirects
 SITE_URL="${SITE_URL:-}"

@@ -16,6 +16,7 @@
 	let formPositions: PlayerPosition[] = [];
 	let formStatus = 'active';
 	let formJersey = '';
+	let formEmail = '';
 	let formPhoto: FileList | null = null;
 
 	const allPositions = Object.entries(POSITION_LABELS) as [PlayerPosition, string][];
@@ -36,6 +37,7 @@
 			formPositions = player.position || [];
 			formStatus = player.status || 'active';
 			formJersey = player.jersey_number?.toString() || '';
+			formEmail = player.email || '';
 		} catch (e) {
 			console.error('Failed to load player:', e);
 		} finally {
@@ -58,6 +60,7 @@
 			}
 			data.append('status', formStatus);
 			if (formJersey) data.append('jersey_number', formJersey);
+			data.append('email', formEmail.trim());
 			if (formPhoto && formPhoto[0]) data.append('photo', formPhoto[0]);
 
 			await updatePlayer(player.id, data);
@@ -113,6 +116,14 @@
 			<div>
 				<label class="label" for="name">Naam *</label>
 				<input id="name" class="input" type="text" bind:value={formName} required placeholder="Volledige naam" />
+			</div>
+
+			<div>
+				<label class="label" for="email">Email (voor login als teamlid)</label>
+				<input id="email" class="input" type="email" bind:value={formEmail} placeholder="speler@email.com" />
+				{#if player?.user_id}
+					<p class="text-xs text-green-600 dark:text-green-400 mt-1">✓ Gekoppeld aan gebruikersaccount</p>
+				{/if}
 			</div>
 
 			<div class="grid grid-cols-2 gap-3">

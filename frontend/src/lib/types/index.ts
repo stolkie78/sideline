@@ -8,6 +8,8 @@ export interface Player extends RecordModel {
 	position: PlayerPosition[];
 	status: PlayerStatus;
 	jersey_number?: number;
+	email?: string;
+	user_id?: string;
 }
 
 export interface Team extends RecordModel {
@@ -98,6 +100,21 @@ export interface TrainingAttendance extends RecordModel {
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'sick' | 'injured';
+
+export type AvailabilityStatus = 'available' | 'unavailable' | 'uncertain';
+
+export interface PlayerAvailability extends RecordModel {
+	player: string;
+	training?: string;
+	match?: string;
+	status: AvailabilityStatus;
+	reason?: string;
+	expand?: {
+		player?: Player;
+		training?: Training;
+		match?: Match;
+	};
+}
 
 export interface Match extends RecordModel {
 	date: string;
