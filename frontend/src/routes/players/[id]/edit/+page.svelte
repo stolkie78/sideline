@@ -146,7 +146,7 @@
 				<div class="space-y-3">
 					<div>
 						<label class="label" for="jersey">Rugnummer</label>
-						<input id="jersey" class="input" type="number" bind:value={formJersey} min="1" max="99" />
+						<input id="jersey" class="input" type="number" bind:value={formJersey} min="1" max="999" />
 					</div>
 					<div>
 						<label class="label" for="status">Status</label>

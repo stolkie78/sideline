@@ -17,6 +17,7 @@
 
 	// Current periodization
 	let currentPeriod: any = null;
+	let recentTrainings: any[] = [];
 
 	async function generateWithAI() {
 		if (!aiPrompt.trim() || !$aiConfig.apiKey) return;
@@ -34,6 +35,16 @@
 				if (goals.length > 0) {
 					fullPrompt += `\n\nHuidige periodisering: "${currentPeriod.name}" (fase: ${currentPeriod.phase || 'onbekend'})\nDoelen voor deze periode:\n${goals.join('\n')}`;
 				}
+			}
+
+			// Add recent training context
+			if (recentTrainings.length > 0) {
+				const summaries = recentTrainings.map((t, i) => {
+					const date = new Date(t.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+					const content = (t.content || '').slice(0, 500);
+					return `Training ${i + 1} (${date}):\n${content}`;
+				});
+				fullPrompt += `\n\n--- Vorige trainingen (ter referentie, vermijd herhaling) ---\n${summaries.join('\n\n')}`;
 			}
 
 			const controller = new AbortController();
@@ -100,6 +111,16 @@
 				});
 				if (periods.length > 0) currentPeriod = periods[0];
 			} catch (e) { /* no periods configured */ }
+
+			// Load last 3 trainings for AI context
+			try {
+				const filter = $selectedTeamId ? `team = "${$selectedTeamId}"` : '';
+				recentTrainings = await pb.collection('trainings').getFullList({
+					sort: '-date',
+					filter: filter || undefined,
+					limit: 3,
+				});
+			} catch (e) { /* ignore */ }
 
 			// Load team players for current context, fallback to all active players
 			if ($selectedTeamId && $selectedSeasonId) {
