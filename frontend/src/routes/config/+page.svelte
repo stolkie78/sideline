@@ -15,6 +15,7 @@
 		revokeTeamAccess,
 		updateTeamAccess,
 		findUserByEmail,
+		createTraining,
 		pb,
 	} from '$lib/pocketbase';
 	import type { TeamAccess } from '$lib/pocketbase';
@@ -26,7 +27,67 @@
 	import type { AIConfig } from '$lib/stores/ai';
 
 	// Tab state
-	let activeTab: 'competencies' | 'teams' | 'templates' | 'access' | 'ai' = 'competencies';
+	let activeTab: 'competencies' | 'teams' | 'templates' | 'access' | 'ai' | 'schedule' = 'competencies';
+
+	// === Training Schedule Generator ===
+	let scheduleDays: number[] = []; // 0=zo, 1=ma, ..., 6=za
+	let scheduleTime = '17:30';
+	let scheduleStart = '';
+	let scheduleEnd = '';
+	let scheduleGenerating = false;
+	let scheduleResult = '';
+
+	const DAY_LABELS = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
+
+	function toggleScheduleDay(day: number) {
+		if (scheduleDays.includes(day)) {
+			scheduleDays = scheduleDays.filter(d => d !== day);
+		} else {
+			scheduleDays = [...scheduleDays, day].sort();
+		}
+	}
+
+	$: schedulePreviewCount = (() => {
+		if (!scheduleStart || !scheduleEnd || scheduleDays.length === 0) return 0;
+		let count = 0;
+		const start = new Date(scheduleStart);
+		const end = new Date(scheduleEnd);
+		for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+			if (scheduleDays.includes(d.getDay())) count++;
+		}
+		return count;
+	})();
+
+	async function generateSchedule() {
+		if (!scheduleStart || !scheduleEnd || scheduleDays.length === 0 || !$selectedTeamId || !$selectedSeasonId) return;
+		if (!confirm(`${schedulePreviewCount} trainingen aanmaken?`)) return;
+
+		scheduleGenerating = true;
+		scheduleResult = '';
+		try {
+			const start = new Date(scheduleStart);
+			const end = new Date(scheduleEnd);
+			let created = 0;
+
+			for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+				if (!scheduleDays.includes(d.getDay())) continue;
+				const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${scheduleTime}:00`;
+				await createTraining({
+					date: dateStr,
+					team: $selectedTeamId,
+					season: $selectedSeasonId,
+					status: 'open',
+					content: '',
+				});
+				created++;
+			}
+			scheduleResult = `✅ ${created} trainingen aangemaakt!`;
+		} catch (e) {
+			scheduleResult = `❌ Fout: ${e}`;
+		} finally {
+			scheduleGenerating = false;
+		}
+	}
 
 	// === AI Config ===
 	let aiProvider: AIConfig['provider'] = $aiConfig.provider;
@@ -333,6 +394,15 @@
 			on:click={() => { activeTab = 'ai'; }}>
 			AI
 		</button>
+		<button
+			class="px-3 py-2 text-sm font-medium whitespace-nowrap {
+				activeTab === 'schedule'
+					? 'text-primary-600 border-b-2 border-primary-600'
+					: 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+			}"
+			on:click={() => { activeTab = 'schedule'; }}>
+			Schema
+		</button>
 	</div>
 
 	<!-- Competencies Tab -->
@@ -637,6 +707,77 @@
 						</button>
 					{/if}
 				</div>
+			</div>
+		</div>
+	{:else if activeTab === 'schedule'}
+		<div class="space-y-4">
+			<div class="card">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">📅 Trainingsschema Generator</h3>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+					Maak in één keer trainingen aan voor het hele seizoen op vaste dagen en tijden.
+				</p>
+
+				<!-- Days -->
+				<div class="mb-4">
+					<label class="label">Trainingsdagen</label>
+					<div class="flex gap-2 flex-wrap">
+						{#each DAY_LABELS as label, i}
+							<button
+								type="button"
+								class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+									{scheduleDays.includes(i)
+										? 'bg-primary-600 text-white'
+										: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}"
+								on:click={() => toggleScheduleDay(i)}
+							>
+								{label}
+							</button>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Time -->
+				<div class="mb-4">
+					<label class="label" for="schedule-time">Starttijd</label>
+					<input id="schedule-time" type="time" class="input w-32" bind:value={scheduleTime} />
+				</div>
+
+				<!-- Date range -->
+				<div class="grid grid-cols-2 gap-3 mb-4">
+					<div>
+						<label class="label" for="schedule-start">Van</label>
+						<input id="schedule-start" type="date" class="input" bind:value={scheduleStart} />
+					</div>
+					<div>
+						<label class="label" for="schedule-end">Tot</label>
+						<input id="schedule-end" type="date" class="input" bind:value={scheduleEnd} />
+					</div>
+				</div>
+
+				<!-- Preview -->
+				{#if schedulePreviewCount > 0}
+					<div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mb-4">
+						<p class="text-sm text-blue-700 dark:text-blue-300">
+							<strong>{schedulePreviewCount}</strong> trainingen worden aangemaakt
+							op {scheduleDays.map(d => DAY_LABELS[d]).join(' & ')} om {scheduleTime}
+						</p>
+					</div>
+				{/if}
+
+				<!-- Generate -->
+				<button
+					class="btn-primary w-full"
+					disabled={scheduleGenerating || schedulePreviewCount === 0}
+					on:click={generateSchedule}
+				>
+					{scheduleGenerating ? '⏳ Bezig...' : `📅 ${schedulePreviewCount} trainingen aanmaken`}
+				</button>
+
+				{#if scheduleResult}
+					<p class="mt-3 text-sm {scheduleResult.startsWith('✅') ? 'text-green-600' : 'text-red-500'}">
+						{scheduleResult}
+					</p>
+				{/if}
 			</div>
 		</div>
 	{/if}
