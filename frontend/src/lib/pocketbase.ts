@@ -50,6 +50,17 @@ export async function updatePlayer(id: string, data: FormData): Promise<Player> 
 }
 
 export async function deletePlayer(id: string): Promise<boolean> {
+	// Delete related records first to avoid foreign key constraints
+	const [attendanceRecords, availabilityRecords, scoreRecords] = await Promise.all([
+		pb.collection('training_attendance').getFullList({ filter: `player = "${id}"`, fields: 'id' }),
+		pb.collection('player_availability').getFullList({ filter: `player = "${id}"`, fields: 'id' }).catch(() => []),
+		pb.collection('competency_scores').getFullList({ filter: `player = "${id}"`, fields: 'id' }).catch(() => []),
+	]);
+	await Promise.all([
+		...attendanceRecords.map(r => pb.collection('training_attendance').delete(r.id)),
+		...availabilityRecords.map(r => pb.collection('player_availability').delete(r.id)),
+		...scoreRecords.map(r => pb.collection('competency_scores').delete(r.id)),
+	]);
 	return pb.collection('players').delete(id);
 }
 
