@@ -61,9 +61,11 @@
 				Training {new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 			</h1>
 			<div class="flex gap-2 no-print">
-				<a href="{base}/trainings/{training.id}/checkin" class="btn-secondary text-sm">🏐 Check-in</a>
+				{#if training.status === 'open'}
+					<a href="{base}/trainings/{training.id}/checkin" class="btn-primary text-sm">▶️ Start Training</a>
+				{/if}
 				<button on:click={exportPDF} class="btn-secondary text-sm">📄 PDF</button>
-				<a href="{base}/trainings/{training.id}/edit" class="btn-primary text-sm">✏️ Bewerken</a>
+				<a href="{base}/trainings/{training.id}/edit" class="btn-secondary text-sm">✏️ Bewerken</a>
 			</div>
 		</div>
 

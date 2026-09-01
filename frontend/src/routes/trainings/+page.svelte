@@ -15,7 +15,7 @@
 		try {
 			const filter = contextFilter($selectedTeamId, $selectedSeasonId);
 			trainings = await pb.collection('trainings').getFullList<Training>({
-				sort: '-date',
+				sort: 'date',
 				filter: filter || undefined,
 				expand: 'template,created_by',
 			});
@@ -96,8 +96,8 @@
 									{expandedId === training.id ? '▲ Sluit' : '▼ Bekijk'}
 								</button>
 							{/if}
-							<a href="{base}/trainings/{training.id}/checkin" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors text-sm" title="Check-in">
-								🏐
+							<a href="{base}/trainings/{training.id}/checkin" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors text-sm" title="Start Training">
+								▶️
 							</a>
 							<a href="{base}/trainings/{training.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm" title="Bewerken">
 								Bewerk

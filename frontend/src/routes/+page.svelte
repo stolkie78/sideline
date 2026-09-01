@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { getPlayers, getTrainings, getMatches } from '$lib/pocketbase';
+	import { getPlayers, getTrainings, getMatches, updateTraining } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, Training, Match, TrainingAttendance } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -164,8 +164,14 @@
 					</div>
 				</a>
 				<div class="flex gap-2 mt-3">
-					<a href="{base}/trainings/{activeTraining.id}/checkin" class="btn-secondary text-sm flex-1 text-center">🏐 Check-in</a>
-					<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-primary text-sm flex-1 text-center">✏️ Bewerken</a>
+					<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-sm flex-1 text-center">📋 Bekijk</a>
+					<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-secondary text-sm flex-1 text-center">✏️ Bewerken</a>
+					<button
+						on:click={async () => { await updateTraining(activeTraining.id, { status: 'closed' }); loadDashboard($selectedTeamId, $selectedSeasonId); }}
+						class="text-sm flex-1 text-center py-2 px-4 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
+					>
+						⏹️ Afronden
+					</button>
 				</div>
 			</div>
 		{/if}
@@ -190,7 +196,7 @@
 										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
 									{/if}
 									<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Gepland</span>
-									<a href="{base}/trainings/{training.id}/checkin" class="text-xs text-green-600 hover:underline" title="Check-in">🏐</a>
+									<a href="{base}/trainings/{training.id}/checkin" class="text-xs text-green-600 hover:underline" title="Start Training">▶️</a>
 									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
 								</div>
 							</div>
