@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import { getPlayers, getTrainings, getMatches } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
-	import type { Player, Training, Match } from '$lib/types';
+	import type { Player, Training, Match, TrainingAttendance } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 	import { userRole } from '$lib/stores/role';
@@ -15,6 +15,9 @@
 	let matches: Match[] = [];
 	let loading = true;
 	let expandedTraining: string | null = null;
+
+	// Attendance per training: { trainingId: { present: N, total: N } }
+	let attendanceCounts: Record<string, { present: number; total: number }> = {};
 
 	function printTraining(training: Training) {
 		const date = new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -47,6 +50,15 @@
 				pb.collection('trainings').getFullList<Training>({ sort: '-date', filter: filter || undefined }),
 				pb.collection('matches').getFullList<Match>({ sort: '-date', filter: filter || undefined }),
 			]);
+
+			// Load attendance counts for all trainings
+			const allAttendance = await pb.collection('training_attendance').getFullList<TrainingAttendance>({ fields: 'training,status' });
+			for (const a of allAttendance) {
+				if (!attendanceCounts[a.training]) attendanceCounts[a.training] = { present: 0, total: 0 };
+				attendanceCounts[a.training].total++;
+				if (a.status === 'present') attendanceCounts[a.training].present++;
+			}
+			attendanceCounts = attendanceCounts;
 		} catch (e) {
 			console.error('Failed to load dashboard data:', e);
 		} finally {
@@ -122,22 +134,26 @@
 			</div>
 		{/if}
 
-		<!-- Open Trainings -->
+		<!-- Geplande Trainingen -->
 		{#if openTrainings.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
-					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📋 Open trainingen</h2>
+					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📋 Geplande trainingen</h2>
 					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
 				<div class="space-y-3">
 					{#each openTrainings as training}
+						{@const att = attendanceCounts[training.id]}
 						<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
 							<div class="flex justify-between items-center">
 								<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600">
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
-									<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Open</span>
+									{#if att}
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
+									{/if}
+									<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Gepland</span>
 									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
 								</div>
 							</div>
@@ -168,12 +184,16 @@
 				</div>
 				<div class="space-y-3">
 					{#each closedTrainings as training}
+						{@const att = attendanceCounts[training.id]}
 						<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
 							<div class="flex justify-between items-center">
 								<a href="{base}/trainings/{training.id}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600">
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
+									{#if att}
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
+									{/if}
 									<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Afgerond</span>
 									{#if training.overall_rating}
 										<span class="text-sm font-semibold {
