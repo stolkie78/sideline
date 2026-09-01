@@ -2,7 +2,7 @@
 	import { base } from '$app/paths';
 	import { getPlayers, getTrainings, getMatches, updateTraining } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
-	import type { Player, Training, Match, TrainingAttendance } from '$lib/types';
+	import type { Player, Training, Match, TrainingAttendance, MatchAttendance } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 	import { userRole } from '$lib/stores/role';
@@ -18,6 +18,8 @@
 
 	// Attendance per training: { trainingId: { present: N, total: N } }
 	let attendanceCounts: Record<string, { present: number; total: number }> = {};
+	// Attendance per match: { matchId: { present: N, total: N } }
+	let matchAttendanceCounts: Record<string, { present: number; total: number }> = {};
 
 	function printTraining(training: Training) {
 		const date = new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -64,6 +66,16 @@
 				if (a.status === 'present') attendanceCounts[a.training].present++;
 			}
 			attendanceCounts = attendanceCounts;
+
+			// Load attendance counts for all matches
+			matchAttendanceCounts = {};
+			const allMatchAttendance = await pb.collection('match_attendance').getFullList<MatchAttendance>({ fields: 'match,status' });
+			for (const a of allMatchAttendance) {
+				if (!matchAttendanceCounts[a.match]) matchAttendanceCounts[a.match] = { present: 0, total: 0 };
+				matchAttendanceCounts[a.match].total++;
+				if (a.status === 'present') matchAttendanceCounts[a.match].present++;
+			}
+			matchAttendanceCounts = matchAttendanceCounts;
 		} catch (e) {
 			console.error('Failed to load dashboard data:', e);
 		} finally {
@@ -210,11 +222,15 @@
 					<!-- Komende wedstrijden -->
 					{#each upcomingMatches as match, i}
 						{@const isNext = i === 0}
+						{@const mAtt = matchAttendanceCounts[match.id]}
 						<div class="p-4 rounded-xl transition {isNext ? 'border-2 border-primary-500 dark:border-primary-400 bg-primary-50/50 dark:bg-primary-900/15 ring-1 ring-primary-200 dark:ring-primary-800' : 'border border-cyan-200 dark:border-cyan-800 bg-white dark:bg-gray-800'}">
 							<div class="flex justify-between items-start">
 								<div>
 									<span class="text-sm font-medium text-gray-800 dark:text-gray-200">{match.opponent}</span>
 									<span class="text-xs text-gray-400 ml-1">{match.home_away === 'home' ? '(Thuis)' : '(Uit)'}</span>
+									{#if mAtt}
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300 ml-2">👥 {mAtt.present}/{mAtt.total}</span>
+									{/if}
 								</div>
 								<a href="{base}/matches/{match.id}/edit" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-base" title="Bewerken">✏️</a>
 							</div>
