@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
+	import { page } from '$app/stores';
 	import { pb } from '$lib/pocketbase';
 	import { marked } from 'marked';
 	import type { Training } from '$lib/types';
@@ -10,6 +11,19 @@
 	let trainings: Training[] = [];
 	let loading = true;
 	let expandedId: string | null = null;
+	let statusFilter: 'all' | 'open' | 'closed' = 'all';
+
+	// Read initial filter from URL query param
+	$: {
+		const urlFilter = $page.url.searchParams.get('status');
+		if (urlFilter === 'open' || urlFilter === 'closed') {
+			statusFilter = urlFilter;
+		}
+	}
+
+	$: filteredTrainings = statusFilter === 'all'
+		? trainings
+		: trainings.filter(t => statusFilter === 'open' ? (t.status === 'open' || t.status === 'active') : t.status === 'closed');
 
 	onMount(async () => {
 		try {
@@ -41,6 +55,25 @@
 		<a href="{base}/trainings/new" class="btn-primary">+ Training</a>
 	</div>
 
+	<!-- Filter tabs -->
+	<div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+		<button
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'all' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'all'}>
+			Alles ({trainings.length})
+		</button>
+		<button
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'open' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'open'}>
+			Gepland ({trainings.filter(t => t.status === 'open' || t.status === 'active').length})
+		</button>
+		<button
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'closed' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'closed'}>
+			Afgerond ({trainings.filter(t => t.status === 'closed').length})
+		</button>
+	</div>
+
 	{#if loading}
 		<div class="flex justify-center py-8">
 			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -51,7 +84,7 @@
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-			{#each trainings as training}
+			{#each filteredTrainings as training}
 				<div class="card">
 					<div class="flex justify-between items-center">
 						<div class="flex items-center gap-2">

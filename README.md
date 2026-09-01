@@ -290,6 +290,7 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.3.4** | 2026-09-01 | Trainingen filter tabs (Alles/Gepland/Afgerond) met deep link vanuit dashboard |
 | **v2.3.3** | 2026-09-01 | Responsive layout: bredere container op tablet/desktop, 2-kolom grid voor trainingen/wedstrijden/spelers/rapporten |
 | **v2.3.2** | 2026-09-01 | Dashboard: 5 geplande trainingen, afgerond als link met aantal, uitslagen in grijze card |
 | **v2.3.1** | 2026-09-01 | "VOLGENDE →" highlight op eerstvolgende geplande training en wedstrijd |

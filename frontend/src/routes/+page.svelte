@@ -182,7 +182,7 @@
 
 					<!-- Link naar afgeronde trainingen -->
 					{#if closedTrainingCount > 0}
-						<a href="{base}/trainings" class="block text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 pt-1">
+						<a href="{base}/trainings?status=closed" class="block text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 pt-1">
 							✅ Afgerond ({closedTrainingCount}) →
 						</a>
 					{/if}
