@@ -47,8 +47,7 @@
 	async function handleToggleRole(access: any, field: 'is_trainer' | 'is_player' | 'is_parent', value: boolean) {
 		try {
 			await updateTeamAccess(access.id, { [field]: value });
-			await loadAccess();
-		} catch (e) { alert('Fout: ' + e); }
+		} catch (e) { alert('Fout: ' + e); await loadAccess(); }
 	}
 
 	function toggleScheduleDay(day: number) {
@@ -767,20 +766,20 @@
 								<div class="flex items-center gap-3">
 									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
 										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-											checked={access.is_trainer || false}
-											on:change={(e) => handleToggleRole(access, 'is_trainer', e.currentTarget.checked)} />
+											checked={access.is_trainer}
+											on:change={() => { access.is_trainer = !access.is_trainer; handleToggleRole(access, 'is_trainer', access.is_trainer); }} />
 										Trainer
 									</label>
 									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
 										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-											checked={access.is_player || false}
-											on:change={(e) => handleToggleRole(access, 'is_player', e.currentTarget.checked)} />
+											checked={access.is_player}
+											on:change={() => { access.is_player = !access.is_player; handleToggleRole(access, 'is_player', access.is_player); }} />
 										Speler
 									</label>
 									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
 										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-											checked={access.is_parent || false}
-											on:change={(e) => handleToggleRole(access, 'is_parent', e.currentTarget.checked)} />
+											checked={access.is_parent}
+											on:change={() => { access.is_parent = !access.is_parent; handleToggleRole(access, 'is_parent', access.is_parent); }} />
 										Ouder
 									</label>
 								</div>
