@@ -139,7 +139,7 @@
 			{#each players as player}
 				<a href="{base}/players/{player.id}" class="card flex items-center gap-3 hover:shadow-md transition-shadow">
 					<!-- Avatar -->
-					<div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+					<div class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center overflow-hidden flex-shrink-0">
 						{#if player.photo}
 							<img
 								src={getFileUrl(player, player.photo)}
@@ -147,7 +147,7 @@
 								class="w-full h-full object-cover"
 							/>
 						{:else}
-							<span class="text-primary-600 font-bold text-lg">
+							<span class="text-primary-600 dark:text-primary-400 font-bold text-lg">
 								{player.name.charAt(0).toUpperCase()}
 							</span>
 						{/if}
@@ -156,9 +156,9 @@
 					<!-- Info -->
 					<div class="flex-1 min-w-0">
 						<div class="flex items-center gap-2">
-							<span class="font-semibold text-gray-800 truncate">{player.name}</span>
+							<span class="font-semibold text-gray-800 dark:text-gray-100 truncate">{player.name}</span>
 							{#if player.jersey_number}
-								<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+								<span class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
 									#{player.jersey_number}
 								</span>
 							{/if}
@@ -170,9 +170,9 @@
 
 					<!-- Status badge -->
 					<span class="text-xs px-2 py-1 rounded-full {
-						player.status === 'active' ? 'bg-green-100 text-green-700' :
-						player.status === 'injured' ? 'bg-red-100 text-red-700' :
-						'bg-gray-100 text-gray-700'
+						player.status === 'active' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+						player.status === 'injured' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+						'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 					}">
 						{STATUS_LABELS[player.status]}
 					</span>

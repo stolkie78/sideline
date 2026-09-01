@@ -87,20 +87,20 @@
 	<div class="space-y-4">
 		<!-- Player Header -->
 		<div class="card flex items-center gap-4">
-			<div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+			<div class="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center overflow-hidden flex-shrink-0">
 				{#if player.photo}
 					<img src={getFileUrl(player, player.photo)} alt={player.name} class="w-full h-full object-cover" />
 				{:else}
-					<span class="text-primary-600 font-bold text-2xl">{player.name.charAt(0)}</span>
+					<span class="text-primary-600 dark:text-primary-400 font-bold text-2xl">{player.name.charAt(0)}</span>
 				{/if}
 			</div>
 			<div class="flex-1">
 				<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{player.name}</h2>
 				<p class="text-sm text-gray-500 dark:text-gray-400">{(player.position || []).map(p => POSITION_LABELS[p] || p).join(', ') || '—'}</p>
 				<span class="text-xs px-2 py-0.5 rounded-full {
-					player.status === 'active' ? 'bg-green-100 text-green-700' :
-					player.status === 'injured' ? 'bg-red-100 text-red-700' :
-					'bg-gray-100 text-gray-700'
+					player.status === 'active' ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' :
+					player.status === 'injured' ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' :
+					'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 				}">
 					{STATUS_LABELS[player.status]}
 				</span>
@@ -137,7 +137,7 @@
 
 			<!-- Rating Form -->
 			{#if showRatingForm && selectedCompetency}
-				<form class="bg-gray-50 rounded-xl p-3 space-y-2" on:submit|preventDefault={saveRating}>
+				<form class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 space-y-2" on:submit|preventDefault={saveRating}>
 					<div>
 						<label class="label">Score: {ratingValue}/10</label>
 						<input

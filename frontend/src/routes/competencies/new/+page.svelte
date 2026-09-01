@@ -172,14 +172,14 @@
 							{#each comps as comp}
 								{@const s = scores[activePlayer.id][comp.id]}
 								{#if s}
-									<div class="border border-gray-100 dark:border-gray-700 rounded-xl p-3">
+									<div class="border border-gray-200 dark:border-gray-700 rounded-xl p-3">
 										<div class="flex items-center justify-between mb-1">
 											<span class="text-sm font-medium">{comp.name}</span>
 											<span class="text-lg font-bold {
-												s.rating >= 8 ? 'text-green-600' :
-												s.rating >= 6 ? 'text-blue-600' :
-												s.rating >= 4 ? 'text-yellow-600' :
-												'text-red-600'
+												s.rating >= 8 ? 'text-green-600 dark:text-green-400' :
+												s.rating >= 6 ? 'text-blue-600 dark:text-blue-400' :
+												s.rating >= 4 ? 'text-yellow-600 dark:text-yellow-400' :
+												'text-red-600 dark:text-red-400'
 											}">{s.rating}</span>
 										</div>
 										<input
