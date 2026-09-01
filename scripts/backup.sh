@@ -39,10 +39,9 @@ mkdir -p "$BACKUP_DIR"
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-# Copy PocketBase data from Docker volume
+# Copy PocketBase data from Docker volume directly
 echo "📦 Copying database..."
-docker compose -f "$COMPOSE_FILE" exec -T pocketbase cp /pb/pb_data/data.db /tmp/backup_data.db 2>/dev/null
-docker compose -f "$COMPOSE_FILE" cp pocketbase:/tmp/backup_data.db "$TMPDIR/data.db"
+docker compose -f "$COMPOSE_FILE" cp pocketbase:/pb/pb_data/data.db "$TMPDIR/data.db"
 
 # Also backup any uploaded files (avatars etc.)
 echo "📦 Copying uploads..."
@@ -51,9 +50,6 @@ docker compose -f "$COMPOSE_FILE" cp pocketbase:/pb/pb_data/storage "$TMPDIR/sto
 # Create compressed archive
 echo "📦 Creating archive..."
 tar -czf "$BACKUP_DIR/$BACKUP_FILE" -C "$TMPDIR" .
-
-# Cleanup temp
-docker compose -f "$COMPOSE_FILE" exec -T pocketbase rm -f /tmp/backup_data.db 2>/dev/null
 
 # Show result
 SIZE=$(du -h "$BACKUP_DIR/$BACKUP_FILE" | cut -f1)
