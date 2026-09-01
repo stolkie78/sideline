@@ -18,9 +18,9 @@ import type {
 	AvailabilityStatus,
 } from '$lib/types';
 
-// PocketBase URL: in browser use same origin (proxied via Caddy), server-side use env var
+// PocketBase URL: in production same origin (proxied via Caddy), in local dev use port 8090
 const pbUrl = typeof window !== 'undefined'
-	? (window.location.origin || 'http://localhost:8090')
+	? (window.location.port === '3000' ? 'http://localhost:8090' : window.location.origin)
 	: import.meta.env.PUBLIC_POCKETBASE_URL || 'http://localhost:8090';
 
 export const pb = new PocketBase(pbUrl);
@@ -113,6 +113,7 @@ export async function createTraining(data: {
 	season?: string;
 	template?: string;
 	status?: string;
+	content?: string;
 	warmup?: string;
 	technique?: string;
 	core1?: string;

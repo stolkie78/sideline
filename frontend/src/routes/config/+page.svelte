@@ -19,7 +19,7 @@
 		pb,
 	} from '$lib/pocketbase';
 	import type { TeamAccess } from '$lib/pocketbase';
-	import { teams as teamsStore, seasons as seasonsStore, selectedTeamId } from '$lib/stores/context';
+	import { teams as teamsStore, seasons as seasonsStore, selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import type { Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 
