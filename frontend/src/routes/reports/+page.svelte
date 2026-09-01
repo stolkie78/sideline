@@ -8,7 +8,12 @@
 		{
 			href: '/reports/attendance',
 			title: 'Trainingsaanwezigheid',
-			description: 'Overzicht van aan- en afwezigheid per speler over alle trainingen.',
+			description: 'Overzicht van aan- en afwezigheid per speler over afgeronde trainingen.',
+		},
+		{
+			href: '/reports/wellness',
+			title: 'Welzijn & Fitheid',
+			description: 'Happiness en fitheid per speler met trend en emoji-tijdlijn.',
 		},
 		{
 			href: '/reports/position-points',

@@ -206,7 +206,9 @@ ensure_collection "{
     {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
     {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"present\",\"absent\",\"late\",\"sick\",\"injured\"], \"maxSelect\": 1},
     {\"name\": \"player_rating\", \"type\": \"number\", \"required\": false},
-    {\"name\": \"player_notes\", \"type\": \"text\", \"required\": false}
+    {\"name\": \"player_notes\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"happiness\", \"type\": \"number\", \"required\": false},
+    {\"name\": \"fitness\", \"type\": \"number\", \"required\": false}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",

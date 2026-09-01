@@ -175,8 +175,8 @@
 				created_by: $authUser?.id || undefined,
 			});
 
-			// 2. Create attendance records (only when closed)
-			if (trainingStatus === 'closed') {
+			// 2. Create attendance records
+			{
 				const promises = players.map((p) => {
 					const pd = playerData[p.id];
 					return createTrainingAttendance({
@@ -221,7 +221,7 @@
 					<button type="button"
 						class="flex-1 py-3 text-sm font-semibold transition-colors {trainingStatus === 'open' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
 						on:click={() => (trainingStatus = 'open')}>
-						Open (voorbereid)
+						Gepland (voorbereid)
 					</button>
 					<button type="button"
 						class="flex-1 py-3 text-sm font-semibold transition-colors {trainingStatus === 'closed' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
@@ -270,8 +270,7 @@
 			{/if}
 		</div>
 
-		<!-- Player Attendance - Quick Input (only when closed) -->
-		{#if trainingStatus === 'closed'}
+		<!-- Player Attendance -->
 		<div class="card">
 			<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Aanwezigheid & Scores</h3>
 			<div class="space-y-3">
@@ -315,7 +314,6 @@
 				{/each}
 			</div>
 		</div>
-		{/if}
 
 		<!-- Training content -->
 		<div class="card space-y-4">

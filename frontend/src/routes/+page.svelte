@@ -154,6 +154,7 @@
 										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
 									{/if}
 									<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Gepland</span>
+									<a href="{base}/trainings/{training.id}/checkin" class="text-xs text-green-600 hover:underline" title="Check-in">🏐</a>
 									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
 								</div>
 							</div>

@@ -94,6 +94,9 @@
 									{expandedId === training.id ? '▲ Sluit' : '▼ Bekijk'}
 								</button>
 							{/if}
+							<a href="{base}/trainings/{training.id}/checkin" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors text-sm" title="Check-in">
+								🏐
+							</a>
 							<a href="{base}/trainings/{training.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm" title="Bewerken">
 								Bewerk
 							</a>

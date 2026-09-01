@@ -2,16 +2,28 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { pb } from '$lib/pocketbase';
-	import type { Training } from '$lib/types';
+	import { pb, getTrainingAttendance, getPlayers } from '$lib/pocketbase';
+	import type { Training, TrainingAttendance, Player } from '$lib/types';
+	import { ATTENDANCE_LABELS } from '$lib/types';
 	import { marked } from 'marked';
+	import { contextFilter } from '$lib/stores/context';
 
 	let training: Training | null = null;
+	let attendance: TrainingAttendance[] = [];
+	let allPlayers: Player[] = [];
 	let loading = true;
+
+	$: presentCount = attendance.filter(a => a.status === 'present').length;
 
 	onMount(async () => {
 		try {
-			training = await pb.collection('trainings').getOne<Training>($page.params.id);
+			const [t, players] = await Promise.all([
+				pb.collection('trainings').getOne<Training>($page.params.id),
+				getPlayers('status = "active"'),
+			]);
+			training = t;
+			allPlayers = players;
+			attendance = await getTrainingAttendance(t.id);
 		} catch (e) {
 			training = null;
 		}
@@ -49,6 +61,7 @@
 				Training {new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 			</h1>
 			<div class="flex gap-2 no-print">
+				<a href="{base}/trainings/{training.id}/checkin" class="btn-secondary text-sm">🏐 Check-in</a>
 				<button on:click={exportPDF} class="btn-secondary text-sm">📄 PDF</button>
 				<a href="{base}/trainings/{training.id}/edit" class="btn-primary text-sm">✏️ Bewerken</a>
 			</div>
@@ -71,5 +84,41 @@
 		{:else}
 			<p class="text-gray-500 italic">Geen inhoud — klik op Bewerken om een training samen te stellen.</p>
 		{/if}
+
+		<!-- Aanwezigheid -->
+		<div class="card">
+			<div class="flex justify-between items-center mb-3">
+				<h2 class="font-semibold text-gray-900 dark:text-gray-100">👥 Aanwezigheid</h2>
+				<span class="text-sm font-medium {presentCount > 0 ? 'text-green-600' : 'text-gray-400'}">
+					{presentCount}/{allPlayers.length} aanwezig
+				</span>
+			</div>
+			{#if attendance.length === 0}
+				<p class="text-sm text-gray-500 italic">Nog geen aanwezigheid geregistreerd.</p>
+			{:else}
+				<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+					{#each attendance as att}
+						{@const player = att.expand?.player}
+						<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
+							<span class="w-2 h-2 rounded-full {
+								att.status === 'present' ? 'bg-green-500' :
+								att.status === 'absent' ? 'bg-red-500' :
+								att.status === 'sick' ? 'bg-yellow-500' : 'bg-orange-500'
+							}"></span>
+							<span class="text-gray-700 dark:text-gray-300 truncate">
+								{player ? player.name : '...'}
+							</span>
+							{#if att.happiness}
+								<span class="text-xs" title="Happiness">{['😢','😕','😐','😊','🤩'][att.happiness - 1]}</span>
+							{/if}
+							{#if att.fitness}
+								<span class="text-xs" title="Fitness">{['🥱','😴','💪','🔥','⚡'][att.fitness - 1]}</span>
+							{/if}
+							<span class="text-xs text-gray-400 ml-auto">{ATTENDANCE_LABELS[att.status]}</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
 	</div>
 {/if}

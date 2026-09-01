@@ -92,6 +92,8 @@ export interface TrainingAttendance extends RecordModel {
 	status: AttendanceStatus;
 	player_rating?: number;
 	player_notes?: string;
+	happiness?: number;
+	fitness?: number;
 	// Expanded relations
 	expand?: {
 		player?: Player;
