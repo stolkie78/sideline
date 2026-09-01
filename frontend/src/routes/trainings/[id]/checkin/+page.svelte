@@ -161,9 +161,14 @@
 
 	async function startTraining() {
 		if (!training) return;
-		await updateTraining(training.id, { status: 'active' });
-		trainingStarted = true;
-		step = 'done';
+		try {
+			await updateTraining(training.id, { status: 'active' });
+			trainingStarted = true;
+			step = 'done';
+		} catch (e) {
+			console.error('Failed to start training:', e);
+			alert('Fout bij starten training. Controleer of de "active" status beschikbaar is in PocketBase (run pb-setup).');
+		}
 	}
 </script>
 
