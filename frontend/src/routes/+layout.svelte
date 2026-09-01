@@ -146,13 +146,13 @@
 			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
 		</div>
 	{:else if $page.url.pathname === '/login'}
-		<main class="px-4 py-6 max-w-lg mx-auto">
+		<main class="px-4 py-6 max-w-lg md:max-w-xl mx-auto">
 			<slot />
 		</main>
 	{:else}
 	<!-- Header -->
 	<header class="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-		<div class="flex items-center justify-between px-5 py-3 max-w-2xl mx-auto">
+		<div class="flex items-center justify-between px-5 py-3 max-w-2xl md:max-w-4xl lg:max-w-5xl mx-auto">
 			<!-- Left: Logo + Title -->
 			<a href="{base}/" class="flex items-center gap-3">
 				<img src="/logo.svg" alt="SetBaas" class="h-10 w-10" />
@@ -291,7 +291,7 @@
 	{/if}
 
 	<!-- Main content -->
-	<main class="px-5 py-6 max-w-2xl mx-auto">
+	<main class="px-5 py-6 max-w-2xl md:max-w-4xl lg:max-w-5xl mx-auto">
 		<slot />
 	</main>
 	{/if}

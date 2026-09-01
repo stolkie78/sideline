@@ -85,15 +85,15 @@
 		<!-- Quick Stats -->
 		<div class="grid grid-cols-3 gap-3">
 			<div class="card text-center py-6">
-				<div class="text-3xl font-bold text-primary-600">{players.length}</div>
+				<div class="text-3xl md:text-4xl font-bold text-primary-600">{players.length}</div>
 				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Spelers</div>
 			</div>
 			<div class="card text-center py-6">
-				<div class="text-3xl font-bold text-green-600">{trainings.length}</div>
+				<div class="text-3xl md:text-4xl font-bold text-green-600">{trainings.length}</div>
 				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Trainingen</div>
 			</div>
 			<div class="card text-center py-6">
-				<div class="text-3xl font-bold text-amber-600">{matches.length}</div>
+				<div class="text-3xl md:text-4xl font-bold text-amber-600">{matches.length}</div>
 				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Wedstrijden</div>
 			</div>
 		</div>
@@ -107,6 +107,9 @@
 				Nieuwe wedstrijd
 			</a>
 		</div>
+
+		<!-- Trainingen + Wedstrijden: side by side on tablet+ -->
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
 		<!-- Trainingen -->
 		{#if activeTraining || openTrainings.length > 0 || closedTrainingCount > 0}
@@ -241,5 +244,6 @@
 				{/if}
 			</div>
 		{/if}
+		</div><!-- end grid -->
 	</div>
 {/if}

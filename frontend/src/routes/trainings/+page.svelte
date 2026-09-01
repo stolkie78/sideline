@@ -50,7 +50,7 @@
 			<p>Nog geen trainingen geregistreerd</p>
 		</div>
 	{:else}
-		<div class="space-y-2">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 			{#each trainings as training}
 				<div class="card">
 					<div class="flex justify-between items-center">

@@ -49,7 +49,7 @@
 			<p>Nog geen wedstrijden geregistreerd</p>
 		</div>
 	{:else}
-		<div class="space-y-2">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 			{#each matches as match}
 				{@const won = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team > match.score_opponent}
 				{@const lost = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team < match.score_opponent}

@@ -35,7 +35,7 @@
 <div class="space-y-4">
 	<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Rapportages</h2>
 
-	<div class="space-y-2">
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
 		{#each reports as report}
 			<a href={report.href} class="card flex items-center gap-4 hover:shadow-md transition-shadow">
 				<div class="flex-1">

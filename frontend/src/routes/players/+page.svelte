@@ -135,7 +135,7 @@
 			<p>Nog geen spelers toegevoegd</p>
 		</div>
 	{:else}
-		<div class="space-y-2">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 			{#each players as player}
 				<a href="{base}/players/{player.id}" class="card flex items-center gap-3 hover:shadow-md transition-shadow">
 					<!-- Avatar -->
