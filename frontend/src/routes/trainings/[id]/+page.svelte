@@ -2,28 +2,20 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { pb, getTrainingAttendance, getPlayers } from '$lib/pocketbase';
-	import type { Training, TrainingAttendance, Player } from '$lib/types';
-	import { ATTENDANCE_LABELS } from '$lib/types';
+	import { pb, getTrainingAttendance } from '$lib/pocketbase';
+	import type { Training, TrainingAttendance } from '$lib/types';
 	import { marked } from 'marked';
-	import { contextFilter } from '$lib/stores/context';
 
 	let training: Training | null = null;
 	let attendance: TrainingAttendance[] = [];
-	let allPlayers: Player[] = [];
 	let loading = true;
 
 	$: presentCount = attendance.filter(a => a.status === 'present').length;
 
 	onMount(async () => {
 		try {
-			const [t, players] = await Promise.all([
-				pb.collection('trainings').getOne<Training>($page.params.id),
-				getPlayers('status = "active"'),
-			]);
-			training = t;
-			allPlayers = players;
-			attendance = await getTrainingAttendance(t.id);
+			training = await pb.collection('trainings').getOne<Training>($page.params.id);
+			attendance = await getTrainingAttendance(training.id);
 		} catch (e) {
 			training = null;
 		}
@@ -63,6 +55,8 @@
 			<div class="flex gap-2 no-print">
 				{#if training.status === 'open'}
 					<a href="{base}/trainings/{training.id}/checkin" class="btn-primary text-sm">▶️ Start Training</a>
+				{:else if training.status === 'active'}
+					<a href="{base}/trainings/{training.id}/checkout" class="btn-primary text-sm">⏹️ Afronden</a>
 				{/if}
 				<button on:click={exportPDF} class="btn-secondary text-sm">📄 PDF</button>
 				<a href="{base}/trainings/{training.id}/edit" class="btn-secondary text-sm">✏️ Bewerken</a>
@@ -84,36 +78,67 @@
 			<div class="flex justify-between items-center mb-3">
 				<h2 class="font-semibold text-gray-900 dark:text-gray-100">👥 Aanwezigheid</h2>
 				<span class="text-sm font-medium {presentCount > 0 ? 'text-green-600' : 'text-gray-400'}">
-					{presentCount}/{allPlayers.length} aanwezig
+					{presentCount}/{attendance.length} aanwezig
 				</span>
 			</div>
 			{#if attendance.length === 0}
 				<p class="text-sm text-gray-500 italic">Nog geen aanwezigheid geregistreerd.</p>
 			{:else}
-				<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+				<div class="flex flex-wrap gap-2">
 					{#each attendance as att}
 						{@const player = att.expand?.player}
-						<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
-							<span class="w-2 h-2 rounded-full {
-								att.status === 'present' ? 'bg-green-500' :
-								att.status === 'absent' ? 'bg-red-500' :
-								att.status === 'sick' ? 'bg-yellow-500' : 'bg-orange-500'
-							}"></span>
-							<span class="text-gray-700 dark:text-gray-300 truncate">
-								{player ? player.name : '...'}
-							</span>
-							{#if att.happiness}
-								<span class="text-xs" title="Happiness">{['😢','😕','😐','😊','🤩'][att.happiness - 1]}</span>
-							{/if}
-							{#if att.fitness}
-								<span class="text-xs" title="Fitness">{['🥱','😴','💪','🔥','⚡'][att.fitness - 1]}</span>
-							{/if}
-							<span class="text-xs text-gray-400 ml-auto">{ATTENDANCE_LABELS[att.status]}</span>
-						</div>
+						<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm {
+							att.status === 'present'
+								? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
+								: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+						}">
+							{att.status === 'present' ? '✅' : '❌'}
+							{player ? player.name : '...'}
+						</span>
 					{/each}
 				</div>
 			{/if}
 		</div>
+
+		<!-- Resultaten (voor gesloten trainingen) -->
+		{#if training.status === 'closed' && (training.overall_rating || training.general_comments)}
+			<div class="card space-y-3">
+				<h2 class="font-semibold text-gray-900 dark:text-gray-100">📊 Resultaten</h2>
+				{#if training.overall_rating}
+					<div class="flex items-center gap-2">
+						<span class="text-sm text-gray-600 dark:text-gray-400">Score:</span>
+						<span class="text-lg font-bold {
+							training.overall_rating >= 7 ? 'text-green-600' :
+							training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
+						}">{training.overall_rating}/10</span>
+					</div>
+				{/if}
+				{#if training.general_comments}
+					<div>
+						<span class="text-sm text-gray-600 dark:text-gray-400 block mb-1">Opmerkingen:</span>
+						<p class="text-gray-800 dark:text-gray-200">{training.general_comments}</p>
+					</div>
+				{/if}
+				<!-- Per-speler scores -->
+				{#if attendance.some(a => a.player_rating)}
+					<div class="mt-2">
+						<span class="text-sm text-gray-600 dark:text-gray-400 block mb-2">Spelersscores:</span>
+						<div class="flex flex-wrap gap-2">
+							{#each attendance.filter(a => a.player_rating) as att}
+								{@const player = att.expand?.player}
+								<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm bg-gray-100 dark:bg-gray-800">
+									{player ? player.name : '...'}
+									<span class="font-bold {
+										(att.player_rating || 0) >= 7 ? 'text-green-600' :
+										(att.player_rating || 0) >= 5 ? 'text-yellow-600' : 'text-red-600'
+									}">{att.player_rating}/10</span>
+								</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		{#if training.content}
 			<div class="card prose prose-sm dark:prose-invert max-w-none">

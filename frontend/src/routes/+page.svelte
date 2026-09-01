@@ -157,10 +157,9 @@
 									<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
 								{/if}
 								<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-secondary text-xs flex-1 text-center !py-2">✏️ Bewerken</a>
-								<button
-									on:click={async () => { await updateTraining(activeTraining.id, { status: 'closed' }); loadDashboard($selectedTeamId, $selectedSeasonId); }}
+								<a href="{base}/trainings/{activeTraining.id}/checkout"
 									class="text-xs flex-1 text-center py-2 px-3 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
-								>⏹️ Afronden</button>
+								>⏹️ Afronden</a>
 							</div>
 						</div>
 					{/if}
