@@ -89,6 +89,39 @@
 		}
 	}
 
+	// === Bulk delete non-completed trainings ===
+	let bulkDeleting = false;
+	let bulkDeleteResult = '';
+
+	async function bulkDeletePlannedTrainings() {
+		const filter = [`status != "closed"`];
+		if ($selectedTeamId) filter.push(`team = "${$selectedTeamId}"`);
+		if ($selectedSeasonId) filter.push(`season = "${$selectedSeasonId}"`);
+
+		const planned = await pb.collection('trainings').getFullList({ filter: filter.join(' && '), fields: 'id' });
+		if (planned.length === 0) {
+			bulkDeleteResult = '⚠️ Geen geplande/actieve trainingen gevonden.';
+			return;
+		}
+		if (!confirm(`⚠️ ${planned.length} niet-afgeronde trainingen verwijderen? Dit kan niet ongedaan worden!`)) return;
+
+		bulkDeleting = true;
+		bulkDeleteResult = '';
+		try {
+			// Delete attendance records first
+			for (const t of planned) {
+				const att = await pb.collection('training_attendance').getFullList({ filter: `training = "${t.id}"`, fields: 'id' });
+				await Promise.all(att.map(a => pb.collection('training_attendance').delete(a.id)));
+			}
+			await Promise.all(planned.map(t => pb.collection('trainings').delete(t.id)));
+			bulkDeleteResult = `✅ ${planned.length} trainingen verwijderd.`;
+		} catch (e) {
+			bulkDeleteResult = `❌ Fout: ${e}`;
+		} finally {
+			bulkDeleting = false;
+		}
+	}
+
 	// === AI Config ===
 	let aiProvider: AIConfig['provider'] = $aiConfig.provider;
 	let aiApiKey: string = $aiConfig.apiKey;
@@ -776,6 +809,26 @@
 				{#if scheduleResult}
 					<p class="mt-3 text-sm {scheduleResult.startsWith('✅') ? 'text-green-600' : 'text-red-500'}">
 						{scheduleResult}
+					</p>
+				{/if}
+			</div>
+
+			<!-- Bulk delete -->
+			<div class="card border-red-200 dark:border-red-800">
+				<h3 class="font-semibold text-red-600 dark:text-red-400 mb-1">🗑️ Geplande trainingen verwijderen</h3>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+					Verwijder alle niet-afgeronde trainingen (gepland + actief) voor het huidige team/seizoen. Handig om een fout schema te corrigeren.
+				</p>
+				<button
+					class="w-full py-3 rounded-xl text-sm font-bold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
+					disabled={bulkDeleting}
+					on:click={bulkDeletePlannedTrainings}
+				>
+					{bulkDeleting ? '⏳ Bezig met verwijderen...' : '🗑️ Alle niet-afgeronde trainingen verwijderen'}
+				</button>
+				{#if bulkDeleteResult}
+					<p class="mt-3 text-sm {bulkDeleteResult.startsWith('✅') ? 'text-green-600' : bulkDeleteResult.startsWith('⚠') ? 'text-yellow-600' : 'text-red-500'}">
+						{bulkDeleteResult}
 					</p>
 				{/if}
 			</div>

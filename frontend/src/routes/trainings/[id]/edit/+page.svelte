@@ -76,7 +76,7 @@
 	let overallRating = 7;
 	let generalComments = '';
 	let selectedTemplate = '';
-	let trainingStatus: 'open' | 'closed' = 'closed';
+	let trainingStatus: 'open' | 'active' | 'closed' = 'closed';
 
 	// Training content (markdown)
 	let formContent = '';
@@ -98,7 +98,7 @@
 			overallRating = training.overall_rating || 7;
 			generalComments = training.general_comments || '';
 			selectedTemplate = training.template || '';
-			trainingStatus = (training.status as 'open' | 'closed') || 'closed';
+			trainingStatus = (training.status as 'open' | 'active' | 'closed') || 'closed';
 			formContent = training.content || '';
 
 			// Load templates
@@ -266,6 +266,11 @@
 						class="flex-1 py-3 text-sm font-semibold transition-colors {trainingStatus === 'open' ? 'bg-amber-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
 						on:click={() => (trainingStatus = 'open')}>
 						Gepland
+					</button>
+					<button type="button"
+						class="flex-1 py-3 text-sm font-semibold transition-colors {trainingStatus === 'active' ? 'bg-green-500 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
+						on:click={() => (trainingStatus = 'active')}>
+						Actief
 					</button>
 					<button type="button"
 						class="flex-1 py-3 text-sm font-semibold transition-colors {trainingStatus === 'closed' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"

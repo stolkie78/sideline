@@ -32,6 +32,8 @@
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 		.slice(0, 2);
 
+	$: activeTraining = trainings.find(t => t.status === 'active') || null;
+
 	$: openTrainings = trainings
 		.filter(t => t.status === 'open')
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -123,13 +125,43 @@
 							</div>
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
 								<span>📆 {new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-								<span>⏰ {new Date(match.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}</span>
+								<span>⏰ {new Date(match.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
 								{#if match.location}
 									<span>📍 {match.location}</span>
 								{/if}
 							</div>
 						</a>
 					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Active Training -->
+		{#if activeTraining}
+			{@const att = attendanceCounts[activeTraining.id]}
+			<div class="card !border-2 !border-green-500 !bg-green-50 dark:!bg-green-900/20 relative overflow-hidden">
+				<div class="absolute top-0 right-0 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-bl-lg">
+					🏐 LIVE
+				</div>
+				<div class="flex justify-between items-center mb-3">
+					<h2 class="font-bold text-green-700 dark:text-green-400 text-lg">▶️ Training bezig</h2>
+				</div>
+				<a href="{base}/trainings/{activeTraining.id}" class="block p-3 rounded-lg bg-white/60 dark:bg-gray-800/60">
+					<div class="flex justify-between items-center">
+						<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+							{new Date(activeTraining.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}
+							— {new Date(activeTraining.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
+						</span>
+						<div class="flex items-center gap-2">
+							{#if att}
+								<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">👥 {att.present}/{att.total}</span>
+							{/if}
+						</div>
+					</div>
+				</a>
+				<div class="flex gap-2 mt-3">
+					<a href="{base}/trainings/{activeTraining.id}/checkin" class="btn-secondary text-sm flex-1 text-center">🏐 Check-in</a>
+					<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-primary text-sm flex-1 text-center">✏️ Bewerken</a>
 				</div>
 			</div>
 		{/if}

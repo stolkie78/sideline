@@ -184,7 +184,7 @@ ensure_collection "{
     {\"name\": \"team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1},
     {\"name\": \"template\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"status\", \"type\": \"select\", \"required\": false, \"values\": [\"open\",\"closed\"], \"maxSelect\": 1},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": false, \"values\": [\"open\",\"active\",\"closed\"], \"maxSelect\": 1},
     {\"name\": \"content\", \"type\": \"editor\", \"required\": false},
     {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
   ],

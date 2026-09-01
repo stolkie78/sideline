@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
-	import { pb, getTrainingAttendance, getPlayers, createTrainingAttendance, updateTrainingAttendance } from '$lib/pocketbase';
+	import { pb, getTrainingAttendance, getPlayers, createTrainingAttendance, updateTrainingAttendance, updateTraining } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance, Player } from '$lib/types';
 
 	const HAPPINESS_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'];
@@ -22,6 +22,14 @@
 	let saving = false;
 	let showConfirmation = false;
 	let allDone = false;
+	let trainingStarted = false;
+
+	async function startTraining() {
+		if (!training) return;
+		await updateTraining(training.id, { status: 'active' });
+		trainingStarted = true;
+		allDone = true;
+	}
 
 	$: currentPlayer = players[currentPlayerIndex] || null;
 	$: progress = players.length > 0 ? Math.round((checkedInIds.size / players.length) * 100) : 0;
@@ -133,7 +141,17 @@
 				<div class="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500 ease-out"
 					style="width: {progress}%"></div>
 			</div>
-			<p class="text-center text-xs text-gray-500 mt-1">{checkedInCount} / {players.length} ingecheckt</p>
+			<div class="flex justify-between items-center mt-1">
+				<p class="text-xs text-gray-500">{checkedInCount} / {players.length} ingecheckt</p>
+				{#if !allDone && !showConfirmation && !trainingStarted}
+					<button
+						on:click={startTraining}
+						class="text-xs font-medium text-amber-600 hover:text-amber-700 dark:text-amber-400"
+					>
+						⏩ Start zonder check-in
+					</button>
+				{/if}
+			</div>
 		</div>
 
 		{#if showConfirmation}
@@ -145,12 +163,27 @@
 		{:else if allDone}
 			<!-- All done! -->
 			<div class="text-center py-12 space-y-4">
-				<div class="text-7xl">🎉</div>
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Iedereen ingecheckt!</h2>
-				<p class="text-gray-500">Alle {players.length} spelers zijn klaar.</p>
-				<a href="/trainings/{training.id}" class="inline-block mt-4 btn-primary text-lg px-8 py-3">
-					← Terug naar training
-				</a>
+				{#if trainingStarted}
+					<div class="text-7xl">🏐</div>
+					<h2 class="text-2xl font-bold text-green-600 dark:text-green-400">Training gestart!</h2>
+					<p class="text-gray-500">Veel plezier en succes! 💪</p>
+					<a href="{base}/" class="inline-block mt-4 btn-primary text-lg px-8 py-3">
+						← Dashboard
+					</a>
+				{:else}
+					<div class="text-7xl">🎉</div>
+					<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Iedereen ingecheckt!</h2>
+					<p class="text-gray-500">Alle {players.length} spelers zijn klaar.</p>
+					<button
+						on:click={startTraining}
+						class="mt-4 w-full py-4 rounded-2xl text-xl font-bold bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all"
+					>
+						▶️ Start Training!
+					</button>
+					<a href="{base}/trainings/{training.id}" class="inline-block mt-2 text-sm text-gray-400 hover:text-primary-600">
+						← Terug zonder starten
+					</a>
+				{/if}
 			</div>
 		{:else if currentPlayer}
 			<!-- Current player check-in -->

@@ -57,6 +57,8 @@
 						<div class="flex items-center gap-2">
 							{#if training.status === 'open'}
 								<span class="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
+							{:else if training.status === 'active'}
+								<span class="w-2 h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0"></span>
 							{:else}
 								<span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
 							{/if}
@@ -67,7 +69,7 @@
 									})}
 								</span>
 								<span class="text-xs text-gray-400 ml-2">
-									{new Date(training.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+									{new Date(training.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
 								</span>
 								{#if training.expand?.template}
 									<span class="text-xs text-primary-600 dark:text-primary-400 ml-2">{training.expand.template.name}</span>

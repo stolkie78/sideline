@@ -85,7 +85,7 @@
 	let overallRating = 7;
 	let generalComments = '';
 	let selectedTemplate = '';
-	let trainingStatus: 'open' | 'closed' = 'open';
+	let trainingStatus: 'open' | 'active' | 'closed' = 'open';
 
 	// Training content (markdown)
 	let formContent = '';

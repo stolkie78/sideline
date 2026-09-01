@@ -244,7 +244,7 @@
 									weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
 								})}
 								{#if match.tijdstip}
-									— {new Date(match.tijdstip).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+									— {new Date(match.tijdstip).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
 								{/if}
 							</div>
 							{#if match.resolved?.sporthal}
