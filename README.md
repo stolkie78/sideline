@@ -1,8 +1,8 @@
 # 🏐 SetBaas — Volleybal Team Management PWA
 
-Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling.
+Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl)
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.0.0
 
 ## Tech Stack
 
@@ -16,24 +16,53 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 
 ## Features
 
-### Kernfuncties
-- **Spelersbeheer** — Foto, positie(s), status, competenties per seizoen
-- **Trainingen** — Markdown beschrijving met rich editor, templates, aanwezigheid + scores
-- **Wedstrijden** — Per-set lineups (pos 1-6), spelsysteem, wissels, timeouts
-- **Competenties** — 4x per seizoen meetbaar, eigenaarschap per meting
-- **Seizoen periodisering** — Technisch/Tactisch/Fysiek/Mentaal doelen per fase
+### 🏐 Training Lifecycle
+- **Training Start Wizard** — 3-stappen flow: Aanwezigheid → Check-in → Start Training
+- **Aanwezigheid** — Trainer markeert per speler: ✅ Aanwezig / ❌ Afwezig / 🤒 Ziek / 🤕 Geblesseerd
+- **Happiness & Fitness Check-in** — Spelers geven emoji-scores aan (tablet-friendly): 😢→🤩 en 🥱→⚡
+- **Actieve training** — LIVE badge op dashboard, bekijk training content, afronden met één klik
+- **Training statussen** — Gepland → Actief → Afgerond (volledige lifecycle)
+- **Skip check-in** — Snel starten als er geen tijd is, zonder valse data
+- **Trainingsschema Generator** — Bulk trainingen aanmaken voor hele seizoen op vaste dagen/tijden
+- **Bulk delete** — Alle geplande trainingen verwijderen bij een fout schema
+- **AI Training Generator** — Genereer trainingsplannen met GPT of Gemini, context-aware met periodisering en vorige trainingen
+- **Templates** — Herbruikbare trainingssjablonen
+- **Markdown editor** — Rich text beschrijving met preview, kopjes, lijsten
 - **PDF Export** — Training exporteren als PDF vanuit dashboard of detailpagina
 
-### Integraties
-- **Nevobo Import** — Automatisch wedstrijdschema ophalen van volleybal.nl
-- **AI Training Generator** — Genereer trainingsplannen met OpenAI GPT of Google Gemini, inclusief periodiseringsdoelen als context
-- **Email Uitnodigingen** — Nodig teamleden uit via email (SMTP) of deelbare link
+### 👤 Spelersbeheer
+- **Profiel** — Foto, positie(s), rugnummer (tot 999), status (actief/inactief)
+- **Competenties** — 4x per seizoen meetbaar, categorieën: Technisch/Tactisch/Fysiek/Mentaal
+- **Email koppeling** — Spelers automatisch gekoppeld aan gebruikersaccount via email
+- **Cascade delete** — Verwijderen van speler ruimt alle gerelateerde data op
 
-### Platform
-- **Auth** — Google OAuth + email/password, multi-user met team_access (admin/coach/viewer)
-- **Dashboard** — Open trainingen, afgeronde trainingen (met scores), komende wedstrijden, gespeelde uitslagen
+### 🏆 Wedstrijden
+- **Wedstrijdbeheer** — Per-set lineups (positie 1-6), spelsysteem, wissels, timeouts
+- **Nevobo Import** — Automatisch wedstrijdschema ophalen van volleybal.nl
+- **Set scores** — Gewonnen/verloren per set, totaalscores
+
+### 📊 Rapportages
+- **Trainingsaanwezigheid** — Per speler: aanwezig/afwezig/ziek/geblesseerd (alleen afgeronde trainingen)
+- **Welzijn & Fitheid** — Happiness en fitness per speler met trend (📈📉), gemiddelden, emoji-tijdlijn
+- **Competenties** — Gemiddelde scores per competentie of per speler met voortgang
+- **Punten per positie** — Gescoorde punten per speler per positie over alle wedstrijden
+- **Sets gewonnen & verloren** — Seizoensoverzicht
+
+### 🔐 Gebruikers & Rollen
+- **Google OAuth + email/password** login
+- **Multi-team** — Meerdere teams binnen één installatie
+- **Rollen** — Admin (alles), Coach (team beheer), Speler (eigen dashboard)
+- **Speler dashboard** — Beschikbaarheid voor trainingen en wedstrijden
+- **Email uitnodigingen** — Nodig teamleden uit via email (SMTP) of deelbare link
+- **Seizoenen** — Meerdere seizoenen met periodisering
+
+### 📱 Platform
+- **PWA** — Installeerbaar op mobiel als app
+- **Responsive** — Geoptimaliseerd voor telefoon, tablet en desktop
 - **Dark mode** — Standaard aan
-- **PWA** — Installeerbaar op mobiel
+- **24-uurs tijdformat** — Consistent door de hele app
+- **Systeem config** — Clear cache/localStorage bij problemen na updates
+- **Backup & deploy scripts** — Automatische backup voor elke deployment
 
 ---
 
@@ -101,7 +130,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml --profile setup run --rm pb-setup
 
 # 4. Updates deployen
-git pull && docker compose -f docker-compose.prod.yml up -d --build
+./scripts/deploy.sh
 ```
 
 ### HTTPS
@@ -140,6 +169,13 @@ Het script:
 - Kopieert de PocketBase database + uploads uit de Docker container
 - Maakt een gecomprimeerd `.tar.gz` archief met timestamp
 - Behoudt de laatste 7 backups, oudere worden automatisch opgeruimd
+
+### Deploy met automatische backup
+
+```bash
+./scripts/deploy.sh
+# Maakt eerst een backup, daarna git pull + build + setup
+```
 
 ### Automatische backup (cron)
 
@@ -206,7 +242,9 @@ Zonder SMTP worden uitnodigingen aangemaakt met een deelbare link die je handmat
 | OpenAI | `gpt-4o` | Beste kwaliteit |
 | Gemini | `gemini-3.6-flash` | Snel (standaard) |
 
-De AI gebruikt automatisch de **periodiseringsdoelen** van de huidige periode als extra context.
+De AI gebruikt automatisch:
+- **Periodiseringsdoelen** van de huidige periode als context
+- **Laatste 3 trainingen** ter referentie (vermijdt herhaling)
 
 ---
 
@@ -248,16 +286,24 @@ De AI gebruikt automatisch de **periodiseringsdoelen** van de huidige periode al
 
 ---
 
-## Versies
+## Versiegeschiedenis
 
-| Tag | Beschrijving |
-|-----|-------------|
-| v1.0 | Eerste productie release (auth, spelers, trainingen, wedstrijden, Nevobo, AI, logo) |
-| v1.1 | Periodisering in training formulier + AI context |
-| v1.2 | Dashboard: Open status op geplande trainingen |
-| v1.3 | Dashboard: Open/Afgerond trainingen gescheiden (max 3 per sectie) |
-| v1.4 | Email uitnodigingssysteem, PDF export, Gemini 3.6 |
-| v1.5 | Productie fixes: OAuth, Caddy routing, trusted proxy, PB URL |
+| Versie | Datum | Beschrijving |
+|--------|-------|-------------|
+| **v2.0** | 2026-09-01 | 🎉 Training Start Wizard (3 stappen), actieve training met LIVE badge, afronden vanuit dashboard, skip check-in, bulk delete trainingen, 24-uurs tijd, systeem config tab, reactive dashboard na login |
+| v1.9.1 | 2026-09-01 | Fix: dashboard data na login, systeem config tab |
+| v1.9 | 2026-09-01 | Active training status, bulk delete, 24h tijdformat, skip check-in |
+| v1.8.2 | 2026-09-01 | SetBaas logo als favicon |
+| v1.8.1 | 2026-09-01 | Fix: speler verwijderen met gerelateerde records |
+| v1.8 | 2026-09-01 | Happiness/fitness check-in, welzijn rapport, aanwezigheid op geplande trainingen, "Open" → "Gepland" |
+| v1.7 | 2026-08-31 | Trainingsschema generator, deploy script met backup |
+| v1.6 | 2026-08-31 | Multi-team rollen (admin/coach/speler), speler dashboard, beschikbaarheid, AI context |
+| v1.5 | 2026-08-31 | Nieuw SetBaas logo, versie in menu, branding update |
+| v1.4 | 2026-08-30 | Email uitnodigingssysteem, PDF export, Gemini 3.6 |
+| v1.3 | 2026-08-30 | Dashboard: open/afgerond trainingen gescheiden |
+| v1.2 | 2026-08-30 | Dashboard: open status op geplande trainingen |
+| v1.1 | 2026-08-30 | Periodisering in training formulier + AI context |
+| v1.0 | 2026-08-29 | Eerste productie release |
 
 ---
 
