@@ -48,6 +48,13 @@ if [ -z "$TOKEN" ]; then
 fi
 echo "✅ Authenticated as $ADMIN_EMAIL"
 
+# Update users collection API rules (allow authenticated users to see each other)
+echo "→ Updating users collection API rules..."
+curl -sf -X PATCH "$PB_URL/api/collections/users" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"viewRule":"@request.auth.id != \"\"","listRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\""}' > /dev/null 2>&1 && echo "  ✅ Users API rules updated" || echo "  ⚠️ Could not update users API rules"
+
 # Helper: create or update a collection
 # Usage: ensure_collection '{"name":"...", "type":"...", "fields":[...], ...}'
 ensure_collection() {
@@ -292,16 +299,16 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"user\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
-    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"player\"], \"maxSelect\": 1},
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"user\",\"viewer\"], \"maxSelect\": 1},
     {\"name\": \"is_trainer\", \"type\": \"bool\", \"required\": false},
     {\"name\": \"is_player\", \"type\": \"bool\", \"required\": false},
     {\"name\": \"is_parent\", \"type\": \"bool\", \"required\": false}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 12. Training Templates ===

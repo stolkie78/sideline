@@ -15,6 +15,7 @@
 		revokeTeamAccess,
 		updateTeamAccess,
 		findUserByEmail,
+		createUserAsAdmin,
 		createTraining,
 		pb,
 	} from '$lib/pocketbase';
@@ -284,15 +285,53 @@
 	// === Team Access ===
 	let accessList: TeamAccess[] = [];
 	let loadingAccess = false;
+	let addMemberName = '';
+	let addMemberEmail = '';
+	let addMemberRole = 'user';
+	let addMemberError = '';
+	let addMemberSuccess = '';
+	let addingMember = false;
+
+	async function handleAddMember() {
+		if (!addMemberName.trim() || !addMemberEmail.trim() || !$selectedTeamId) return;
+		addMemberError = '';
+		addMemberSuccess = '';
+		addingMember = true;
+		try {
+			let user = await findUserByEmail(addMemberEmail.trim());
+			if (user) {
+				const existing = accessList.find(a => a.user === user!.id);
+				if (existing) {
+					addMemberError = 'Deze gebruiker heeft al toegang tot dit team.';
+					return;
+				}
+			} else {
+				user = await createUserAsAdmin({ name: addMemberName.trim(), email: addMemberEmail.trim() });
+			}
+			await grantTeamAccess({ user: user.id, team: $selectedTeamId, role: addMemberRole });
+			const isGmail = addMemberEmail.trim().toLowerCase().endsWith('@gmail.com');
+			addMemberSuccess = isGmail
+				? `✅ ${addMemberName} toegevoegd — kan inloggen met Google`
+				: `✅ ${addMemberName} toegevoegd als lid`;
+			addMemberName = '';
+			addMemberEmail = '';
+			await loadAccess();
+		} catch (e: any) {
+			addMemberError = e?.message || 'Fout bij toevoegen lid';
+		} finally {
+			addingMember = false;
+		}
+	}
+
 	let inviteEmail = '';
-	let inviteRole = 'coach';
+	let inviteRole = 'user';
 	let inviteError = '';
 	let inviting = false;
 
 	const ROLE_LABELS: Record<string, string> = {
 		admin: 'Admin',
-		coach: 'Coach',
-		player: 'Teamlid',
+		user: 'Gebruiker',
+		viewer: 'Lezer',
 	};
 
 	async function loadAccess() {
@@ -382,6 +421,16 @@
 			await loadAccess();
 		} catch (e) {
 			alert('Fout bij intrekken toegang');
+		}
+	}
+
+	async function handleNameChange(access: TeamAccess, newName: string) {
+		if (!access.user || !newName.trim()) return;
+		try {
+			await pb.collection('users').update(access.user, { name: newName.trim() });
+			await loadAccess();
+		} catch (e) {
+			alert('Fout bij wijzigen naam');
 		}
 	}
 </script>
@@ -614,12 +663,48 @@
 	{:else if activeTab === 'access'}
 		<div class="space-y-4">
 			<p class="text-sm text-gray-500 dark:text-gray-400">
-				Beheer wie toegang heeft tot het huidige team. Gebruikers moeten eerst inloggen via Google.
+				Beheer wie toegang heeft tot het huidige team.
 			</p>
+
+			<!-- Add member form -->
+			<form class="card space-y-3" on:submit|preventDefault={handleAddMember}>
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">➕ Lid toevoegen</h3>
+				<div class="flex flex-col sm:flex-row gap-2">
+					<input
+						class="input flex-1"
+						type="text"
+						bind:value={addMemberName}
+						placeholder="Naam..."
+						required
+					/>
+					<input
+						class="input flex-1"
+						type="email"
+						bind:value={addMemberEmail}
+						placeholder="E-mailadres..."
+						required
+					/>
+					<select class="input w-28" bind:value={addMemberRole}>
+						<option value="admin">Admin</option>
+						<option value="user">Gebruiker</option>
+						<option value="viewer">Lezer</option>
+					</select>
+					<button type="submit" class="btn-primary text-sm whitespace-nowrap" disabled={addingMember}>
+						{addingMember ? '...' : 'Toevoegen'}
+					</button>
+				</div>
+				<p class="text-xs text-gray-400 dark:text-gray-500">Gmail-adressen kunnen inloggen met Google OAuth. Overige accounts worden aangemaakt met een random wachtwoord.</p>
+				{#if addMemberError}
+					<p class="text-sm text-red-500 dark:text-red-400">{addMemberError}</p>
+				{/if}
+				{#if addMemberSuccess}
+					<p class="text-sm text-green-600 dark:text-green-400">{addMemberSuccess}</p>
+				{/if}
+			</form>
 
 			<!-- Invite form -->
 			<form class="card space-y-3" on:submit|preventDefault={handleInvite}>
-				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Gebruiker uitnodigen</h3>
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">✉️ Uitnodigen</h3>
 				<div class="flex gap-2">
 					<input
 						class="input flex-1"
@@ -630,8 +715,8 @@
 					/>
 					<select class="input w-28" bind:value={inviteRole}>
 						<option value="admin">Admin</option>
-						<option value="coach">Coach</option>
-						<option value="player">Teamlid</option>
+						<option value="user">Gebruiker</option>
+						<option value="viewer">Lezer</option>
 					</select>
 					<button type="submit" class="btn-primary text-sm" disabled={inviting}>
 						{inviting ? '...' : 'Toevoegen'}
@@ -668,9 +753,13 @@
 						{#each accessList as access}
 							<div class="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
 								<div class="flex-1 min-w-0">
-									<span class="text-sm font-medium text-gray-800 dark:text-gray-200 block truncate">
-										{access.expand?.user?.name || '—'}
-									</span>
+									<input
+										class="text-sm font-medium text-gray-800 dark:text-gray-200 bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-primary-500 focus:outline-none w-full truncate"
+										value={access.expand?.user?.name || ''}
+										placeholder="Naam..."
+										on:blur={(e) => handleNameChange(access, e.currentTarget.value)}
+										on:keydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+									/>
 									<span class="text-xs text-gray-400 dark:text-gray-500 block truncate">
 										{access.expand?.user?.email || ''}
 									</span>
@@ -700,8 +789,8 @@
 									value={access.role}
 									on:change={(e) => handleRoleChange(access, e.currentTarget.value)}>
 									<option value="admin">Admin</option>
-									<option value="coach">Coach</option>
-									<option value="player">Teamlid</option>
+									<option value="user">Gebruiker</option>
+									<option value="viewer">Lezer</option>
 								</select>
 								<button
 									class="text-xs text-red-500 hover:underline"

@@ -327,6 +327,18 @@ export async function revokeTeamAccess(id: string): Promise<boolean> {
 	return pb.collection('team_access').delete(id);
 }
 
+export async function createUserAsAdmin(data: { name: string; email: string }): Promise<{ id: string; email: string; name: string }> {
+	const password = crypto.randomUUID().slice(0, 16);
+	const result = await pb.collection('users').create({
+		name: data.name,
+		email: data.email,
+		password,
+		passwordConfirm: password,
+		emailVisibility: true,
+	});
+	return { id: result.id, email: result.email, name: result.name };
+}
+
 export async function findUserByEmail(email: string): Promise<{ id: string; email: string; name: string } | null> {
 	try {
 		const result = await pb.collection('users').getFirstListItem(`email = "${email}"`);

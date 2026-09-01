@@ -1,6 +1,6 @@
 {
   "name": "setbaas",
-  "version": "2.4.10",
+  "version": "2.4.20",
   "private": true,
   "scripts": {
     "dev": "vite dev",
