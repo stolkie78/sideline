@@ -87,7 +87,7 @@
 	<div class="space-y-6">
 		<!-- Upcoming Matches -->
 		{#if upcomingMatches.length > 0}
-			<div class="card">
+			<div class="card !border-2 !border-blue-400 dark:!border-blue-500">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="font-semibold text-gray-900 dark:text-gray-100">📅 Komende wedstrijden</h2>
 					<a href="{base}/matches" class="text-sm text-primary-600 hover:underline">Alles</a>
