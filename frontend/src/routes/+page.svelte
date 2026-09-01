@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { getPlayers, getTrainings, getMatches } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
@@ -9,6 +8,7 @@
 	import { userRole } from '$lib/stores/role';
 	import { marked } from 'marked';
 	import PlayerDashboard from '$lib/components/PlayerDashboard.svelte';
+	import { browser } from '$app/environment';
 
 	let players: Player[] = [];
 	let trainings: Training[] = [];
@@ -44,9 +44,12 @@
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 		.slice(0, 3);
 
-	onMount(async () => {
+	// Reactive: reload when context stores change (fixes empty data after login)
+	$: if (browser) loadDashboard($selectedTeamId, $selectedSeasonId);
+
+	async function loadDashboard(_teamId: string | null, _seasonId: string | null) {
 		try {
-			const filter = contextFilter($selectedTeamId, $selectedSeasonId);
+			const filter = contextFilter(_teamId, _seasonId);
 			[players, trainings, matches] = await Promise.all([
 				getPlayers('status = "active"'),
 				pb.collection('trainings').getFullList<Training>({ sort: '-date', filter: filter || undefined }),
@@ -54,6 +57,7 @@
 			]);
 
 			// Load attendance counts for all trainings
+			attendanceCounts = {};
 			const allAttendance = await pb.collection('training_attendance').getFullList<TrainingAttendance>({ fields: 'training,status' });
 			for (const a of allAttendance) {
 				if (!attendanceCounts[a.training]) attendanceCounts[a.training] = { present: 0, total: 0 };
@@ -66,7 +70,7 @@
 		} finally {
 			loading = false;
 		}
-	});
+	}
 </script>
 
 <svelte:head>

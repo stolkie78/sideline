@@ -25,9 +25,10 @@
 
 	import { aiConfig, AI_MODELS, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
 	import type { AIConfig } from '$lib/stores/ai';
+	import { version } from '../../../package.json';
 
 	// Tab state
-	let activeTab: 'competencies' | 'teams' | 'templates' | 'access' | 'ai' | 'schedule' = 'competencies';
+	let activeTab: 'competencies' | 'teams' | 'templates' | 'access' | 'ai' | 'schedule' | 'system' = 'competencies';
 
 	// === Training Schedule Generator ===
 	let scheduleDays: number[] = []; // 0=zo, 1=ma, ..., 6=za
@@ -436,6 +437,15 @@
 			on:click={() => { activeTab = 'schedule'; }}>
 			Schema
 		</button>
+		<button
+			class="px-3 py-2 text-sm font-medium whitespace-nowrap {
+				activeTab === 'system'
+					? 'text-primary-600 border-b-2 border-primary-600'
+					: 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+			}"
+			on:click={() => { activeTab = 'system'; }}>
+			Systeem
+		</button>
 	</div>
 
 	<!-- Competencies Tab -->
@@ -831,6 +841,53 @@
 						{bulkDeleteResult}
 					</p>
 				{/if}
+			</div>
+		</div>
+	{:else if activeTab === 'system'}
+		<div class="space-y-4">
+			<div class="card">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">🧹 Cache & Opslag</h3>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+					Wis lokale gegevens als de app niet goed werkt na een update. Je wordt uitgelogd.
+				</p>
+
+				<div class="space-y-3">
+					<button
+						class="w-full py-3 rounded-xl text-sm font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 transition-colors"
+						on:click={() => {
+							if (!confirm('LocalStorage wissen? Je wordt uitgelogd.')) return;
+							localStorage.clear();
+							window.location.href = '/login';
+						}}
+					>
+						🗑️ LocalStorage wissen
+					</button>
+
+					<button
+						class="w-full py-3 rounded-xl text-sm font-bold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors"
+						on:click={async () => {
+							if (!confirm('Alle caches wissen en herladen? Je wordt uitgelogd.')) return;
+							localStorage.clear();
+							sessionStorage.clear();
+							if ('caches' in window) {
+								const names = await caches.keys();
+								await Promise.all(names.map(n => caches.delete(n)));
+							}
+							window.location.href = '/login';
+						}}
+					>
+						💣 Alles wissen (cache + storage + reload)
+					</button>
+				</div>
+			</div>
+
+			<div class="card">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">📱 App Info</h3>
+				<div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+					<p><strong>Versie:</strong> {version}</p>
+					<p><strong>Browser:</strong> {typeof navigator !== 'undefined' ? navigator.userAgent.split(' ').slice(-2).join(' ') : '—'}</p>
+					<p><strong>LocalStorage items:</strong> {typeof localStorage !== 'undefined' ? localStorage.length : 0}</p>
+				</div>
 			</div>
 		</div>
 	{/if}
