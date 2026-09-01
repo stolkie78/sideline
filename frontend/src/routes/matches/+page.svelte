@@ -3,12 +3,28 @@
 	import { base } from '$app/paths';
 	import { getMatches } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
+	import { page } from '$app/stores';
 	import type { Match } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 
 	let matches: Match[] = [];
 	let loading = true;
+	let statusFilter: 'all' | 'upcoming' | 'played' = 'all';
+
+	$: {
+		const urlFilter = $page.url.searchParams.get('status');
+		if (urlFilter === 'upcoming' || urlFilter === 'played') {
+			statusFilter = urlFilter;
+		}
+	}
+
+	$: now = new Date();
+	$: filteredMatches = statusFilter === 'all'
+		? matches
+		: statusFilter === 'upcoming'
+			? matches.filter(m => new Date(m.date) >= now)
+			: matches.filter(m => new Date(m.date) < now);
 
 	onMount(async () => {
 		try {
@@ -39,18 +55,37 @@
 		</div>
 	</div>
 
+	<!-- Filter tabs -->
+	<div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+		<button
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'all' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'all'}>
+			Alles ({matches.length})
+		</button>
+		<button
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'upcoming' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'upcoming'}>
+			Komend ({matches.filter(m => new Date(m.date) >= now).length})
+		</button>
+		<button
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'played' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'played'}>
+			Gespeeld ({matches.filter(m => new Date(m.date) < now).length})
+		</button>
+	</div>
+
 	{#if loading}
 		<div class="flex justify-center py-8">
 			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
 		</div>
-	{:else if matches.length === 0}
+	{:else if filteredMatches.length === 0}
 		<div class="card text-center py-8 text-gray-500 dark:text-gray-400 dark:text-gray-500">
 			
 			<p>Nog geen wedstrijden geregistreerd</p>
 		</div>
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-			{#each matches as match}
+			{#each filteredMatches as match}
 				{@const won = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team > match.score_opponent}
 				{@const lost = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team < match.score_opponent}
 				<div class="card">
