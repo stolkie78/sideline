@@ -66,8 +66,40 @@ ensure_collection() {
     -H "Authorization: Bearer $TOKEN")
 
   if [ "$STATUS" = "200" ]; then
-    # Collection exists — skip (don't overwrite fields to preserve data)
-    echo "  ✓ $NAME (exists)"
+    # Collection exists — merge new fields (add missing ones, don't remove existing)
+    local EXISTING_FIELDS=$(curl -sf "$PB_URL/api/collections/$NAME" \
+      -H "Authorization: Bearer $TOKEN" | jq -c '.fields')
+    local NEW_FIELDS=$(echo "$DEF" | jq -c '.fields')
+    local MERGED=$(python3 -c "
+import json,sys
+existing = json.loads('$EXISTING_FIELDS')
+new = json.loads('$(echo "$NEW_FIELDS" | sed "s/'/\\\\'/g")')
+existing_names = {f['name'] for f in existing}
+added = []
+for f in new:
+    if f['name'] not in existing_names:
+        existing.append(f)
+        added.append(f['name'])
+if added:
+    print(json.dumps({'fields': existing}))
+else:
+    print('')
+" 2>/dev/null)
+    if [ -n "$MERGED" ]; then
+      curl -sf -X PATCH "$PB_URL/api/collections/$NAME" \
+        -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+        -d "$MERGED" > /dev/null
+      echo "  ✓ $NAME (updated with new fields)"
+    else
+      echo "  ✓ $NAME (exists, up to date)"
+    fi
+    # Update API rules if specified
+    local RULES=$(echo "$DEF" | jq -c '{listRule,viewRule,createRule,updateRule,deleteRule} | with_entries(select(.value != null))')
+    if [ "$RULES" != "{}" ]; then
+      curl -sf -X PATCH "$PB_URL/api/collections/$NAME" \
+        -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+        -d "$RULES" > /dev/null 2>&1
+    fi
   else
     # Create new collection
     curl -sf "$PB_URL/api/collections" -X POST \
