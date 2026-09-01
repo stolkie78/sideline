@@ -290,6 +290,7 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.1** | 2026-09-01 | Dark mode fixes spelers/competenties, shirtnummer max 999, komende wedstrijden bovenaan dashboard, prod PB schema sync |
 | **v2.0.1** | 2026-09-01 | Fix: dark mode kleuren spelers/competenties, shirtnummer max 999, PB jersey_number onlyInt |
 | **v2.0** | 2026-09-01 | 🎉 Training Start Wizard (3 stappen), actieve training met LIVE badge, afronden vanuit dashboard, skip check-in, bulk delete trainingen, 24-uurs tijd, systeem config tab, reactive dashboard na login |
 | v1.9.1 | 2026-09-01 | Fix: dashboard data na login, systeem config tab |
