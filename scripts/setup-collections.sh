@@ -324,6 +324,23 @@ ensure_collection "{
   \"deleteRule\": \"\"
 }"
 
+# === 10b. Match Attendance ===
+MATCHES_ID=$(get_col_id "matches")
+ensure_collection "{
+  \"name\": \"match_attendance\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"match\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$MATCHES_ID\", \"maxSelect\": 1},
+    {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"present\",\"absent\",\"sick\",\"injured\"], \"maxSelect\": 1}
+  ],
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
+}"
+
 # === 11. Team Access ===
 ensure_collection "{
   \"name\": \"team_access\",

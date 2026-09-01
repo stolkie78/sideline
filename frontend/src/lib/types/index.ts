@@ -103,6 +103,15 @@ export interface TrainingAttendance extends RecordModel {
 	};
 }
 
+export interface MatchAttendance extends RecordModel {
+	match: string;
+	player: string;
+	status: AttendanceStatus;
+	expand?: {
+		player?: Player;
+	};
+}
+
 export type AttendanceStatus = 'present' | 'absent' | 'sick' | 'injured';
 
 export type AvailabilityStatus = 'available' | 'unavailable' | 'uncertain';

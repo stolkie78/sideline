@@ -8,6 +8,7 @@ import type {
 	TrainingAttendance,
 	Match,
 	MatchPlayerStats,
+	MatchAttendance,
 	Team,
 	Season,
 	TeamPlayer,
@@ -189,7 +190,32 @@ export async function createMatch(data: {
 	timeouts?: any;
 	created_by?: string;
 }): Promise<Match> {
-	return pb.collection('matches').create<Match>(data);
+	const match = await pb.collection('matches').create<Match>(data);
+
+	// Auto-create attendance (present) for all team players
+	if (data.team && data.season) {
+		try {
+			const teamPlayers = await pb.collection('team_players').getFullList({
+				filter: `team = "${data.team}" && season = "${data.season}"`,
+				fields: 'player',
+			});
+			await Promise.all(
+				teamPlayers.map(async (tp) => {
+					try {
+						await pb.collection('match_attendance').create({
+							match: match.id,
+							player: tp.player,
+							status: 'present',
+						});
+					} catch { /* skip */ }
+				})
+			);
+		} catch (e) {
+			console.error('Failed to create match attendance:', e);
+		}
+	}
+
+	return match;
 }
 
 export async function updateMatch(
@@ -228,6 +254,27 @@ export async function deleteMatchPlayerStats(id: string): Promise<boolean> {
 
 export async function deleteTrainingAttendance(id: string): Promise<boolean> {
 	return pb.collection('training_attendance').delete(id);
+}
+
+// === Match Attendance ===
+
+export async function getMatchAttendance(matchId: string): Promise<MatchAttendance[]> {
+	return pb.collection('match_attendance').getFullList<MatchAttendance>({
+		filter: `match = "${matchId}"`,
+		expand: 'player',
+	});
+}
+
+export async function createMatchAttendance(data: {
+	match: string;
+	player: string;
+	status: string;
+}): Promise<MatchAttendance> {
+	return pb.collection('match_attendance').create<MatchAttendance>(data);
+}
+
+export async function updateMatchAttendance(id: string, data: Partial<MatchAttendance>): Promise<MatchAttendance> {
+	return pb.collection('match_attendance').update<MatchAttendance>(id, data);
 }
 
 export async function getPlayerTotalPlayingTime(playerId: string): Promise<number> {
@@ -299,6 +346,27 @@ export async function addPlayerToTeam(data: {
 		);
 	} catch (e) {
 		console.error('Failed to create default attendance:', e);
+	}
+
+	// Auto-create attendance (status=present) for all upcoming matches
+	try {
+		const matches = await pb.collection('matches').getFullList({
+			filter: `team = "${data.team}" && season = "${data.season}" && date >= "${new Date().toISOString().split('T')[0]}"`,
+			fields: 'id',
+		});
+		await Promise.all(
+			matches.map(async (m) => {
+				try {
+					await pb.collection('match_attendance').create({
+						match: m.id,
+						player: data.player,
+						status: 'present',
+					});
+				} catch { /* already exists */ }
+			})
+		);
+	} catch (e) {
+		console.error('Failed to create default match attendance:', e);
 	}
 
 	return result;

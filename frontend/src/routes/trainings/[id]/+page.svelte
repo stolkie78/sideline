@@ -79,14 +79,6 @@
 			</div>
 		{/if}
 
-		{#if training.content}
-			<div class="card prose prose-sm dark:prose-invert max-w-none">
-				{@html marked(training.content, { breaks: true })}
-			</div>
-		{:else}
-			<p class="text-gray-500 italic">Geen inhoud — klik op Bewerken om een training samen te stellen.</p>
-		{/if}
-
 		<!-- Aanwezigheid -->
 		<div class="card">
 			<div class="flex justify-between items-center mb-3">
@@ -122,5 +114,13 @@
 				</div>
 			{/if}
 		</div>
+
+		{#if training.content}
+			<div class="card prose prose-sm dark:prose-invert max-w-none">
+				{@html marked(training.content, { breaks: true })}
+			</div>
+		{:else}
+			<p class="text-gray-500 italic">Geen inhoud — klik op Bewerken om een training samen te stellen.</p>
+		{/if}
 	</div>
 {/if}
