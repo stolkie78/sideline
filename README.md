@@ -290,6 +290,7 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.3** | 2026-09-01 | Dashboard cards-in-cards layout: trainingen (actief/gepland/afgerond) en wedstrijden (komend/uitslagen) als geneste kaarten |
 | **v2.2** | 2026-09-01 | Dashboard herindeling: gecombineerde trainingen- en wedstrijdensecties, komende wedstrijden met blauwe highlight, stats en quick actions bovenaan |
 | **v2.1** | 2026-09-01 | Dark mode fixes spelers/competenties, shirtnummer max 999, komende wedstrijden bovenaan dashboard, prod PB schema sync |
 | **v2.0.1** | 2026-09-01 | Fix: dark mode kleuren spelers/competenties, shirtnummer max 999, PB jersey_number onlyInt |

@@ -111,130 +111,112 @@
 			</a>
 		</div>
 
-		<!-- Active Training -->
-		{#if activeTraining}
-			{@const att = attendanceCounts[activeTraining.id]}
-			<div class="card !border-2 !border-green-500 !bg-green-50 dark:!bg-green-900/20 relative overflow-hidden">
-				<div class="absolute top-0 right-0 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-bl-lg">
-					🏐 LIVE
-				</div>
-				<div class="flex justify-between items-center mb-3">
-					<h2 class="font-bold text-green-700 dark:text-green-400 text-lg">▶️ Training bezig</h2>
-				</div>
-				<a href="{base}/trainings/{activeTraining.id}" class="block p-3 rounded-lg bg-white/60 dark:bg-gray-800/60">
-					<div class="flex justify-between items-center">
-						<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-							{new Date(activeTraining.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long' })}
-							— {new Date(activeTraining.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
-						</span>
-						<div class="flex items-center gap-2">
-							{#if att}
-								<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">👥 {att.present}/{att.total}</span>
-							{/if}
-						</div>
-					</div>
-				</a>
-				<div class="flex gap-2 mt-3">
-					<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-sm flex-1 text-center">📋 Bekijk</a>
-					<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-secondary text-sm flex-1 text-center">✏️ Bewerken</a>
-					<button
-						on:click={async () => { await updateTraining(activeTraining.id, { status: 'closed' }); loadDashboard($selectedTeamId, $selectedSeasonId); }}
-						class="text-sm flex-1 text-center py-2 px-4 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
-					>
-						⏹️ Afronden
-					</button>
-				</div>
-			</div>
-		{/if}
-
 		<!-- Trainingen -->
-		{#if openTrainings.length > 0 || closedTrainings.length > 0}
+		{#if activeTraining || openTrainings.length > 0 || closedTrainings.length > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="font-semibold text-gray-900 dark:text-gray-100">🏋️ Trainingen</h2>
 					<a href="{base}/trainings" class="text-sm text-primary-600 hover:underline">Alles</a>
 				</div>
-
-				<!-- Gepland -->
-				{#if openTrainings.length > 0}
-					<h3 class="text-xs font-bold uppercase text-gray-400 dark:text-gray-500 mb-2">📋 Gepland</h3>
-					<div class="space-y-3 mb-4">
-						{#each openTrainings as training}
-							{@const att = attendanceCounts[training.id]}
-							<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+				<div class="space-y-3">
+					<!-- Actieve training -->
+					{#if activeTraining}
+						{@const att = attendanceCounts[activeTraining.id]}
+						<div class="rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/20 p-4 relative overflow-hidden">
+							<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-bl-lg">LIVE</div>
+							<a href="{base}/trainings/{activeTraining.id}" class="block">
 								<div class="flex justify-between items-center">
-									<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600">
-										{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-									</a>
-									<div class="flex items-center gap-2">
-										{#if att}
-											<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
-										{/if}
-										<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Gepland</span>
-										<a href="{base}/trainings/{training.id}/checkin" class="text-xs text-green-600 hover:underline" title="Start Training">▶️</a>
-										<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
-									</div>
-								</div>
-								{#if training.content}
-									<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
-										class="text-xs text-primary-600 hover:text-primary-800 mt-1">
-										{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
-									</button>
-									{#if expandedTraining === training.id}
-										<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
-											{@html marked(training.content, { breaks: true })}
-										</div>
-										<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
+									<span class="text-sm font-semibold text-green-700 dark:text-green-400">
+										▶️ {new Date(activeTraining.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+										— {new Date(activeTraining.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
+									</span>
+									{#if att}
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300">👥 {att.present}/{att.total}</span>
 									{/if}
-								{/if}
+								</div>
+							</a>
+							<div class="flex gap-2 mt-2">
+								<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
+								<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-secondary text-xs flex-1 text-center !py-2">✏️ Bewerken</a>
+								<button
+									on:click={async () => { await updateTraining(activeTraining.id, { status: 'closed' }); loadDashboard($selectedTeamId, $selectedSeasonId); }}
+									class="text-xs flex-1 text-center py-2 px-3 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
+								>⏹️ Afronden</button>
 							</div>
-						{/each}
-					</div>
-				{/if}
+						</div>
+					{/if}
 
-				<!-- Afgerond -->
-				{#if closedTrainings.length > 0}
-					<h3 class="text-xs font-bold uppercase text-gray-400 dark:text-gray-500 mb-2">✅ Afgerond</h3>
-					<div class="space-y-3">
-						{#each closedTrainings as training}
-							{@const att = attendanceCounts[training.id]}
-							<div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-								<div class="flex justify-between items-center">
-									<a href="{base}/trainings/{training.id}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600">
-										{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-									</a>
-									<div class="flex items-center gap-2">
-										{#if att}
-											<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
-										{/if}
-										<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Afgerond</span>
-										{#if training.overall_rating}
-											<span class="text-sm font-semibold {
-												training.overall_rating >= 7 ? 'text-green-600' :
-												training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
-											}">
-												{training.overall_rating}/10
-											</span>
-										{/if}
-										<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
-									</div>
-								</div>
-								{#if training.content}
-									<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
-										class="text-xs text-primary-600 hover:text-primary-800 mt-1">
-										{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
-									</button>
-									{#if expandedTraining === training.id}
-										<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
-											{@html marked(training.content, { breaks: true })}
-										</div>
-										<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
+					<!-- Geplande trainingen -->
+					{#each openTrainings as training}
+						{@const att = attendanceCounts[training.id]}
+						<div class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 p-4">
+							<div class="flex justify-between items-center">
+								<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600">
+									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+								</a>
+								<div class="flex items-center gap-2">
+									{#if att}
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
 									{/if}
-								{/if}
+									<span class="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Gepland</span>
+									<a href="{base}/trainings/{training.id}/checkin" class="text-xs text-green-600 hover:underline" title="Start Training">▶️</a>
+									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
+								</div>
 							</div>
-						{/each}
-					</div>
-				{/if}
+							{#if training.content}
+								<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
+									class="text-xs text-primary-600 hover:text-primary-800 mt-1">
+									{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
+								</button>
+								{#if expandedTraining === training.id}
+									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
+										{@html marked(training.content, { breaks: true })}
+									</div>
+									<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
+								{/if}
+							{/if}
+						</div>
+					{/each}
+
+					<!-- Afgeronde trainingen -->
+					{#each closedTrainings as training}
+						{@const att = attendanceCounts[training.id]}
+						<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+							<div class="flex justify-between items-center">
+								<a href="{base}/trainings/{training.id}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600">
+									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+								</a>
+								<div class="flex items-center gap-2">
+									{#if att}
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
+									{/if}
+									<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Afgerond</span>
+									{#if training.overall_rating}
+										<span class="text-sm font-semibold {
+											training.overall_rating >= 7 ? 'text-green-600' :
+											training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
+										}">
+											{training.overall_rating}/10
+										</span>
+									{/if}
+									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
+								</div>
+							</div>
+							{#if training.content}
+								<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
+									class="text-xs text-primary-600 hover:text-primary-800 mt-1">
+									{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
+								</button>
+								{#if expandedTraining === training.id}
+									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
+										{@html marked(training.content, { breaks: true })}
+									</div>
+									<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
+								{/if}
+							{/if}
+						</div>
+					{/each}
+				</div>
 			</div>
 		{/if}
 
