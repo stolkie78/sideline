@@ -278,7 +278,30 @@ export async function addPlayerToTeam(data: {
 	season: string;
 	player: string;
 }): Promise<TeamPlayer> {
-	return pb.collection('team_players').create<TeamPlayer>(data);
+	const result = await pb.collection('team_players').create<TeamPlayer>(data);
+
+	// Auto-create attendance (status=present) for all non-closed trainings
+	try {
+		const trainings = await pb.collection('trainings').getFullList({
+			filter: `team = "${data.team}" && season = "${data.season}" && status != "closed"`,
+			fields: 'id',
+		});
+		await Promise.all(
+			trainings.map(async (t) => {
+				try {
+					await pb.collection('training_attendance').create({
+						training: t.id,
+						player: data.player,
+						status: 'present',
+					});
+				} catch { /* already exists */ }
+			})
+		);
+	} catch (e) {
+		console.error('Failed to create default attendance:', e);
+	}
+
+	return result;
 }
 
 export async function removePlayerFromTeam(id: string): Promise<boolean> {
