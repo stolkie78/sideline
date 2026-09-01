@@ -37,12 +37,9 @@
 	$: openTrainings = trainings
 		.filter(t => t.status === 'open')
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-		.slice(0, 3);
+		.slice(0, 5);
 
-	$: closedTrainings = trainings
-		.filter(t => t.status === 'closed')
-		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-		.slice(0, 3);
+	$: closedTrainingCount = trainings.filter(t => t.status === 'closed').length;
 
 	// Reactive: reload when context stores change (fixes empty data after login)
 	$: if (browser) loadDashboard($selectedTeamId, $selectedSeasonId);
@@ -112,7 +109,7 @@
 		</div>
 
 		<!-- Trainingen -->
-		{#if activeTraining || openTrainings.length > 0 || closedTrainings.length > 0}
+		{#if activeTraining || openTrainings.length > 0 || closedTrainingCount > 0}
 			<div class="card">
 				<div class="flex justify-between items-center mb-4">
 					<h2 class="font-semibold text-gray-900 dark:text-gray-100">🏋️ Trainingen</h2>
@@ -180,44 +177,12 @@
 						</div>
 					{/each}
 
-					<!-- Afgeronde trainingen -->
-					{#each closedTrainings as training}
-						{@const att = attendanceCounts[training.id]}
-						<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
-							<div class="flex justify-between items-center">
-								<a href="{base}/trainings/{training.id}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-primary-600">
-									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-								</a>
-								<div class="flex items-center gap-2">
-									{#if att}
-										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">👥 {att.present}/{att.total}</span>
-									{/if}
-									<span class="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Afgerond</span>
-									{#if training.overall_rating}
-										<span class="text-sm font-semibold {
-											training.overall_rating >= 7 ? 'text-green-600' :
-											training.overall_rating >= 5 ? 'text-yellow-600' : 'text-red-600'
-										}">
-											{training.overall_rating}/10
-										</span>
-									{/if}
-									<a href="{base}/trainings/{training.id}/edit" class="text-xs text-primary-600 hover:underline">✏️</a>
-								</div>
-							</div>
-							{#if training.content}
-								<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
-									class="text-xs text-primary-600 hover:text-primary-800 mt-1">
-									{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
-								</button>
-								{#if expandedTraining === training.id}
-									<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
-										{@html marked(training.content, { breaks: true })}
-									</div>
-									<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
-								{/if}
-							{/if}
-						</div>
-					{/each}
+					<!-- Link naar afgeronde trainingen -->
+					{#if closedTrainingCount > 0}
+						<a href="{base}/trainings" class="block text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 pt-1">
+							✅ Afgerond ({closedTrainingCount}) →
+						</a>
+					{/if}
 				</div>
 			</div>
 		{/if}
@@ -259,10 +224,10 @@
 				<!-- Uitslagen -->
 				{#if matches.filter(m => (m.score_team || m.score_opponent) && new Date(m.date) < new Date()).length > 0}
 					<h3 class="text-xs font-bold uppercase text-gray-400 dark:text-gray-500 mb-2">🏆 Uitslagen</h3>
-					<div class="space-y-1">
+					<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-3 space-y-1">
 						{#each matches.filter(m => (m.score_team || m.score_opponent) && new Date(m.date) < new Date()).slice(0, 5) as match}
 							{@const won = match.score_team > match.score_opponent}
-							<div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+							<div class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
 								<div>
 									<span class="text-sm font-medium text-gray-800 dark:text-gray-200">{match.opponent}</span>
 									<span class="text-xs text-gray-400 ml-1.5">{match.home_away === 'home' ? 'Thuis' : 'Uit'}</span>

@@ -290,6 +290,7 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.3.2** | 2026-09-01 | Dashboard: 5 geplande trainingen, afgerond als link met aantal, uitslagen in grijze card |
 | **v2.3.1** | 2026-09-01 | "VOLGENDE →" highlight op eerstvolgende geplande training en wedstrijd |
 | **v2.3** | 2026-09-01 | Dashboard cards-in-cards layout: trainingen (actief/gepland/afgerond) en wedstrijden (komend/uitslagen) als geneste kaarten |
 | **v2.2** | 2026-09-01 | Dashboard herindeling: gecombineerde trainingen- en wedstrijdensecties, komende wedstrijden met blauwe highlight, stats en quick actions bovenaan |
