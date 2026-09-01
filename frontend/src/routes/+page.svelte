@@ -85,32 +85,6 @@
 	</div>
 {:else}
 	<div class="space-y-6">
-		<!-- Quick Stats -->
-		<div class="grid grid-cols-3 gap-3">
-			<div class="card text-center py-6">
-				<div class="text-3xl font-bold text-primary-600">{players.length}</div>
-				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Spelers</div>
-			</div>
-			<div class="card text-center py-6">
-				<div class="text-3xl font-bold text-green-600">{trainings.length}</div>
-				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Trainingen</div>
-			</div>
-			<div class="card text-center py-6">
-				<div class="text-3xl font-bold text-amber-600">{matches.length}</div>
-				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Wedstrijden</div>
-			</div>
-		</div>
-
-		<!-- Quick Actions -->
-		<div class="grid grid-cols-2 gap-3">
-			<a href="{base}/trainings/new" class="btn-primary text-center text-base py-4">
-				Nieuwe training
-			</a>
-			<a href="{base}/matches/new" class="btn-primary text-center text-base py-4">
-				Nieuwe wedstrijd
-			</a>
-		</div>
-
 		<!-- Upcoming Matches -->
 		{#if upcomingMatches.length > 0}
 			<div class="card">
@@ -139,6 +113,32 @@
 				</div>
 			</div>
 		{/if}
+
+		<!-- Quick Stats -->
+		<div class="grid grid-cols-3 gap-3">
+			<div class="card text-center py-6">
+				<div class="text-3xl font-bold text-primary-600">{players.length}</div>
+				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Spelers</div>
+			</div>
+			<div class="card text-center py-6">
+				<div class="text-3xl font-bold text-green-600">{trainings.length}</div>
+				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Trainingen</div>
+			</div>
+			<div class="card text-center py-6">
+				<div class="text-3xl font-bold text-amber-600">{matches.length}</div>
+				<div class="text-sm text-gray-500 dark:text-gray-400 mt-1">Wedstrijden</div>
+			</div>
+		</div>
+
+		<!-- Quick Actions -->
+		<div class="grid grid-cols-2 gap-3">
+			<a href="{base}/trainings/new" class="btn-primary text-center text-base py-4">
+				Nieuwe training
+			</a>
+			<a href="{base}/matches/new" class="btn-primary text-center text-base py-4">
+				Nieuwe wedstrijd
+			</a>
+		</div>
 
 		<!-- Active Training -->
 		{#if activeTraining}
