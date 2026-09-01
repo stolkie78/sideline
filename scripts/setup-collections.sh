@@ -122,7 +122,7 @@ ensure_collection '{
     {"name": "photo", "type": "file", "required": false, "maxSelect": 1, "maxSize": 5242880, "mimeTypes": ["image/jpeg","image/png","image/webp"], "thumbs": ["100x100","200x200"]},
     {"name": "position", "type": "select", "required": false, "values": ["setter","outside_hitter","opposite","middle_blocker","libero","defensive_specialist"], "maxSelect": 6},
     {"name": "status", "type": "select", "required": true, "values": ["active","injured","inactive"], "maxSelect": 1},
-    {"name": "jersey_number", "type": "number", "required": false},
+    {"name": "jersey_number", "type": "number", "required": false, "min": 1, "max": 999, "onlyInt": true},
     {"name": "email", "type": "email", "required": false},
     {"name": "user_id", "type": "relation", "required": false, "collectionId": "_pb_users_auth_", "maxSelect": 1}
   ],
