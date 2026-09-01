@@ -147,11 +147,13 @@
 					{/if}
 
 					<!-- Geplande trainingen -->
-					{#each openTrainings as training}
+					{#each openTrainings as training, i}
 						{@const att = attendanceCounts[training.id]}
-						<div class="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10 p-4">
+						{@const isNext = i === 0}
+						<div class="rounded-xl p-4 {isNext ? 'border-2 border-primary-500 dark:border-primary-400 bg-primary-50/50 dark:bg-primary-900/15 ring-1 ring-primary-200 dark:ring-primary-800' : 'border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10'}">
 							<div class="flex justify-between items-center">
 								<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary-600">
+									{#if isNext}<span class="text-xs font-bold text-primary-600 dark:text-primary-400 mr-1">VOLGENDE →</span>{/if}
 									{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								</a>
 								<div class="flex items-center gap-2">
@@ -232,10 +234,12 @@
 				{#if upcomingMatches.length > 0}
 					<h3 class="text-xs font-bold uppercase text-gray-400 dark:text-gray-500 mb-2">📅 Komend</h3>
 					<div class="space-y-3 mb-4">
-						{#each upcomingMatches as match}
-							<a href="{base}/matches/{match.id}" class="block p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition border border-blue-200 dark:border-blue-800">
+						{#each upcomingMatches as match, i}
+							{@const isNext = i === 0}
+							<a href="{base}/matches/{match.id}" class="block p-3 rounded-lg transition {isNext ? 'bg-primary-50 dark:bg-primary-900/15 border-2 border-primary-500 dark:border-primary-400 ring-1 ring-primary-200 dark:ring-primary-800' : 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 dark:border-blue-800'}">
 								<div class="flex justify-between items-start">
 									<div>
+										{#if isNext}<span class="text-xs font-bold text-primary-600 dark:text-primary-400 mr-1">VOLGENDE →</span>{/if}
 										<span class="text-sm font-medium text-gray-800 dark:text-gray-200">{match.opponent}</span>
 										<span class="text-xs text-gray-400 ml-1">{match.home_away === 'home' ? '(Thuis)' : '(Uit)'}</span>
 									</div>
