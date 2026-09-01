@@ -447,7 +447,7 @@
 		<button type="submit" class="btn-primary w-full text-lg py-4" disabled={saving}>
 			{saving ? 'Opslaan...' : 'Wijzigingen opslaan'}
 		</button>
-		<a href="{base}/trainings" class="btn-secondary w-full text-center">Annuleren</a>
+		<a href={returnTo} class="btn-secondary w-full text-center">Annuleren</a>
 	</form>
 {:else}
 	<p class="text-center text-gray-500 py-8">Training niet gevonden</p>
