@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.4.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.4.10
 
 ## Tech Stack
 
@@ -52,6 +52,7 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Google OAuth + email/password** login
 - **Multi-team** — Meerdere teams binnen één installatie
 - **Rollen** — Admin (alles), Coach (team beheer), Speler (eigen dashboard)
+- **Trainers** — Trainer profiel met voorkeursdag, automatisch gekoppeld bij planning
 - **Speler dashboard** — Beschikbaarheid voor trainingen en wedstrijden
 - **Email uitnodigingen** — Nodig teamleden uit via email (SMTP) of deelbare link
 - **Seizoenen** — Meerdere seizoenen met periodisering
@@ -290,6 +291,8 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.4.10** | 2026-09-01 | Teamrollen (trainer/speler/ouder checkboxes), trainer/coach multi-select op trainingen en wedstrijden, namen op dashboard, 24-uurs datumvelden, schema generator met trainer per dag |
+| **v2.4.1** | 2026-09-01 | Trainers: trainer/coach toewijzing aan trainingen en wedstrijden, trainers config tab met voorkeursdag, auto-toewijzing bij batch planning |
 | **v2.4.0** | 2026-09-01 | Dashboard UX: uniforme kaartjes (weekdag naam trainingen), max 5 wedstrijden met "Gespeeld" link + filter tabs op wedstrijden pagina, groene start knop, cyan wedstrijden card |
 | **v2.3.4** | 2026-09-01 | Trainingen filter tabs (Alles/Gepland/Afgerond) met deep link vanuit dashboard |
 | **v2.3.3** | 2026-09-01 | Responsive layout: bredere container op tablet/desktop, 2-kolom grid voor trainingen/wedstrijden/spelers/rapporten |

@@ -37,8 +37,18 @@
 	let scheduleEnd = '';
 	let scheduleGenerating = false;
 	let scheduleResult = '';
+	let scheduleTrainerPerDay: Record<number, string> = {}; // dayOfWeek → userId
 
 	const DAY_LABELS = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
+
+	$: trainerMembers = accessList.filter(a => a.is_trainer);
+
+	async function handleToggleRole(access: any, field: 'is_trainer' | 'is_player' | 'is_parent', value: boolean) {
+		try {
+			await updateTeamAccess(access.id, { [field]: value });
+			await loadAccess();
+		} catch (e) { alert('Fout: ' + e); }
+	}
 
 	function toggleScheduleDay(day: number) {
 		if (scheduleDays.includes(day)) {
@@ -73,12 +83,14 @@
 			for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
 				if (!scheduleDays.includes(d.getDay())) continue;
 				const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${scheduleTime}:00`;
+				const trainerId = scheduleTrainerPerDay[d.getDay()] || undefined;
 				await createTraining({
 					date: dateStr,
 					team: $selectedTeamId,
 					season: $selectedSeasonId,
 					status: 'open',
 					content: '',
+					...(trainerId ? { trainer: trainerId } : {}),
 				});
 				created++;
 			}
@@ -434,7 +446,7 @@
 					? 'text-primary-600 border-b-2 border-primary-600'
 					: 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
 			}"
-			on:click={() => { activeTab = 'schedule'; }}>
+			on:click={() => { activeTab = 'schedule'; loadAccess(); }}>
 			Schema
 		</button>
 		<button
@@ -654,7 +666,7 @@
 					<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Teamleden</h3>
 					<div class="space-y-2">
 						{#each accessList as access}
-							<div class="flex items-center gap-3 py-2 border-b border-gray-50 dark:border-gray-700 last:border-0">
+							<div class="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
 								<div class="flex-1 min-w-0">
 									<span class="text-sm font-medium text-gray-800 dark:text-gray-200 block truncate">
 										{access.expand?.user?.name || '—'}
@@ -662,6 +674,26 @@
 									<span class="text-xs text-gray-400 dark:text-gray-500 block truncate">
 										{access.expand?.user?.email || ''}
 									</span>
+								</div>
+								<div class="flex items-center gap-3">
+									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+											checked={access.is_trainer || false}
+											on:change={(e) => handleToggleRole(access, 'is_trainer', e.currentTarget.checked)} />
+										Trainer
+									</label>
+									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+											checked={access.is_player || false}
+											on:change={(e) => handleToggleRole(access, 'is_player', e.currentTarget.checked)} />
+										Speler
+									</label>
+									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+											checked={access.is_parent || false}
+											on:change={(e) => handleToggleRole(access, 'is_parent', e.currentTarget.checked)} />
+										Ouder
+									</label>
 								</div>
 								<select
 									class="input w-24 py-1 text-xs"
@@ -784,6 +816,26 @@
 					<label class="label" for="schedule-time">Starttijd</label>
 					<input id="schedule-time" type="time" class="input w-32" bind:value={scheduleTime} />
 				</div>
+
+				<!-- Trainer per dag -->
+				{#if scheduleDays.length > 0 && trainerMembers.length > 0}
+					<div class="mb-4">
+						<label class="label">Trainer per dag</label>
+						<div class="space-y-2">
+							{#each scheduleDays as day}
+								<div class="flex items-center gap-3">
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300 w-12">{DAY_LABELS[day]}</span>
+									<select class="input flex-1 py-1.5 text-sm" bind:value={scheduleTrainerPerDay[day]}>
+										<option value="">— Geen trainer —</option>
+										{#each trainerMembers as tm}
+											<option value={tm.user}>{tm.expand?.user?.name || tm.expand?.user?.email}</option>
+										{/each}
+									</select>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
 
 				<!-- Date range -->
 				<div class="grid grid-cols-2 gap-3 mb-4">

@@ -186,7 +186,8 @@ ensure_collection "{
     {\"name\": \"template\", \"type\": \"text\", \"required\": false},
     {\"name\": \"status\", \"type\": \"select\", \"required\": false, \"values\": [\"open\",\"active\",\"closed\"], \"maxSelect\": 1},
     {\"name\": \"content\", \"type\": \"editor\", \"required\": false},
-    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
+    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
+    {\"name\": \"trainer\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 10}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
@@ -238,7 +239,8 @@ ensure_collection "{
     {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"location\", \"type\": \"text\", \"required\": false},
     {\"name\": \"nevobo_uuid\", \"type\": \"text\", \"required\": false},
-    {\"name\": \"nevobo_code\", \"type\": \"text\", \"required\": false}
+    {\"name\": \"nevobo_code\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"coach\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 10}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
@@ -290,7 +292,10 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"user\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
-    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"player\"], \"maxSelect\": 1}
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"player\"], \"maxSelect\": 1},
+    {\"name\": \"is_trainer\", \"type\": \"bool\", \"required\": false},
+    {\"name\": \"is_player\", \"type\": \"bool\", \"required\": false},
+    {\"name\": \"is_parent\", \"type\": \"bool\", \"required\": false}
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",

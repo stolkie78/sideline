@@ -51,8 +51,8 @@
 			const filter = contextFilter(_teamId, _seasonId);
 			[players, trainings, matches] = await Promise.all([
 				getPlayers('status = "active"'),
-				pb.collection('trainings').getFullList<Training>({ sort: '-date', filter: filter || undefined }),
-				pb.collection('matches').getFullList<Match>({ sort: '-date', filter: filter || undefined }),
+				pb.collection('trainings').getFullList<Training>({ sort: '-date', filter: filter || undefined, expand: 'trainer' }),
+				pb.collection('matches').getFullList<Match>({ sort: '-date', filter: filter || undefined, expand: 'coach' }),
 			]);
 
 			// Load attendance counts for all trainings
@@ -170,6 +170,9 @@
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
 								<span>📆 {new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
 								<span>⏰ {new Date(training.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+								{#if training.expand?.trainer && training.expand.trainer.length > 0}
+									<span>🧑‍🏫 {training.expand.trainer.map(t => t.name).join(', ')}</span>
+								{/if}
 								{#if training.content}
 									<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
 										class="text-primary-600 hover:text-primary-800">
@@ -218,6 +221,9 @@
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
 								<span>📆 {new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
 								<span>⏰ {new Date(match.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+								{#if match.expand?.coach && match.expand.coach.length > 0}
+									<span>🧑‍🏫 {match.expand.coach.map(c => c.name).join(', ')}</span>
+								{/if}
 								{#if match.location}
 									<span>📍 {match.location}</span>
 								{/if}

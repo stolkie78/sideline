@@ -131,6 +131,7 @@ export async function createTraining(data: {
 	core2?: string;
 	game?: string;
 	created_by?: string;
+	trainer?: string[];
 }): Promise<Training> {
 	return pb.collection('trainings').create<Training>(data);
 }
@@ -291,6 +292,9 @@ export interface TeamAccess {
 	user: string;
 	team: string;
 	role: 'admin' | 'coach' | 'player';
+	is_trainer?: boolean;
+	is_player?: boolean;
+	is_parent?: boolean;
 	expand?: {
 		user?: { id: string; email: string; name: string };
 		team?: Team;
@@ -315,7 +319,7 @@ export async function grantTeamAccess(data: { user: string; team: string; role: 
 	return pb.collection('team_access').create<TeamAccess>(data);
 }
 
-export async function updateTeamAccess(id: string, data: { role: string }): Promise<TeamAccess> {
+export async function updateTeamAccess(id: string, data: Partial<Pick<TeamAccess, 'role' | 'is_trainer' | 'is_player' | 'is_parent'>>): Promise<TeamAccess> {
 	return pb.collection('team_access').update<TeamAccess>(id, data);
 }
 

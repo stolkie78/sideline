@@ -3,8 +3,9 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, getPlayers, getTeamPlayers, updateTraining, getTrainingAttendance, createTrainingAttendance, updateTrainingAttendance, deleteTrainingAttendance, getTrainingTemplates } from '$lib/pocketbase';
+	import { pb, getPlayers, getTeamPlayers, updateTraining, getTrainingAttendance, createTrainingAttendance, updateTrainingAttendance, deleteTrainingAttendance, getTrainingTemplates, getTeamAccessForTeam } from '$lib/pocketbase';
 	import type { Player, Training, TrainingAttendance, AttendanceStatus, TrainingTemplate } from '$lib/types';
+	import type { TeamAccess } from '$lib/pocketbase';
 	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
@@ -73,6 +74,7 @@
 
 	// Training form
 	let trainingDate = '';
+	let trainingTime = '17:30';
 	let overallRating = 7;
 	let generalComments = '';
 	let selectedTemplate = '';
@@ -80,6 +82,10 @@
 
 	// Training content (markdown)
 	let formContent = '';
+
+	// Trainers
+	let trainerMembers: TeamAccess[] = [];
+	let selectedTrainers: string[] = [];
 
 	// Per-player attendance & rating
 	let playerData: Record<string, {
@@ -94,12 +100,22 @@
 			const id = $page.params.id;
 			training = await pb.collection('trainings').getOne<Training>(id, { expand: 'created_by' });
 
-			trainingDate = training.date.slice(0, 16);
+			trainingDate = training.date.slice(0, 10);
+			trainingTime = training.date.slice(11, 16) || '17:30';
 			overallRating = training.overall_rating || 7;
 			generalComments = training.general_comments || '';
 			selectedTemplate = training.template || '';
 			trainingStatus = (training.status as 'open' | 'active' | 'closed') || 'closed';
 			formContent = training.content || '';
+			selectedTrainers = Array.isArray(training.trainer) ? training.trainer : training.trainer ? [training.trainer] : [];
+
+			// Load trainers
+			if ($selectedTeamId) {
+				try {
+					const allAccess = await getTeamAccessForTeam($selectedTeamId);
+					trainerMembers = allAccess.filter(a => a.is_trainer);
+				} catch (e) { /* ignore */ }
+			}
 
 			// Load templates
 			templates = await getTrainingTemplates();
@@ -181,12 +197,13 @@
 		try {
 			// Update training
 			await updateTraining(training.id, {
-				date: new Date(trainingDate).toISOString(),
+				date: new Date(`${trainingDate}T${trainingTime}`).toISOString(),
 				overall_rating: trainingStatus === 'closed' ? overallRating : undefined,
 				general_comments: generalComments || undefined,
 				template: selectedTemplate || undefined,
 				status: trainingStatus,
 				content: formContent || undefined,
+				trainer: selectedTrainers,
 			});
 
 			// Update/create attendance records
@@ -282,8 +299,31 @@
 
 			<div>
 				<label class="label" for="date">Datum & Tijd</label>
-				<input id="date" class="input" type="datetime-local" bind:value={trainingDate} required />
+				<div class="flex gap-2">
+					<input id="date" class="input flex-1" type="date" bind:value={trainingDate} required />
+					<input class="input w-28" type="time" bind:value={trainingTime} required />
+				</div>
 			</div>
+
+			<!-- Trainer checkboxes -->
+			{#if trainerMembers.length > 0}
+				<div>
+					<label class="label">Trainer(s)</label>
+					<div class="flex flex-wrap gap-3">
+						{#each trainerMembers as tm}
+							<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+								<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+									checked={selectedTrainers.includes(tm.user)}
+									on:change={(e) => {
+										if (e.currentTarget.checked) selectedTrainers = [...selectedTrainers, tm.user];
+										else selectedTrainers = selectedTrainers.filter(id => id !== tm.user);
+									}} />
+								{tm.expand?.user?.name || tm.expand?.user?.email}
+							</label>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<!-- Template selector -->
 			{#if templates.length > 0 && trainingStatus === 'open'}

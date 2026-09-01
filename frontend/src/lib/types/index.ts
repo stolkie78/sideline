@@ -80,9 +80,11 @@ export interface Training extends RecordModel {
 	status?: 'open' | 'closed';
 	content?: string;
 	created_by?: string;
+	trainer?: string[];
 	expand?: {
 		template?: TrainingTemplate;
 		created_by?: { id: string; name: string; email: string };
+		trainer?: { id: string; name: string; email: string }[];
 	};
 }
 
@@ -133,8 +135,10 @@ export interface Match extends RecordModel {
 	substitutions?: Substitution[];
 	timeouts?: Timeout[];
 	created_by?: string;
+	coach?: string[];
 	expand?: {
 		created_by?: { id: string; name: string; email: string };
+		coach?: { id: string; name: string; email: string }[];
 	};
 }
 

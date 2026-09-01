@@ -3,8 +3,9 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, getPlayers, getTeamPlayers, updateMatch, getMatchPlayerStats, createMatchPlayerStats, updateMatchPlayerStats, deleteMatchPlayerStats } from '$lib/pocketbase';
+	import { pb, getPlayers, getTeamPlayers, updateMatch, getMatchPlayerStats, createMatchPlayerStats, updateMatchPlayerStats, deleteMatchPlayerStats, getTeamAccessForTeam } from '$lib/pocketbase';
 	import type { Player, PlayerPosition, SetScore, Match, MatchPlayerStats } from '$lib/types';
+	import type { TeamAccess } from '$lib/pocketbase';
 	import { POSITION_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
@@ -16,9 +17,14 @@
 
 	// Match form
 	let matchDate = '';
+	let matchTime = '19:30';
 	let opponent = '';
 	let homeAway: 'home' | 'away' = 'home';
 	let generalNotes = '';
+
+	// Coaches
+	let coachMembers: TeamAccess[] = [];
+	let selectedCoaches: string[] = [];
 
 	// Set scores
 	let setScores: SetScore[] = [];
@@ -78,10 +84,21 @@
 			const id = $page.params.id;
 			match = await pb.collection('matches').getOne<Match>(id, { expand: 'created_by' });
 
-			matchDate = match.date.slice(0, 16);
+			matchDate = match.date.slice(0, 10);
+			matchTime = match.date.slice(11, 16) || '19:30';
 			opponent = match.opponent;
 			homeAway = (match.home_away as 'home' | 'away') || 'home';
 			generalNotes = match.general_notes || '';
+			selectedCoaches = Array.isArray(match.coach) ? match.coach : match.coach ? [match.coach] : [];
+
+			// Load coaches
+			if ($selectedTeamId) {
+				try {
+					const allAccess = await getTeamAccessForTeam($selectedTeamId);
+					coachMembers = allAccess.filter(a => a.is_trainer);
+				} catch (e) { /* ignore */ }
+			}
+
 			setScores = match.set_scores && Array.isArray(match.set_scores) && match.set_scores.length > 0
 				? [...match.set_scores]
 				: [{ team: null, opponent: null }, { team: null, opponent: null }, { team: null, opponent: null }];
@@ -147,13 +164,14 @@
 			const filledSets = setScores.filter(s => s.team !== null || s.opponent !== null);
 
 			await updateMatch(match.id, {
-				date: new Date(matchDate).toISOString(),
+				date: new Date(`${matchDate}T${matchTime}`).toISOString(),
 				opponent: opponent.trim(),
 				home_away: homeAway,
 				score_team: scoreTeam || undefined,
 				score_opponent: scoreOpponent || undefined,
 				set_scores: filledSets.length > 0 ? filledSets : undefined,
 				general_notes: generalNotes || undefined,
+				coach: selectedCoaches,
 			});
 
 			// Delete old stats and recreate
@@ -239,8 +257,11 @@
 
 			<div class="grid grid-cols-2 gap-3">
 				<div>
-					<label class="label" for="date">Datum</label>
-					<input id="date" class="input" type="datetime-local" bind:value={matchDate} required />
+					<label class="label" for="date">Datum & Tijd</label>
+					<div class="flex gap-2">
+						<input id="date" class="input flex-1" type="date" bind:value={matchDate} required />
+						<input class="input w-28" type="time" bind:value={matchTime} required />
+					</div>
 				</div>
 				<div>
 					<label class="label">Locatie</label>
@@ -254,6 +275,26 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Coach checkboxes -->
+			{#if coachMembers.length > 0}
+				<div>
+					<label class="label">Coach(es)</label>
+					<div class="flex flex-wrap gap-3">
+						{#each coachMembers as tm}
+							<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+								<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+									checked={selectedCoaches.includes(tm.user)}
+									on:change={(e) => {
+										if (e.currentTarget.checked) selectedCoaches = [...selectedCoaches, tm.user];
+										else selectedCoaches = selectedCoaches.filter(id => id !== tm.user);
+									}} />
+								{tm.expand?.user?.name || tm.expand?.user?.email}
+							</label>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<!-- Set Scores -->
 			<div>

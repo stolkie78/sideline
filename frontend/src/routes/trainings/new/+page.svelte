@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { getPlayers, createTraining, createTrainingAttendance, getTeamPlayers, getTrainingTemplates } from '$lib/pocketbase';
+	import { getPlayers, createTraining, createTrainingAttendance, getTeamPlayers, getTrainingTemplates, getTeamAccessForTeam } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, AttendanceStatus, TrainingTemplate } from '$lib/types';
+	import type { TeamAccess } from '$lib/pocketbase';
 	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { authUser } from '$lib/stores/auth';
@@ -81,7 +82,8 @@
 	let saving = false;
 
 	// Training form
-	let trainingDate = new Date().toISOString().slice(0, 16);
+	let trainingDate = new Date().toISOString().slice(0, 10);
+	let trainingTime = '17:30';
 	let overallRating = 7;
 	let generalComments = '';
 	let selectedTemplate = '';
@@ -89,6 +91,10 @@
 
 	// Training content (markdown)
 	let formContent = '';
+
+	// Trainers
+	let trainerMembers: TeamAccess[] = [];
+	let selectedTrainers: string[] = [];
 
 	// Per-player attendance & rating
 	let playerData: Record<string, {
@@ -141,6 +147,14 @@
 		} finally {
 			loading = false;
 		}
+
+		// Load trainers
+		if ($selectedTeamId) {
+			try {
+				const allAccess = await getTeamAccessForTeam($selectedTeamId);
+				trainerMembers = allAccess.filter(a => a.is_trainer);
+			} catch (e) { /* ignore */ }
+		}
 	});
 
 	function applyTemplate() {
@@ -164,7 +178,7 @@
 		try {
 			// 1. Create training
 			const training = await createTraining({
-				date: new Date(trainingDate).toISOString(),
+				date: new Date(`${trainingDate}T${trainingTime}`).toISOString(),
 				overall_rating: trainingStatus === 'closed' ? overallRating : undefined,
 				general_comments: generalComments || undefined,
 				team: $selectedTeamId || undefined,
@@ -173,6 +187,7 @@
 				status: trainingStatus,
 				content: formContent || undefined,
 				created_by: $authUser?.id || undefined,
+				trainer: selectedTrainers.length > 0 ? selectedTrainers : undefined,
 			});
 
 			// 2. Create attendance records
@@ -236,8 +251,31 @@
 
 			<div>
 				<label class="label" for="date">Datum & Tijd</label>
-				<input id="date" class="input" type="datetime-local" bind:value={trainingDate} required />
+				<div class="flex gap-2">
+					<input id="date" class="input flex-1" type="date" bind:value={trainingDate} required />
+					<input class="input w-28" type="time" bind:value={trainingTime} required />
+				</div>
 			</div>
+
+			<!-- Trainer checkboxes -->
+			{#if trainerMembers.length > 0}
+				<div>
+					<label class="label">Trainer(s)</label>
+					<div class="flex flex-wrap gap-3">
+						{#each trainerMembers as tm}
+							<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+								<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+									checked={selectedTrainers.includes(tm.user)}
+									on:change={(e) => {
+										if (e.currentTarget.checked) selectedTrainers = [...selectedTrainers, tm.user];
+										else selectedTrainers = selectedTrainers.filter(id => id !== tm.user);
+									}} />
+								{tm.expand?.user?.name || tm.expand?.user?.email}
+							</label>
+						{/each}
+					</div>
+				</div>
+			{/if}
 
 			<!-- Template selector -->
 			{#if templates.length > 0 && trainingStatus === 'open'}
