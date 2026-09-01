@@ -6,7 +6,7 @@
 	import { pb } from '$lib/pocketbase';
 	import type { Player, AttendanceStatus, TrainingTemplate } from '$lib/types';
 	import type { TeamAccess } from '$lib/pocketbase';
-	import { ATTENDANCE_LABELS, TRAINING_TYPE_LABELS } from '$lib/types';
+	import { TRAINING_TYPE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { authUser } from '$lib/stores/auth';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
@@ -165,14 +165,6 @@
 		}
 	}
 
-	function cycleStatus(playerId: string) {
-		const order: AttendanceStatus[] = ['present', 'absent', 'sick', 'injured'];
-		const current = playerData[playerId].status;
-		const nextIdx = (order.indexOf(current) + 1) % order.length;
-		playerData[playerId].status = order[nextIdx];
-		playerData = playerData; // trigger reactivity
-	}
-
 	async function handleSubmit() {
 		saving = true;
 		try {
@@ -310,45 +302,25 @@
 
 		<!-- Player Attendance -->
 		<div class="card">
-			<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Aanwezigheid & Scores</h3>
-			<div class="space-y-3">
+			<div class="flex justify-between items-center mb-3">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">👥 Aanwezigheid</h3>
+				<span class="text-sm font-medium text-green-600">
+					{Object.values(playerData).filter(p => p.status === 'present').length}/{players.length}
+				</span>
+			</div>
+			<div class="flex flex-wrap gap-2">
 				{#each players as player (player.id)}
 					{@const pd = playerData[player.id]}
-					<div class="border border-gray-100 dark:border-gray-700 rounded-xl p-3">
-						<div class="flex items-center gap-3">
-							<button
-								type="button"
-								class="touch-target flex-shrink-0 w-20 py-2 rounded-lg text-xs font-semibold text-center transition-colors {
-									pd.status === 'present' ? 'bg-green-100 text-green-700' :
-									pd.status === 'absent' ? 'bg-red-100 text-red-700' :
-									pd.status === 'sick' ? 'bg-yellow-100 text-yellow-700' :
-									'bg-orange-100 text-orange-700'
-								}"
-								on:click={() => cycleStatus(player.id)}
-							>
-								{ATTENDANCE_LABELS[pd.status]}
-							</button>
-							<span class="flex-1 font-medium text-sm truncate">{player.name}</span>
-							{#if pd.status === 'present'}
-								<div class="flex items-center gap-1">
-									<input
-										type="number" min="1" max="10"
-										class="w-12 text-center rounded-lg border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white py-1 text-sm font-bold"
-										bind:value={playerData[player.id].rating}
-									/>
-									<span class="text-xs text-gray-400 dark:text-gray-500">/10</span>
-								</div>
-							{/if}
-						</div>
-						{#if pd.status === 'present'}
-							<input
-								type="text"
-								class="mt-2 w-full text-xs rounded-lg border border-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-primary-300 focus:outline-none"
-								placeholder="Notities voor {player.name}..."
-								bind:value={playerData[player.id].notes}
-							/>
-						{/if}
-					</div>
+					<button type="button"
+						class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95 {
+							pd.status === 'present'
+								? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+								: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+						}"
+						on:click={() => { playerData[player.id].status = pd.status === 'present' ? 'absent' : 'present'; playerData = playerData; }}>
+						{pd.status === 'present' ? '✅' : '❌'}
+						{player.name}
+					</button>
 				{/each}
 			</div>
 		</div>
