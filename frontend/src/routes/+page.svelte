@@ -15,6 +15,7 @@
 	let matches: Match[] = [];
 	let loading = true;
 	let expandedTraining: string | null = null;
+	let lightboxTraining: Training | null = null;
 
 	// Attendance per training: { trainingId: { present: N, total: N } }
 	let attendanceCounts: Record<string, { present: number; total: number }> = {};
@@ -150,7 +151,11 @@
 								</div>
 							</a>
 							<div class="flex gap-2 mt-2">
-								<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
+								{#if activeTraining.content}
+									<button on:click={() => lightboxTraining = activeTraining} class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</button>
+								{:else}
+									<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
+								{/if}
 								<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-secondary text-xs flex-1 text-center !py-2">✏️ Bewerken</a>
 								<button
 									on:click={async () => { await updateTraining(activeTraining.id, { status: 'closed' }); loadDashboard($selectedTeamId, $selectedSeasonId); }}
@@ -186,18 +191,12 @@
 									<span>🧑‍🏫 {training.expand.trainer.map(t => t.name).join(', ')}</span>
 								{/if}
 								{#if training.content}
-									<button on:click={() => expandedTraining = expandedTraining === training.id ? null : training.id}
+									<button on:click={() => lightboxTraining = training}
 										class="text-primary-600 hover:text-primary-800">
-										{expandedTraining === training.id ? '▼ Inklappen' : '▶ Bekijken'}
+										👁 Bekijken
 									</button>
 								{/if}
 							</div>
-							{#if expandedTraining === training.id && training.content}
-								<div class="mt-2 p-3 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 prose prose-sm dark:prose-invert max-w-none">
-									{@html marked(training.content, { breaks: true })}
-								</div>
-								<button on:click={() => printTraining(training)} class="text-xs text-gray-500 hover:text-primary-600 mt-1">📄 Exporteer als PDF</button>
-							{/if}
 						</div>
 					{/each}
 
@@ -257,5 +256,45 @@
 			</div>
 		{/if}
 		</div><!-- end grid -->
+	</div>
+{/if}
+
+<!-- Training lightbox -->
+{#if lightboxTraining}
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" on:click={() => lightboxTraining = null}>
+		<div class="bg-white dark:bg-gray-900 w-full h-full md:w-[90%] md:h-[90%] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden" on:click|stopPropagation>
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+				<div>
+					<h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">
+						{new Date(lightboxTraining.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+					</h2>
+					{#if lightboxTraining.expand?.trainer?.length}
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							🧑‍🏫 {lightboxTraining.expand.trainer.map(t => t.name || t.email).join(', ')}
+						</p>
+					{/if}
+				</div>
+				<div class="flex items-center gap-2">
+					<button class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors" on:click={() => printTraining(lightboxTraining)}>
+						🖨️ Print / PDF
+					</button>
+					<button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xl" on:click={() => lightboxTraining = null}>
+						✕
+					</button>
+				</div>
+			</div>
+			<div class="flex-1 overflow-y-auto px-6 py-6 md:px-12 md:py-8">
+				<div class="prose prose-lg dark:prose-invert max-w-none">
+					{@html marked(lightboxTraining.content || '', { breaks: true })}
+				</div>
+				{#if lightboxTraining.general_comments}
+					<div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+						<p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Opmerkingen</p>
+						<p class="text-gray-700 dark:text-gray-300">{lightboxTraining.general_comments}</p>
+					</div>
+				{/if}
+			</div>
+		</div>
 	</div>
 {/if}
