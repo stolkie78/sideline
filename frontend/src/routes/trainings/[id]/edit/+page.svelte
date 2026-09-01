@@ -11,6 +11,8 @@
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 	import { aiConfig, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
 
+	$: returnTo = $page.url.searchParams.get('returnTo') || `${base}/trainings`;
+
 	let aiPrompt = '';
 	let aiGenerating = false;
 	let aiError = '';
@@ -219,7 +221,7 @@
 				await Promise.all(promises);
 			}
 
-			goto(`${base}/trainings`);
+			goto(returnTo);
 		} catch (e) {
 			console.error('Failed to update training:', e);
 			alert('Fout bij bijwerken training');
@@ -237,7 +239,7 @@
 				await deleteTrainingAttendance(a.id);
 			}
 			await pb.collection('trainings').delete(training.id);
-			goto(`${base}/trainings`);
+			goto(returnTo);
 		} catch (e) {
 			console.error('Failed to delete training:', e);
 			alert('Fout bij verwijderen');

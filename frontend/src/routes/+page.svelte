@@ -156,7 +156,7 @@
 								{:else}
 									<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
 								{/if}
-								<a href="{base}/trainings/{activeTraining.id}/edit" class="btn-secondary text-xs flex-1 text-center !py-2">✏️ Bewerken</a>
+								<a href="{base}/trainings/{activeTraining.id}/edit?returnTo=/" class="btn-secondary text-xs flex-1 text-center !py-2">✏️ Bewerken</a>
 								<a href="{base}/trainings/{activeTraining.id}/checkout"
 									class="text-xs flex-1 text-center py-2 px-3 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
 								>⏹️ Afronden</a>
@@ -180,7 +180,7 @@
 								</div>
 								<div class="flex items-center gap-1.5">
 									<a href="{base}/trainings/{training.id}/checkin" class="p-2 rounded-lg bg-green-600 dark:bg-green-600 text-white hover:bg-green-700 dark:hover:bg-green-700 transition-colors text-base" title="Start Training">▶️</a>
-									<a href="{base}/trainings/{training.id}/edit" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-base" title="Bewerken">✏️</a>
+									<a href="{base}/trainings/{training.id}/edit?returnTo=/" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-base" title="Bewerken">✏️</a>
 								</div>
 							</div>
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
@@ -230,7 +230,7 @@
 										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300 ml-2">👥 {mAtt.present}/{mAtt.total}</span>
 									{/if}
 								</div>
-								<a href="{base}/matches/{match.id}/edit" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-base" title="Bewerken">✏️</a>
+								<a href="{base}/matches/{match.id}/edit?returnTo=/" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-base" title="Bewerken">✏️</a>
 							</div>
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
 								<span>📆 {new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>

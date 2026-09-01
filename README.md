@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.5.2
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.5.3
 
 ## Tech Stack
 
@@ -291,6 +291,7 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.5.3** | 2026-09-01 | Smart return-navigatie na opslaan (dashboard → dashboard, lijst → lijst, detail → detail) |
 | **v2.5.2** | 2026-09-01 | Checkout page (scores/opmerkingen/afronden), vereenvoudigde aanwezigheid (✅/❌ pills) |
 | **v2.5.1** | 2026-09-01 | Training lightbox op dashboard (bekijken + print/PDF), inline expand verwijderd |
 | **v2.5.0** | 2026-09-01 | Wedstrijd aanwezigheid (match_attendance), training lightbox met print/PDF, setup-script field merge, aanwezigheid bovenaan detail pagina's |

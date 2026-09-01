@@ -48,7 +48,7 @@
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
 				{match.home_away === 'home' ? 'Thuis' : 'Uit'} vs {match.opponent}
 			</h1>
-			<a href="{base}/matches/{match.id}/edit" class="btn-primary text-sm">✏️ Bewerken</a>
+			<a href="{base}/matches/{match.id}/edit?returnTo={base}/matches/{match.id}" class="btn-primary text-sm">✏️ Bewerken</a>
 		</div>
 
 		<div class="card space-y-4">

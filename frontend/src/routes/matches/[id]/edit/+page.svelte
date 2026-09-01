@@ -9,6 +9,8 @@
 	import { POSITION_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
+	$: returnTo = $page.url.searchParams.get('returnTo') || `${base}/matches`;
+
 	let players: Player[] = [];
 	let match: Match | null = null;
 	let existingStats: MatchPlayerStats[] = [];
@@ -202,7 +204,7 @@
 			});
 			await Promise.all(promises);
 
-			goto(`${base}/matches`);
+			goto(returnTo);
 		} catch (e) {
 			console.error('Failed to update match:', e);
 			alert('Fout bij bijwerken wedstrijd');
@@ -219,7 +221,7 @@
 				await deleteMatchPlayerStats(stat.id);
 			}
 			await pb.collection('matches').delete(match.id);
-			goto(`${base}/matches`);
+			goto(returnTo);
 		} catch (e) {
 			console.error('Failed to delete match:', e);
 			alert('Fout bij verwijderen');

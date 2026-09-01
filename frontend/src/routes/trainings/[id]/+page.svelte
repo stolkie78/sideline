@@ -59,7 +59,7 @@
 					<a href="{base}/trainings/{training.id}/checkout" class="btn-primary text-sm">⏹️ Afronden</a>
 				{/if}
 				<button on:click={exportPDF} class="btn-secondary text-sm">📄 PDF</button>
-				<a href="{base}/trainings/{training.id}/edit" class="btn-secondary text-sm">✏️ Bewerken</a>
+				<a href="{base}/trainings/{training.id}/edit?returnTo={base}/trainings/{training.id}" class="btn-secondary text-sm">✏️ Bewerken</a>
 			</div>
 		</div>
 
