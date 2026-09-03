@@ -372,7 +372,7 @@
 			</div>
 		</div>
 
-		{#if status === 'closed'}
+		{#if trainingStatus === 'closed'}
 			<!-- Scores (alleen bij afgeronde training) -->
 			<div class="card space-y-3">
 				<h3 class="font-semibold text-gray-800 dark:text-gray-200">📊 Scores</h3>

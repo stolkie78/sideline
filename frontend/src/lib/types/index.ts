@@ -77,7 +77,7 @@ export interface Training extends RecordModel {
 	team?: string;
 	season?: string;
 	template?: string;
-	status?: 'open' | 'closed';
+	status?: 'open' | 'active' | 'closed';
 	content?: string;
 	created_by?: string;
 	trainer?: string[];

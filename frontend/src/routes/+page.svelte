@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { getPlayers, getTrainings, getMatches, updateTraining } from '$lib/pocketbase';
+	import { getPlayers } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, Training, Match, TrainingAttendance, MatchAttendance } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -14,7 +14,6 @@
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
 	let loading = true;
-	let expandedTraining: string | null = null;
 	let lightboxTraining: Training | null = null;
 
 	// Attendance per training: { trainingId: { present: N, total: N } }
@@ -156,7 +155,7 @@
 								{:else}
 									<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
 								{/if}
-								<a href="{base}/trainings/{activeTraining.id}/edit?returnTo=/" class="btn-secondary text-xs flex-1 text-center !py-2">✏️ Bewerken</a>
+								<a href="{base}/trainings/{activeTraining.id}/prepare" class="btn-secondary text-xs flex-1 text-center !py-2">📝 Voorbereiden</a>
 								<a href="{base}/trainings/{activeTraining.id}/checkout"
 									class="text-xs flex-1 text-center py-2 px-3 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
 								>⏹️ Afronden</a>
@@ -180,7 +179,7 @@
 								</div>
 								<div class="flex items-center gap-1.5">
 									<a href="{base}/trainings/{training.id}/checkin" class="p-2 rounded-lg bg-green-600 dark:bg-green-600 text-white hover:bg-green-700 dark:hover:bg-green-700 transition-colors text-base" title="Start Training">▶️</a>
-									<a href="{base}/trainings/{training.id}/edit?returnTo=/" class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-base" title="Bewerken">✏️</a>
+									<a href="{base}/trainings/{training.id}/prepare" class="p-2 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors text-base" title="Training voorbereiden">📝</a>
 								</div>
 							</div>
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
