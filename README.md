@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.6.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.6.1
 
 ## Tech Stack
 
@@ -22,6 +22,9 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Happiness & Fitness Check-in** — Spelers geven emoji-scores aan (tablet-friendly): 😢→🤩 en 🥱→⚡
 - **Actieve training** — LIVE badge op dashboard, bekijk training content, afronden met één klik
 - **Training statussen** — Gepland → Actief → Afgerond (volledige lifecycle)
+- **Training voorbereiden** — Gerichte dashboardflow met periodisering, templates, AI en Markdown-editor
+- **Training afronden** — Checkout met aanwezigheid, trainingsscore, opmerkingen en spelersscores
+- **Volledig trainingsoverzicht** — Bekijk metadata, inhoud, aanwezigheid, welzijn en scores in één lightbox
 - **Skip check-in** — Snel starten als er geen tijd is, zonder valse data
 - **Trainingsschema Generator** — Bulk trainingen aanmaken voor hele seizoen op vaste dagen/tijden
 - **Bulk delete** — Alle geplande trainingen verwijderen bij een fout schema
@@ -43,7 +46,7 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 
 ### 📊 Rapportages
 - **Trainingsaanwezigheid** — Per speler: aanwezig/afwezig/ziek/geblesseerd (alleen afgeronde trainingen)
-- **Welzijn & Fitheid** — Happiness en fitness per speler met trend (📈📉), gemiddelden, emoji-tijdlijn
+- **Welzijn & Fitheid** — Happiness en fitness per speler en geselecteerd team/seizoen, met trends, gemiddelden en tijdlijn
 - **Competenties** — Gemiddelde scores per competentie of per speler met voortgang
 - **Punten per positie** — Gescoorde punten per speler per positie over alle wedstrijden
 - **Sets gewonnen & verloren** — Seizoensoverzicht
@@ -63,7 +66,7 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Dark mode** — Standaard aan
 - **24-uurs tijdformat** — Consistent door de hele app
 - **Systeem config** — Clear cache/localStorage bij problemen na updates
-- **Backup & deploy scripts** — Automatische backup voor elke deployment
+- **Backup & deploy scripts** — Automatische backup, databasesetup en healthchecks voor elke deployment
 
 ---
 
@@ -175,7 +178,8 @@ Het script:
 
 ```bash
 ./scripts/deploy.sh
-# Maakt eerst een backup, daarna git pull + build + setup
+# Maakt een backup, haalt code op, bouwt, voert databasesetup uit
+# en controleert of frontend en PocketBase bereikbaar zijn
 ```
 
 ### Automatische backup (cron)
@@ -291,6 +295,7 @@ De AI gebruikt automatisch:
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.6.1** | 2026-09-03 | Dashboardactieknoppen vernieuwd, volledige training-lightbox, formuliericonen opgeschoond, welzijnsrapport hersteld en deploy-healthchecks toegevoegd |
 | **v2.6.0** | 2026-09-03 | Aparte trainingsvoorbereiding vanaf het dashboard met Markdown-editor, periodisering, templates en AI |
 | **v2.5.4** | 2026-09-01 | Fix: Annuleren-knop gebruikt ook returnTo navigatie |
 | **v2.5.3** | 2026-09-01 | Smart return-navigatie na opslaan (dashboard → dashboard, lijst → lijst, detail → detail) |

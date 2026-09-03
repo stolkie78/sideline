@@ -260,7 +260,7 @@
 		<div class="flex justify-between items-center">
 			<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Bewerk Training</h2>
 			<button type="button" class="text-red-500 hover:text-red-700 text-sm font-semibold" on:click={handleDelete}>
-				🗑️ Verwijderen
+				Verwijderen
 			</button>
 		</div>
 
@@ -364,7 +364,6 @@
 									: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
 							}"
 							on:click={() => { playerData[player.id].status = pd.status === 'present' ? 'absent' : 'present'; playerData = playerData; }}>
-							{pd.status === 'present' ? '✅' : '❌'}
 							{player.name}
 						</button>
 					{/if}
@@ -430,7 +429,7 @@
 							on:keydown={(e) => e.key === 'Enter' && generateWithAI()} />
 						<button type="button" class="btn-primary text-sm whitespace-nowrap"
 							disabled={aiGenerating || !aiPrompt.trim()} on:click={generateWithAI}>
-							{aiGenerating ? '⏳...' : '✨ Genereer'}
+							{aiGenerating ? 'Genereren...' : 'Genereer'}
 						</button>
 					</div>
 					{#if aiError}<p class="text-xs text-red-500">{aiError}</p>{/if}

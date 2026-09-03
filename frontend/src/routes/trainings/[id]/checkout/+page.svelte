@@ -83,7 +83,7 @@
 				status: 'closed',
 			});
 
-			goto(`${base}/trainings/${training.id}`);
+			goto(`${base}/`);
 		} catch (e) {
 			console.error(e);
 			alert('Fout bij afronden training');
@@ -126,7 +126,6 @@
 							{isPresent ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}"
 						on:click={() => togglePlayer(player.id)}
 					>
-						<span class="text-xl">{isPresent ? '✅' : '❌'}</span>
 						<span class="flex-1 text-left font-medium text-gray-800 dark:text-gray-200">{player.name}</span>
 					</button>
 				{/each}
@@ -185,11 +184,11 @@
 			class="w-full py-5 rounded-2xl text-xl font-bold bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all"
 			disabled={saving}
 		>
-			{saving ? '⏳ Opslaan...' : '⏹️ Training afronden'}
+			{saving ? 'Opslaan...' : 'Training afronden'}
 		</button>
 
 		<a href="{base}/trainings/{training.id}" class="block text-center text-sm text-gray-400 hover:text-primary-600">
-			← Terug zonder afronden
+			Terug zonder afronden
 		</a>
 	</div>
 {/if}

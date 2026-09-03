@@ -13,7 +13,7 @@
 		{
 			href: '/reports/wellness',
 			title: 'Welzijn & Fitheid',
-			description: 'Happiness en fitheid per speler met trend en emoji-tijdlijn.',
+			description: 'Happiness en fitheid per speler binnen het geselecteerde team en seizoen.',
 		},
 		{
 			href: '/reports/position-points',

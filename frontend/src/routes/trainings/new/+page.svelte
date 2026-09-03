@@ -318,7 +318,6 @@
 								: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
 						}"
 						on:click={() => { playerData[player.id].status = pd.status === 'present' ? 'absent' : 'present'; playerData = playerData; }}>
-						{pd.status === 'present' ? '✅' : '❌'}
 						{player.name}
 					</button>
 				{/each}
@@ -368,7 +367,7 @@
 							disabled={aiGenerating || !aiPrompt.trim()}
 							on:click={generateWithAI}
 						>
-							{aiGenerating ? '⏳...' : '✨ Genereer'}
+							{aiGenerating ? 'Genereren...' : 'Genereer'}
 						</button>
 					</div>
 					{#if aiError}

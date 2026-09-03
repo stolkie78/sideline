@@ -221,7 +221,7 @@
 							on:keydown={(event) => event.key === 'Enter' && (event.preventDefault(), generateWithAI())}
 						/>
 						<button type="button" class="btn-primary text-sm whitespace-nowrap" disabled={aiGenerating || !aiPrompt.trim()} on:click={generateWithAI}>
-							{aiGenerating ? '⏳ Genereren...' : '✨ Genereer'}
+							{aiGenerating ? 'Genereren...' : 'Genereer'}
 						</button>
 					</div>
 					{#if aiError}<p class="text-xs text-red-500">{aiError}</p>{/if}

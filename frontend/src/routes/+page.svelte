@@ -149,16 +149,34 @@
 									{/if}
 								</div>
 							</a>
-							<div class="flex gap-2 mt-2">
+							<div class="grid grid-cols-3 gap-2 mt-3">
 								{#if activeTraining.content}
-									<button on:click={() => lightboxTraining = activeTraining} class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</button>
+									<button
+										on:click={() => lightboxTraining = activeTraining}
+										class="rounded-xl bg-green-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-green-700"
+									>
+										Bekijk
+									</button>
 								{:else}
-									<a href="{base}/trainings/{activeTraining.id}" class="btn-secondary text-xs flex-1 text-center !py-2">📋 Bekijk</a>
+									<a
+										href="{base}/trainings/{activeTraining.id}"
+										class="rounded-xl bg-green-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-green-700"
+									>
+										Bekijk
+									</a>
 								{/if}
-								<a href="{base}/trainings/{activeTraining.id}/prepare" class="btn-secondary text-xs flex-1 text-center !py-2">📝 Voorbereiden</a>
-								<a href="{base}/trainings/{activeTraining.id}/checkout"
-									class="text-xs flex-1 text-center py-2 px-3 rounded-xl font-semibold bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 transition-colors"
-								>⏹️ Afronden</a>
+								<a
+									href="{base}/trainings/{activeTraining.id}/prepare"
+									class="rounded-xl bg-primary-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+								>
+									Training
+								</a>
+								<a
+									href="{base}/trainings/{activeTraining.id}/checkout"
+									class="rounded-xl bg-red-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-700"
+								>
+									Afronden
+								</a>
 							</div>
 						</div>
 					{/if}
@@ -167,8 +185,9 @@
 					{#each openTrainings as training, i}
 						{@const att = attendanceCounts[training.id]}
 						{@const isNext = i === 0}
+						{@const isPrepared = Boolean(training.content?.trim())}
 						<div class="rounded-xl p-4 {isNext ? 'border-2 border-primary-500 dark:border-primary-400 bg-primary-50/50 dark:bg-primary-900/15 ring-1 ring-primary-200 dark:ring-primary-800' : 'border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10'}">
-							<div class="flex justify-between items-start">
+							<div>
 								<div>
 									<a href="{base}/trainings/{training.id}" class="text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-primary-600 capitalize">
 										{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'long' })}
@@ -176,10 +195,6 @@
 									{#if att}
 										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 ml-2">👥 {att.present}/{att.total}</span>
 									{/if}
-								</div>
-								<div class="flex items-center gap-1.5">
-									<a href="{base}/trainings/{training.id}/checkin" class="p-2 rounded-lg bg-green-600 dark:bg-green-600 text-white hover:bg-green-700 dark:hover:bg-green-700 transition-colors text-base" title="Start Training">▶️</a>
-									<a href="{base}/trainings/{training.id}/prepare" class="p-2 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors text-base" title="Training voorbereiden">📝</a>
 								</div>
 							</div>
 							<div class="text-xs text-gray-500 dark:text-gray-400 mt-1 space-x-3">
@@ -194,6 +209,28 @@
 										👁 Bekijken
 									</button>
 								{/if}
+							</div>
+							<div class="grid grid-cols-2 gap-2 mt-3">
+								<a
+									href="{base}/trainings/{training.id}/prepare"
+									class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
+										isPrepared
+											? 'bg-green-600 hover:bg-green-700'
+											: 'bg-amber-500 hover:bg-amber-600'
+									}"
+								>
+									Training
+								</a>
+								<a
+									href="{base}/trainings/{training.id}/checkin"
+									class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
+										isPrepared
+											? 'bg-red-600 hover:bg-red-700'
+											: 'bg-gray-500 hover:bg-gray-600'
+									}"
+								>
+									Starten
+								</a>
 							</div>
 						</div>
 					{/each}

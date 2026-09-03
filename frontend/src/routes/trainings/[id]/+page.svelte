@@ -54,12 +54,12 @@
 			</h1>
 			<div class="flex gap-2 no-print">
 				{#if training.status === 'open'}
-					<a href="{base}/trainings/{training.id}/checkin" class="btn-primary text-sm">▶️ Start Training</a>
+					<a href="{base}/trainings/{training.id}/checkin" class="btn-primary text-sm">Start Training</a>
 				{:else if training.status === 'active'}
-					<a href="{base}/trainings/{training.id}/checkout" class="btn-primary text-sm">⏹️ Afronden</a>
+					<a href="{base}/trainings/{training.id}/checkout" class="btn-primary text-sm">Afronden</a>
 				{/if}
-				<button on:click={exportPDF} class="btn-secondary text-sm">📄 PDF</button>
-				<a href="{base}/trainings/{training.id}/edit?returnTo={base}/trainings/{training.id}" class="btn-secondary text-sm">✏️ Bewerken</a>
+				<button on:click={exportPDF} class="btn-secondary text-sm">PDF</button>
+				<a href="{base}/trainings/{training.id}/edit?returnTo={base}/trainings/{training.id}" class="btn-secondary text-sm">Bewerken</a>
 			</div>
 		</div>
 

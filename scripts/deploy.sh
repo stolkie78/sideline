@@ -42,6 +42,26 @@ docker compose -f docker-compose.prod.yml --profile setup run --rm pb-setup
 
 echo ""
 
-# 5. Show version
+# 5. Verify services
+echo "🔎 Stap 5: Services controleren..."
+for i in $(seq 1 15); do
+    if docker compose -f docker-compose.prod.yml exec -T frontend \
+        wget -q --spider http://127.0.0.1:3000 2>/dev/null \
+        && docker compose -f docker-compose.prod.yml exec -T pocketbase \
+        wget -q --spider http://127.0.0.1:8090/api/health 2>/dev/null; then
+        echo "  ✅ Frontend en PocketBase zijn bereikbaar"
+        break
+    fi
+    if [ "$i" = "15" ]; then
+        echo "❌ Deploy mislukt: services zijn niet bereikbaar"
+        docker compose -f docker-compose.prod.yml ps
+        exit 1
+    fi
+    sleep 2
+done
+
+echo ""
+
+# 6. Show version
 VERSION=$(grep '"version"' frontend/package.json | head -1 | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 echo "✅ Deploy compleet! SetBaas v${VERSION} is live."

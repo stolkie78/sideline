@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { getPlayers, getTrainings } from '$lib/pocketbase';
-	import { pb } from '$lib/pocketbase';
+	import { browser } from '$app/environment';
+	import { getPlayers, getTeamPlayers, pb } from '$lib/pocketbase';
 	import type { Player, Training, TrainingAttendance } from '$lib/types';
+	import { contextFilter, selectedSeasonId, selectedTeamId } from '$lib/stores/context';
 
 	const HAPPINESS_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'];
 	const FITNESS_EMOJIS = ['🥱', '😴', '💪', '🔥', '⚡'];
@@ -11,6 +11,8 @@
 	let players: Player[] = [];
 	let trainings: Training[] = [];
 	let loading = true;
+	let loadError = '';
+	let loadSequence = 0;
 
 	interface PlayerWellness {
 		player: Player;
@@ -24,26 +26,47 @@
 
 	let playerWellness: PlayerWellness[] = [];
 
-	onMount(async () => {
+	$: if (browser) {
+		loadWellness($selectedTeamId, $selectedSeasonId);
+	}
+
+	async function loadWellness(teamId: string, seasonId: string) {
+		const sequence = ++loadSequence;
+		loading = true;
+		loadError = '';
+
 		try {
-			[players, trainings] = await Promise.all([
-				getPlayers('status = "active"'),
-				getTrainings(),
+			const playerPromise = teamId && seasonId
+				? getTeamPlayers(teamId, seasonId).then(teamPlayers =>
+					teamPlayers
+						.map(teamPlayer => teamPlayer.expand?.player)
+						.filter((player): player is Player => Boolean(player && player.status === 'active'))
+				)
+				: getPlayers('status = "active"');
+
+			const [loadedPlayers, loadedTrainings, allAttendance] = await Promise.all([
+				playerPromise,
+				pb.collection('trainings').getFullList<Training>({
+					filter: contextFilter(teamId, seasonId) || undefined,
+					sort: 'date',
+				}),
+				pb.collection('training_attendance').getFullList<TrainingAttendance>(),
 			]);
 
-			const allAttendance = await pb.collection('training_attendance').getFullList<TrainingAttendance>({
-				expand: 'training',
-				sort: 'created',
-			});
+			if (sequence !== loadSequence) return;
+			players = loadedPlayers;
+			trainings = loadedTrainings;
+			const trainingDates = new Map(trainings.map(training => [training.id, training.date]));
 
 			// Group by player
 			const byPlayer: Record<string, { date: string; happiness: number; fitness: number }[]> = {};
 			for (const att of allAttendance) {
+				const trainingDate = trainingDates.get(att.training);
+				if (!trainingDate) continue;
 				if (!att.happiness && !att.fitness) continue;
 				if (!byPlayer[att.player]) byPlayer[att.player] = [];
-				const t = trainings.find(tr => tr.id === att.training);
 				byPlayer[att.player].push({
-					date: t?.date || att.created,
+					date: trainingDate,
 					happiness: att.happiness || 0,
 					fitness: att.fitness || 0,
 				});
@@ -58,12 +81,16 @@
 				const avgF = withF.length > 0 ? withF.reduce((s, e) => s + e.fitness, 0) / withF.length : 0;
 
 				const latest = entries[entries.length - 1];
+				const latestHappiness = [...entries].reverse().find(entry => entry.happiness > 0)?.happiness || 0;
+				const latestFitness = [...entries].reverse().find(entry => entry.fitness > 0)?.fitness || 0;
 				const prev = entries.length >= 2 ? entries[entries.length - 2] : null;
 
 				let trend: 'up' | 'down' | 'stable' = 'stable';
 				if (latest && prev) {
-					const latestAvg = (latest.happiness + latest.fitness) / 2;
-					const prevAvg = (prev.happiness + prev.fitness) / 2;
+					const latestValues = [latest.happiness, latest.fitness].filter(value => value > 0);
+					const previousValues = [prev.happiness, prev.fitness].filter(value => value > 0);
+					const latestAvg = latestValues.reduce((sum, value) => sum + value, 0) / latestValues.length;
+					const prevAvg = previousValues.reduce((sum, value) => sum + value, 0) / previousValues.length;
 					if (latestAvg > prevAvg + 0.5) trend = 'up';
 					else if (latestAvg < prevAvg - 0.5) trend = 'down';
 				}
@@ -73,19 +100,22 @@
 					entries,
 					avgHappiness: Math.round(avgH * 10) / 10,
 					avgFitness: Math.round(avgF * 10) / 10,
-					latestHappiness: latest?.happiness || 0,
-					latestFitness: latest?.fitness || 0,
+					latestHappiness,
+					latestFitness,
 					trend,
 				};
 			})
 			.filter(pw => pw.entries.length > 0)
 			.sort((a, b) => b.avgHappiness + b.avgFitness - a.avgHappiness - a.avgFitness);
-		} catch (e) {
-			console.error('Failed to load wellness data:', e);
+		} catch (error) {
+			if (sequence !== loadSequence) return;
+			console.error('Failed to load wellness data:', error);
+			playerWellness = [];
+			loadError = 'Het welzijnsrapport kon niet worden geladen. Probeer de pagina opnieuw.';
 		} finally {
-			loading = false;
+			if (sequence === loadSequence) loading = false;
 		}
-	});
+	}
 
 	function emojiFor(type: 'happiness' | 'fitness', value: number): string {
 		if (value === 0) return '—';
@@ -137,7 +167,11 @@
 			</div>
 		{/if}
 
-		{#if playerWellness.length === 0}
+		{#if loadError}
+			<div class="card text-center py-8 text-red-600 dark:text-red-400">
+				<p>{loadError}</p>
+			</div>
+		{:else if playerWellness.length === 0}
 			<div class="card text-center py-8 text-gray-500">
 				<p>Nog geen check-in data beschikbaar.</p>
 				<p class="text-sm mt-2">Gebruik de 🏐 Check-in bij trainingen om data te verzamelen.</p>

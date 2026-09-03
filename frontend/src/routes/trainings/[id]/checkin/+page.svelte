@@ -241,9 +241,6 @@
 								 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700'}"
 							on:click={() => cycleStatus(player.id)}
 						>
-							<span class="text-2xl">
-								{status === 'present' ? '✅' : status === 'absent' ? '❌' : status === 'sick' ? '🤒' : '🤕'}
-							</span>
 							<span class="flex-1 text-left font-medium text-gray-800 dark:text-gray-200">
 								{player.name}
 								{#if player.jersey_number}
@@ -270,7 +267,7 @@
 						class="w-full py-4 rounded-2xl text-lg font-bold bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all"
 						disabled={savingAttendance}
 					>
-						{savingAttendance ? '⏳ Opslaan...' : '→ Volgende: Check-in'}
+						{savingAttendance ? 'Opslaan...' : 'Volgende: Check-in'}
 					</button>
 				</div>
 			</div>
@@ -346,7 +343,7 @@
 								: 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'}"
 						disabled={selectedHappiness === 0 || selectedFitness === 0 || saving}
 						on:click={submitCheckin}>
-						{saving ? 'Opslaan...' : selectedHappiness > 0 && selectedFitness > 0 ? '✅ Check in!' : 'Kies gevoel en fitheid'}
+						{saving ? 'Opslaan...' : selectedHappiness > 0 && selectedFitness > 0 ? 'Check in!' : 'Kies gevoel en fitheid'}
 					</button>
 				</div>
 
@@ -362,7 +359,7 @@
 											? 'bg-primary-100 text-primary-700 ring-2 ring-primary-400'
 											: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}"
 								on:click={() => selectPlayer(i)}>
-								{checkedInIds.has(player.id) ? '✓ ' : ''}{player.name.split(' ')[0]}
+								{player.name.split(' ')[0]}
 							</button>
 						{/each}
 					</div>
@@ -376,7 +373,7 @@
 			{#if !showConfirmation}
 				<button on:click={skipCheckin}
 					class="w-full py-3 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-100 dark:bg-gray-800 transition-colors">
-					⏩ Sla check-in over
+					Sla check-in over
 				</button>
 			{/if}
 
@@ -393,10 +390,10 @@
 				</div>
 				<button on:click={startTraining}
 					class="w-full py-5 rounded-2xl text-xl font-bold bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all">
-					▶️ Start Training!
+					Start Training!
 				</button>
 				<a href="{base}/trainings/{training.id}" class="inline-block text-sm text-gray-400 hover:text-primary-600">
-					← Terug zonder starten
+					Terug zonder starten
 				</a>
 			</div>
 
@@ -407,7 +404,7 @@
 				<h2 class="text-2xl font-bold text-green-600 dark:text-green-400">Training gestart!</h2>
 				<p class="text-gray-500">Veel plezier en succes! 💪</p>
 				<a href="{base}/" class="inline-block mt-4 btn-primary text-lg px-8 py-3">
-					← Dashboard
+					Dashboard
 				</a>
 			</div>
 		{/if}

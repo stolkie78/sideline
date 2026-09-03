@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { pb } from '$lib/pocketbase';
+	import { getTrainingAttendance, pb } from '$lib/pocketbase';
 	import { marked } from 'marked';
-	import type { Training } from '$lib/types';
+	import type { Training, TrainingAttendance } from '$lib/types';
+	import { ATTENDANCE_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 
@@ -12,7 +13,16 @@
 	let loading = true;
 	let expandedId: string | null = null;
 	let lightboxTraining: Training | null = null;
+	let lightboxAttendance: TrainingAttendance[] = [];
+	let lightboxLoading = false;
+	let lightboxError = '';
 	let statusFilter: 'all' | 'open' | 'closed' = 'all';
+
+	const statusLabels = {
+		open: 'Gepland',
+		active: 'Actief',
+		closed: 'Afgerond',
+	};
 
 	// Read initial filter from URL query param
 	$: {
@@ -32,7 +42,7 @@
 			trainings = await pb.collection('trainings').getFullList<Training>({
 				sort: 'date',
 				filter: filter || undefined,
-				expand: 'template,created_by',
+				expand: 'template,created_by,trainer',
 			});
 		} catch (e) {
 			console.error('Failed to load trainings:', e);
@@ -43,6 +53,27 @@
 
 	function toggleExpand(id: string) {
 		expandedId = expandedId === id ? null : id;
+	}
+
+	async function openTraining(training: Training) {
+		lightboxTraining = training;
+		lightboxAttendance = [];
+		lightboxError = '';
+		lightboxLoading = true;
+		try {
+			lightboxAttendance = await getTrainingAttendance(training.id);
+		} catch (error) {
+			console.error('Failed to load training attendance:', error);
+			lightboxError = 'De aanwezigheid en spelersscores konden niet worden geladen.';
+		} finally {
+			lightboxLoading = false;
+		}
+	}
+
+	function closeTraining() {
+		lightboxTraining = null;
+		lightboxAttendance = [];
+		lightboxError = '';
 	}
 </script>
 
@@ -120,16 +151,14 @@
 									{training.overall_rating}/10
 								</span>
 							{/if}
-							{#if training.content}
-								<button
-									type="button"
-									class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm"
-									title="Bekijk training"
-									on:click={() => lightboxTraining = training}
-								>
-									👁 Bekijk
-								</button>
-							{/if}
+							<button
+								type="button"
+								class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm"
+								title="Bekijk training"
+								on:click={() => openTraining(training)}
+							>
+								Bekijk
+							</button>
 							<a href="{base}/trainings/{training.id}/checkin" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors text-sm" title="Start Training">
 								▶️
 							</a>
@@ -154,7 +183,7 @@
 <!-- Lightbox modal -->
 {#if lightboxTraining}
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" on:click={() => lightboxTraining = null}>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" on:click={closeTraining}>
 		<div
 			class="bg-white dark:bg-gray-900 w-full h-full md:w-[90%] md:h-[90%] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
 			on:click|stopPropagation
@@ -165,22 +194,21 @@
 					<h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">
 						{new Date(lightboxTraining.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 					</h2>
-					{#if lightboxTraining.expand?.trainer?.length}
-						<p class="text-sm text-gray-500 dark:text-gray-400">
-							🧑‍🏫 {lightboxTraining.expand.trainer.map(t => t.name || t.email).join(', ')}
-						</p>
-					{/if}
+					<p class="text-sm text-gray-500 dark:text-gray-400">
+						{new Date(lightboxTraining.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
+						· {statusLabels[lightboxTraining.status || 'open']}
+					</p>
 				</div>
 				<div class="flex items-center gap-2">
 					<button
 						class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
 						on:click={() => { window.print(); }}
 					>
-						🖨️ Print / PDF
+						Print / PDF
 					</button>
 					<button
 						class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xl"
-						on:click={() => lightboxTraining = null}
+						on:click={closeTraining}
 					>
 						✕
 					</button>
@@ -188,13 +216,100 @@
 			</div>
 			<!-- Content -->
 			<div class="flex-1 overflow-y-auto px-6 py-6 md:px-12 md:py-8">
-				<div class="prose prose-lg dark:prose-invert max-w-none print:prose-sm">
-					{@html marked(lightboxTraining.content || '', { breaks: true })}
+				<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+					<div class="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+						<p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+						<p class="font-semibold text-gray-900 dark:text-gray-100">{statusLabels[lightboxTraining.status || 'open']}</p>
+					</div>
+					<div class="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+						<p class="text-xs text-gray-500 dark:text-gray-400">Template</p>
+						<p class="font-semibold text-gray-900 dark:text-gray-100">{lightboxTraining.expand?.template?.name || 'Geen template'}</p>
+					</div>
+					<div class="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+						<p class="text-xs text-gray-500 dark:text-gray-400">Trainer</p>
+						<p class="font-semibold text-gray-900 dark:text-gray-100">
+							{lightboxTraining.expand?.trainer?.map(trainer => trainer.name || trainer.email).join(', ') || 'Niet toegewezen'}
+						</p>
+					</div>
+					<div class="rounded-xl bg-gray-50 dark:bg-gray-800 p-3">
+						<p class="text-xs text-gray-500 dark:text-gray-400">Trainingsscore</p>
+						<p class="font-semibold text-gray-900 dark:text-gray-100">
+							{lightboxTraining.overall_rating ? `${lightboxTraining.overall_rating}/10` : 'Niet beoordeeld'}
+						</p>
+					</div>
 				</div>
+
+				{#if lightboxTraining.expand?.created_by}
+					<p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+						Aangemaakt door {lightboxTraining.expand.created_by.name || lightboxTraining.expand.created_by.email}
+					</p>
+				{/if}
+
+				<section class="mb-8">
+					<h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">Training</h3>
+					{#if lightboxTraining.content}
+						<div class="prose prose-lg dark:prose-invert max-w-none print:prose-sm">
+							{@html marked(lightboxTraining.content, { breaks: true })}
+						</div>
+					{:else}
+						<p class="text-sm text-gray-500 dark:text-gray-400 italic">Geen trainingsinhoud vastgelegd.</p>
+					{/if}
+				</section>
+
+				<section class="border-t border-gray-200 dark:border-gray-700 pt-6">
+					<div class="flex items-center justify-between gap-3 mb-3">
+						<h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Aanwezigheid en spelersinformatie</h3>
+						{#if !lightboxLoading}
+							<span class="text-sm font-semibold text-green-600">
+								{lightboxAttendance.filter(item => item.status === 'present').length}/{lightboxAttendance.length} aanwezig
+							</span>
+						{/if}
+					</div>
+
+					{#if lightboxLoading}
+						<p class="text-sm text-gray-500 dark:text-gray-400">Spelersinformatie laden...</p>
+					{:else if lightboxError}
+						<p class="text-sm text-red-600 dark:text-red-400">{lightboxError}</p>
+					{:else if lightboxAttendance.length === 0}
+						<p class="text-sm text-gray-500 dark:text-gray-400 italic">Geen aanwezigheid geregistreerd.</p>
+					{:else}
+						<div class="space-y-2">
+							{#each lightboxAttendance as attendance}
+								<div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+									<div class="flex flex-wrap items-center justify-between gap-2">
+										<p class="font-semibold text-gray-900 dark:text-gray-100">
+											{attendance.expand?.player?.name || 'Onbekende speler'}
+										</p>
+										<div class="flex flex-wrap items-center gap-2 text-xs">
+											<span class="rounded-full px-2 py-1 {
+												attendance.status === 'present'
+													? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+													: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+											}">
+												{ATTENDANCE_LABELS[attendance.status]}
+											</span>
+											{#if attendance.player_rating}
+												<span class="font-semibold text-gray-700 dark:text-gray-300">{attendance.player_rating}/10</span>
+											{/if}
+										</div>
+									</div>
+									{#if attendance.happiness || attendance.fitness || attendance.player_notes}
+										<div class="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+											{#if attendance.happiness}<p>Gevoel: {attendance.happiness}/5</p>{/if}
+											{#if attendance.fitness}<p>Fitheid: {attendance.fitness}/5</p>{/if}
+											{#if attendance.player_notes}<p>Notities: {attendance.player_notes}</p>{/if}
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</section>
+
 				{#if lightboxTraining.general_comments}
-					<div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-						<p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Opmerkingen</p>
-						<p class="text-gray-700 dark:text-gray-300">{lightboxTraining.general_comments}</p>
+					<div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+						<h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Opmerkingen</h3>
+						<p class="text-gray-700 dark:text-gray-300 whitespace-pre-line">{lightboxTraining.general_comments}</p>
 					</div>
 				{/if}
 			</div>
