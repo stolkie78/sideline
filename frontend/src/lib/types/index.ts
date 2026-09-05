@@ -12,12 +12,22 @@ export interface Player extends RecordModel {
 	user_id?: string;
 }
 
+export interface Club extends RecordModel {
+	name: string;
+	short_name?: string;
+	city?: string;
+}
+
 export interface Team extends RecordModel {
+	club?: string;
 	name: string;
 	nevobo_code?: string; // Nevobo verenigingscode (e.g. CKM1H25)
 	nevobo_team_type?: string; // e.g. 'hs', 'ds', 'mb', 'mj'
 	nevobo_team_number?: number; // e.g. 1
 	nevobo_url?: string; // URL to team page on volleybal.nl
+	expand?: {
+		club?: Club;
+	};
 }
 
 export interface Season extends RecordModel {

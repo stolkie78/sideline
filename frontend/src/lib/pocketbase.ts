@@ -9,6 +9,7 @@ import type {
 	Match,
 	MatchPlayerStats,
 	MatchAttendance,
+	Club,
 	Team,
 	Season,
 	TeamPlayer,
@@ -290,14 +291,37 @@ export function getFileUrl(record: Player, filename: string): string {
 	return pb.files.getUrl(record, filename, { thumb: '200x200' });
 }
 
-// === Teams & Seasons ===
+// === Clubs, Teams & Seasons ===
 
-export async function getTeams(): Promise<Team[]> {
-	return pb.collection('teams').getFullList<Team>({ sort: 'name' });
+export async function getClubs(): Promise<Club[]> {
+	return pb.collection('clubs').getFullList<Club>({ sort: 'name' });
 }
 
-export async function createTeam(name: string): Promise<Team> {
-	return pb.collection('teams').create<Team>({ name });
+export async function createClub(data: { name: string; short_name?: string; city?: string }): Promise<Club> {
+	return pb.collection('clubs').create<Club>(data);
+}
+
+export async function updateClub(id: string, data: Partial<Club>): Promise<Club> {
+	return pb.collection('clubs').update<Club>(id, data);
+}
+
+export async function deleteClub(id: string): Promise<void> {
+	await pb.collection('clubs').delete(id);
+}
+
+export async function getTeams(clubId?: string): Promise<Team[]> {
+	return pb.collection('teams').getFullList<Team>({
+		sort: 'name',
+		...(clubId ? { filter: `club = "${clubId}"` } : {}),
+	});
+}
+
+export async function createTeam(name: string, clubId?: string): Promise<Team> {
+	return pb.collection('teams').create<Team>({ name, ...(clubId ? { club: clubId } : {}) });
+}
+
+export async function updateTeam(id: string, data: Partial<Team>): Promise<Team> {
+	return pb.collection('teams').update<Team>(id, data);
 }
 
 export async function getSeasons(): Promise<Season[]> {

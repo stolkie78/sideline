@@ -118,16 +118,14 @@ get_col_id() {
 echo ""
 echo "📦 Creating/updating collections..."
 
-# === 1. Teams ===
+# === 0. Clubs ===
 ensure_collection '{
-  "name": "teams",
+  "name": "clubs",
   "type": "base",
   "fields": [
     {"name": "name", "type": "text", "required": true},
-    {"name": "nevobo_code", "type": "text", "required": false},
-    {"name": "nevobo_team_type", "type": "text", "required": false},
-    {"name": "nevobo_team_number", "type": "number", "required": false},
-    {"name": "nevobo_url", "type": "url", "required": false}
+    {"name": "short_name", "type": "text", "required": false},
+    {"name": "city", "type": "text", "required": false}
   ],
   "listRule": "",
   "viewRule": "",
@@ -135,6 +133,27 @@ ensure_collection '{
   "updateRule": "",
   "deleteRule": ""
 }'
+
+CLUBS_ID=$(get_col_id "clubs")
+
+# === 1. Teams ===
+ensure_collection "{
+  \"name\": \"teams\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"club\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$CLUBS_ID\", \"maxSelect\": 1},
+    {\"name\": \"name\", \"type\": \"text\", \"required\": true},
+    {\"name\": \"nevobo_code\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"nevobo_team_type\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"nevobo_team_number\", \"type\": \"number\", \"required\": false},
+    {\"name\": \"nevobo_url\", \"type\": \"url\", \"required\": false}
+  ],
+  \"listRule\": \"\",
+  \"viewRule\": \"\",
+  \"createRule\": \"\",
+  \"updateRule\": \"\",
+  \"deleteRule\": \"\"
+}"
 
 # === 2. Seasons ===
 ensure_collection '{
@@ -498,6 +517,32 @@ else
 fi
 
 echo ""
+echo "🏛  Seeding clubs..."
+
+# Idempotent club creation; echoes the club id on stdout
+ensure_club() {
+  local NAME="$1"
+  local SHORT="$2"
+  local EXISTING=$(curl -sf --get "$PB_URL/api/collections/clubs/records" \
+    --data-urlencode "filter=name='$NAME'" --data-urlencode "perPage=1" \
+    -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
+
+  if [ -n "$EXISTING" ]; then
+    echo "  ✓ Club '$NAME' exists ($EXISTING)" >&2
+    echo "$EXISTING"
+  else
+    local CREATED=$(curl -sf "$PB_URL/api/collections/clubs/records" -X POST \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d "{\"name\":\"$NAME\",\"short_name\":\"$SHORT\"}" | jq -r '.id')
+    echo "  ✓ Club '$NAME' created ($CREATED)" >&2
+    echo "$CREATED"
+  fi
+}
+
+ZOVOC_ID=$(ensure_club "Zovoc" "ZOVOC")
+ZVH_ID=$(ensure_club "ZVH" "ZVH")
+
+echo ""
 echo "🏐 Seeding default team & season..."
 
 # Create default team if none exists
@@ -507,10 +552,25 @@ TEAM_COUNT=$(curl -sf "$PB_URL/api/collections/teams/records?perPage=1" \
 if [ "$TEAM_COUNT" = "0" ]; then
   TEAM_ID=$(curl -sf "$PB_URL/api/collections/teams/records" -X POST \
     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-    -d '{"name":"Zovoc MB1"}' | jq -r '.id')
+    -d "{\"name\":\"Zovoc MB1\",\"club\":\"$ZOVOC_ID\"}" | jq -r '.id')
   echo "  ✓ Team 'Zovoc MB1' created ($TEAM_ID)"
 else
   echo "  ✓ Team exists (skipped)"
+fi
+
+# Link teams without a club to the default club (Zovoc)
+ORPHAN_TEAMS=$(curl -sf --get "$PB_URL/api/collections/teams/records" \
+  --data-urlencode "filter=club=''" --data-urlencode "perPage=200" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.items[]?.id')
+
+if [ -n "$ORPHAN_TEAMS" ] && [ -n "$ZOVOC_ID" ]; then
+  for T in $ORPHAN_TEAMS; do
+    curl -sf -X PATCH "$PB_URL/api/collections/teams/records/$T" \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d "{\"club\":\"$ZOVOC_ID\"}" > /dev/null && echo "  ✓ Team $T linked to Zovoc"
+  done
+else
+  echo "  ✓ All teams already linked to a club"
 fi
 
 # Create default season if none exists
