@@ -70,21 +70,13 @@ ensure_collection() {
     local EXISTING_FIELDS=$(curl -sf "$PB_URL/api/collections/$NAME" \
       -H "Authorization: Bearer $TOKEN" | jq -c '.fields')
     local NEW_FIELDS=$(echo "$DEF" | jq -c '.fields')
-    local MERGED=$(python3 -c "
-import json,sys
-existing = json.loads('$EXISTING_FIELDS')
-new = json.loads('$(echo "$NEW_FIELDS" | sed "s/'/\\\\'/g")')
-existing_names = {f['name'] for f in existing}
-added = []
-for f in new:
-    if f['name'] not in existing_names:
-        existing.append(f)
-        added.append(f['name'])
-if added:
-    print(json.dumps({'fields': existing}))
-else:
-    print('')
-" 2>/dev/null)
+    # jq only — the setup container has no python3, and a silent failure here
+    # would leave existing collections without their new fields.
+    local MERGED=$(jq -n --argjson existing "$EXISTING_FIELDS" --argjson new "$NEW_FIELDS" '
+      ($existing | map(.name)) as $names
+      | ($new | map(select((.name | IN($names[])) | not))) as $added
+      | if ($added | length) > 0 then {fields: ($existing + $added)} else empty end
+    ')
     if [ -n "$MERGED" ]; then
       curl -sf -X PATCH "$PB_URL/api/collections/$NAME" \
         -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
