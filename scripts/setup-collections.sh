@@ -559,16 +559,23 @@ else
   echo "  ✓ Team exists (skipped)"
 fi
 
-# Link teams without a club to the default club (Zovoc)
+# Link teams without a club, matching the club name against the team name
 ORPHAN_TEAMS=$(curl -sf --get "$PB_URL/api/collections/teams/records" \
   --data-urlencode "filter=club=''" --data-urlencode "perPage=200" \
-  -H "Authorization: Bearer $TOKEN" | jq -r '.items[]?.id')
+  -H "Authorization: Bearer $TOKEN" | jq -r '.items[] | "\(.id)|\(.name)"')
 
-if [ -n "$ORPHAN_TEAMS" ] && [ -n "$ZOVOC_ID" ]; then
-  for T in $ORPHAN_TEAMS; do
+if [ -n "$ORPHAN_TEAMS" ]; then
+  echo "$ORPHAN_TEAMS" | while IFS='|' read -r T TNAME; do
+    [ -z "$T" ] && continue
+    CLUB_ID="$ZOVOC_ID"
+    CLUB_NAME="Zovoc"
+    case "$(echo "$TNAME" | tr '[:upper:]' '[:lower:]')" in
+      zvh*) CLUB_ID="$ZVH_ID"; CLUB_NAME="ZVH" ;;
+    esac
+    [ -z "$CLUB_ID" ] && continue
     curl -sf -X PATCH "$PB_URL/api/collections/teams/records/$T" \
       -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-      -d "{\"club\":\"$ZOVOC_ID\"}" > /dev/null && echo "  ✓ Team $T linked to Zovoc"
+      -d "{\"club\":\"$CLUB_ID\"}" > /dev/null && echo "  ✓ Team '$TNAME' linked to $CLUB_NAME"
   done
 else
   echo "  ✓ All teams already linked to a club"

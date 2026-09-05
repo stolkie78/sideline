@@ -31,9 +31,15 @@ export const currentClub = derived(
 	([$clubs, $id]) => $clubs.find((c) => c.id === $id) || null
 );
 
-// Teams belonging to the selected club (all teams when no club is selected)
+// Teams belonging to a club. Teams without a club are always included so an
+// incomplete club relation never leaves the user without a selectable team.
+export function teamsInClub(allTeams: Team[], clubId: string): Team[] {
+	if (!clubId) return allTeams;
+	return allTeams.filter((t) => !t.club || t.club === clubId);
+}
+
 export const clubTeams = derived([teams, selectedClubId], ([$teams, $clubId]) =>
-	$clubId ? $teams.filter((t) => t.club === $clubId) : $teams
+	teamsInClub($teams, $clubId)
 );
 
 // Derived: current team & season objects

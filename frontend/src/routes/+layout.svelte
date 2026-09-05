@@ -14,6 +14,7 @@
 		clubs as clubsStore,
 		teams as teamsStore,
 		seasons as seasonsStore,
+		teamsInClub,
 	} from '$lib/stores/context';
 	import { authUser, isAuthenticated, AUTH_ENABLED } from '$lib/stores/auth';
 	import { userRole, isCoachOrAdmin, loadUserRoles, clearUserRoles } from '$lib/stores/role';
@@ -78,13 +79,13 @@
 
 			// Keep the club selection in sync with the accessible teams
 			const clubIdsWithTeams = new Set(localTeams.map((t) => t.club).filter(Boolean) as string[]);
-			if (!$selectedClubId || !clubIdsWithTeams.has($selectedClubId)) {
+			if (!$selectedClubId || (clubIdsWithTeams.size > 0 && !clubIdsWithTeams.has($selectedClubId))) {
 				$selectedClubId = localTeams.find((t) => t.club)?.club || localClubs[0]?.id || '';
 			}
 
-			if (!$selectedTeamId || !localTeams.some((t) => t.id === $selectedTeamId && (!$selectedClubId || t.club === $selectedClubId))) {
-				const firstOfClub = localTeams.find((t) => !$selectedClubId || t.club === $selectedClubId);
-				$selectedTeamId = firstOfClub?.id || '';
+			const selectableTeams = teamsInClub(localTeams, $selectedClubId);
+			if (!selectableTeams.some((t) => t.id === $selectedTeamId)) {
+				$selectedTeamId = selectableTeams[0]?.id || '';
 			}
 			if (!$selectedSeasonId && localSeasons.length > 0) {
 				$selectedSeasonId = localSeasons[0].id;
@@ -126,9 +127,7 @@
 		}
 	}
 
-	$: visibleTeams = $selectedClubId
-		? localTeams.filter((t) => t.club === $selectedClubId)
-		: localTeams;
+	$: visibleTeams = teamsInClub(localTeams, $selectedClubId);
 
 	function handleClubChange() {
 		if (!visibleTeams.some((t) => t.id === $selectedTeamId)) {
