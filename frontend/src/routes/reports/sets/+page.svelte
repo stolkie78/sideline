@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { pb } from '$lib/pocketbase';
-	import type { Match, SetScore } from '$lib/types';
+	import type { Match } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
+	import { getMatchScore, getMatchSets, formatSetScore } from '$lib/utils/match';
 
 	let loading = true;
 	let matches: Match[] = [];
@@ -32,19 +33,11 @@
 			});
 
 			for (const match of matches) {
-				let sWon = 0, sLost = 0;
+				const score = getMatchScore(match);
+				if (!score.played) continue;
 
-				if (match.set_scores && Array.isArray(match.set_scores)) {
-					for (const set of match.set_scores as SetScore[]) {
-						if (set.team !== null && set.opponent !== null) {
-							if (set.team > set.opponent) sWon++;
-							else if (set.opponent > set.team) sLost++;
-						}
-					}
-				} else if (match.score_team !== undefined && match.score_opponent !== undefined) {
-					sWon = match.score_team;
-					sLost = match.score_opponent;
-				}
+				const sWon = score.ourSets;
+				const sLost = score.theirSets;
 
 				totalSetsWon += sWon;
 				totalSetsLost += sLost;
@@ -148,10 +141,10 @@
 							<!-- Show set details -->
 							{#if ms.match.set_scores && Array.isArray(ms.match.set_scores)}
 								<div class="flex gap-1 justify-end mt-0.5">
-									{#each ms.match.set_scores as set}
-										{#if set.team !== null && set.opponent !== null}
-											<span class="text-[10px] px-1 rounded {set.team > set.opponent ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'} font-mono">
-												{set.team}-{set.opponent}
+									{#each getMatchSets(ms.match) as set}
+										{#if set.wonByUs !== null}
+											<span class="text-[10px] px-1 rounded {set.wonByUs ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'} font-mono">
+												{formatSetScore(set)}
 											</span>
 										{/if}
 									{/each}

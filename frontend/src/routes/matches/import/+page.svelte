@@ -26,7 +26,7 @@
 
 	onMount(async () => {
 		if ($selectedTeamId) {
-			team = await pb.collection('teams').getOne<Team>($selectedTeamId);
+			team = await pb.collection('teams').getOne<Team>($selectedTeamId, { expand: 'club' });
 			// Parse nevobo_url if available: https://www.volleybal.nl/competitie/vereniging/{code}/{type}/{number}
 			if (team.nevobo_url) {
 				const match = team.nevobo_url.match(/\/vereniging\/([^/]+)\/([^/]+)\/(\d+)/);
@@ -42,6 +42,22 @@
 			}
 		}
 	});
+
+	// Recognise our own club/team in a Nevobo team name (e.g. "Zovoc MB 1").
+	function isOurTeam(name?: string): boolean {
+		if (!name) return false;
+		const n = name.toLowerCase();
+		const clubName = (team?.expand as { club?: { name?: string } } | undefined)?.club?.name;
+		const candidates = [clubName, team?.name].filter(Boolean) as string[];
+
+		for (const candidate of candidates) {
+			const token = candidate.toLowerCase().split(/\s+/)[0];
+			if (token && n.includes(token)) return true;
+		}
+
+		const code = manualCode.trim().toLowerCase();
+		return code.length > 0 && n.includes(code);
+	}
 
 	async function fetchMatches() {
 		if (!manualCode.trim()) {
@@ -106,8 +122,7 @@
 
 			for (const m of selected) {
 				const dateStr = m.tijdstip || m.datum;
-				const isHomeOurs = m.resolved?.home?.toLowerCase().includes('zovoc') ||
-					m.resolved?.home?.toLowerCase().includes(manualCode.toLowerCase());
+				const isHomeOurs = isOurTeam(m.resolved?.home);
 				const opponent = isHomeOurs ? m.resolved?.away : m.resolved?.home;
 
 				const nevoboData: Record<string, unknown> = {
@@ -120,15 +135,16 @@
 				};
 
 				// Import scores if match has been played
+				// Scores are stored home-first (scoresheet order), matching Nevobo's team1/team2.
 				if (m.uitslag) {
-					nevoboData.score_team = isHomeOurs ? m.uitslag.setsTeam1 : m.uitslag.setsTeam2;
-					nevoboData.score_opponent = isHomeOurs ? m.uitslag.setsTeam2 : m.uitslag.setsTeam1;
+					nevoboData.score_team = m.uitslag.setsTeam1;
+					nevoboData.score_opponent = m.uitslag.setsTeam2;
 				}
 				if (m.setstanden && m.setstanden.length > 0) {
 					nevoboData.set_scores = m.setstanden.map(s => ({
 						set: s.set,
-						team: isHomeOurs ? s.team1 : s.team2,
-						opponent: isHomeOurs ? s.team2 : s.team1,
+						team: s.team1,
+						opponent: s.team2,
 					}));
 				}
 

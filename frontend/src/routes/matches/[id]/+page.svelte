@@ -5,6 +5,7 @@
 	import { pb, getMatchAttendance, getPlayers } from '$lib/pocketbase';
 	import type { Match, MatchAttendance, Player } from '$lib/types';
 	import { ATTENDANCE_LABELS } from '$lib/types';
+	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore } from '$lib/utils/match';
 
 	let match: Match | null = null;
 	let attendance: MatchAttendance[] = [];
@@ -93,22 +94,27 @@
 				</div>
 			</div>
 
-			{#if match.score_team !== undefined && match.score_team !== null}
+			{#if getMatchScore(match).played}
+				{@const score = getMatchScore(match)}
+				{@const outcome = getMatchOutcome(match)}
 				<div>
-					<span class="text-sm text-gray-500">Uitslag</span>
-					<p class="text-3xl font-bold {match.score_team > match.score_opponent ? 'text-green-600' : 'text-red-500'}">
-						{match.score_team} – {match.score_opponent}
+					<span class="text-sm text-gray-500">Uitslag ({match.home_away === 'home' ? 'thuis' : 'uit'})</span>
+					<p class="text-3xl font-bold {outcome === 'won' ? 'text-green-600' : outcome === 'lost' ? 'text-red-500' : 'text-gray-600 dark:text-gray-300'}">
+						{score.ourSets} – {score.theirSets}
+					</p>
+					<p class="text-xs text-gray-500">
+						{outcome === 'won' ? 'Gewonnen' : outcome === 'lost' ? 'Verloren' : 'Gelijk'} · op het wedstrijdformulier: {score.homeSets} – {score.awaySets}
 					</p>
 				</div>
 			{/if}
 
 			{#if match.set_scores && match.set_scores.length > 0}
 				<div>
-					<span class="text-sm text-gray-500">Sets</span>
+					<span class="text-sm text-gray-500">Sets (thuis – uit)</span>
 					<div class="flex gap-3 mt-1">
-						{#each match.set_scores as set, i}
-							<span class="px-3 py-1 rounded bg-gray-100 dark:bg-gray-700 text-sm font-mono">
-								Set {i+1}: {set.team ?? '?'}–{set.opponent ?? '?'}
+						{#each getMatchSets(match) as set}
+							<span class="px-3 py-1 rounded text-sm font-mono {set.wonByUs === true ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : set.wonByUs === false ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-700'}">
+								Set {set.set}: {formatSetScore(set)}
 							</span>
 						{/each}
 					</div>

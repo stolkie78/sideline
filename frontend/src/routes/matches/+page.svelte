@@ -7,6 +7,7 @@
 	import type { Match } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
+	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore } from '$lib/utils/match';
 
 	let matches: Match[] = [];
 	let loading = true;
@@ -86,8 +87,9 @@
 	{:else}
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-2">
 			{#each filteredMatches as match}
-				{@const won = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team > match.score_opponent}
-				{@const lost = match.score_team !== undefined && match.score_opponent !== undefined && match.score_team < match.score_opponent}
+				{@const score = getMatchScore(match)}
+				{@const won = score.played && score.ourSets > score.theirSets}
+				{@const lost = score.played && score.ourSets < score.theirSets}
 				<div class="card">
 					<div class="flex justify-between items-start">
 						<div>
@@ -104,9 +106,9 @@
 							</span>
 						</div>
 						<div class="flex items-center gap-2">
-							{#if match.score_team !== undefined && match.score_opponent !== undefined}
+							{#if score.played}
 								<span class="text-lg font-bold {won ? 'text-green-600' : lost ? 'text-red-600' : 'text-gray-600 dark:text-gray-300'}">
-									{match.score_team} - {match.score_opponent}
+									{score.ourSets} - {score.theirSets}
 								</span>
 							{/if}
 							<a href="{base}/matches/{match.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
@@ -117,10 +119,10 @@
 					<!-- Set scores -->
 					{#if match.set_scores && Array.isArray(match.set_scores) && match.set_scores.length > 0}
 						<div class="flex gap-2 mt-1.5">
-							{#each match.set_scores as set, i}
-								{#if set.team !== null && set.opponent !== null}
-									<span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
-										{set.team}-{set.opponent}
+							{#each getMatchSets(match) as set}
+								{#if set.home !== null && set.away !== null}
+									<span class="text-xs px-1.5 py-0.5 rounded font-mono {set.wonByUs === true ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400' : set.wonByUs === false ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}">
+										{formatSetScore(set)}
 									</span>
 								{/if}
 							{/each}

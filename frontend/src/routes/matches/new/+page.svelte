@@ -93,8 +93,13 @@
 		}
 	}
 
+	// Set scores are stored home-first (scoresheet order): scoreTeam = home sets, scoreOpponent = away sets.
 	$: scoreTeam = setScores.filter(s => s.team !== null && s.opponent !== null && (s.team ?? 0) > (s.opponent ?? 0)).length;
 	$: scoreOpponent = setScores.filter(s => s.team !== null && s.opponent !== null && (s.opponent ?? 0) > (s.team ?? 0)).length;
+	$: ourSets = homeAway === 'home' ? scoreTeam : scoreOpponent;
+	$: theirSets = homeAway === 'home' ? scoreOpponent : scoreTeam;
+	$: homeLabel = homeAway === 'home' ? 'Wij' : (opponent || 'Tegenstander');
+	$: awayLabel = homeAway === 'home' ? (opponent || 'Tegenstander') : 'Wij';
 
 	function toggleLineup(playerId: string) {
 		if (lineup.includes(playerId)) {
@@ -315,7 +320,13 @@
 
 			<!-- Set Scores -->
 			<div>
-				<label class="label">Setstanden</label>
+				<label class="label">Setstanden <span class="font-normal text-xs text-gray-500">(thuisteam eerst)</span></label>
+				<div class="flex items-center gap-2 mb-1 text-xs text-gray-500 dark:text-gray-400">
+					<span class="w-10"></span>
+					<span class="w-14 text-center truncate" title={homeLabel}>{homeLabel}</span>
+					<span class="w-3"></span>
+					<span class="w-14 text-center truncate" title={awayLabel}>{awayLabel}</span>
+				</div>
 				<div class="space-y-2">
 					{#each setScores as set, i}
 						<div class="flex items-center gap-2">
@@ -340,7 +351,8 @@
 				</div>
 				{#if scoreTeam > 0 || scoreOpponent > 0}
 					<div class="text-sm mt-1">
-						Einduitslag: <span class="font-bold text-lg">{scoreTeam} - {scoreOpponent}</span>
+						Einduitslag: <span class="font-bold text-lg {ourSets > theirSets ? 'text-green-600' : ourSets < theirSets ? 'text-red-600' : ''}">{ourSets} - {theirSets}</span>
+						<span class="text-xs text-gray-500">({ourSets > theirSets ? 'gewonnen' : ourSets < theirSets ? 'verloren' : 'gelijk'} · formulier: {scoreTeam} - {scoreOpponent})</span>
 					</div>
 				{/if}
 			</div>
