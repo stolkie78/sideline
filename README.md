@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.6.1
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.7.0
 
 ## Tech Stack
 
@@ -42,7 +42,8 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 ### 🏆 Wedstrijden
 - **Wedstrijdbeheer** — Per-set lineups (positie 1-6), spelsysteem, wissels, timeouts
 - **Nevobo Import** — Automatisch wedstrijdschema ophalen van volleybal.nl
-- **Set scores** — Gewonnen/verloren per set, totaalscores
+- **Set scores** — Setstanden in wedstrijdformulier-volgorde (thuisteam eerst), winst/verlies automatisch vanuit thuis/uit
+- **Dashboardkaarten** — Zelfde opzet als trainingen, met een rode knop 'Invullen'
 
 ### 📊 Rapportages
 - **Trainingsaanwezigheid** — Per speler: aanwezig/afwezig/ziek/geblesseerd (alleen afgeronde trainingen)
@@ -53,7 +54,8 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 
 ### 🔐 Gebruikers & Rollen
 - **Google OAuth + email/password** login
-- **Multi-team** — Meerdere teams binnen één installatie
+- **Clubs** — Club → team → seizoen structuur, teams gekoppeld aan een club
+- **Multi-team** — Meerdere teams binnen één installatie, teamkeuze gefilterd op club
 - **Rollen** — Admin (alles), Coach (team beheer), Speler (eigen dashboard)
 - **Trainers** — Trainer profiel met voorkeursdag, automatisch gekoppeld bij planning
 - **Speler dashboard** — Beschikbaarheid voor trainingen en wedstrijden
@@ -289,12 +291,32 @@ De AI gebruikt automatisch:
 └─────────────────────────────────────────────┘
 ```
 
+### Datastructuur
+
+```
+Club (Zovoc, ZVH)
+└── Team (Zovoc MB1)
+    └── Seizoen (2026-2027)
+        ├── Spelers
+        ├── Trainingen
+        └── Wedstrijden
+```
+
+Clubs worden aangemaakt en gekoppeld via **Config → Clubs & Teams**. Club, team en
+seizoen kies je in het menu onder *Context*; de teamlijst is gefilterd op de gekozen club.
+
+`scripts/setup-collections.sh` maakt de `clubs` collectie aan, voegt het `club`-veld toe aan
+`teams`, seedt de clubs Zovoc en ZVH en koppelt bestaande teams zonder club aan Zovoc. Het
+script is idempotent en verwijdert geen bestaande velden of data, dus je kunt het veilig
+opnieuw draaien bij een upgrade.
+
 ---
 
 ## Versiegeschiedenis
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.7.0** | 2026-09-05 | Clublaag (club → team → seizoen) met Zovoc en ZVH, setstanden thuis-eerst met correcte winst/verlies, en dashboardkaarten gelijkgetrokken |
 | **v2.6.1** | 2026-09-03 | Dashboardactieknoppen vernieuwd, volledige training-lightbox, formuliericonen opgeschoond, welzijnsrapport hersteld en deploy-healthchecks toegevoegd |
 | **v2.6.0** | 2026-09-03 | Aparte trainingsvoorbereiding vanaf het dashboard met Markdown-editor, periodisering, templates en AI |
 | **v2.5.4** | 2026-09-01 | Fix: Annuleren-knop gebruikt ook returnTo navigatie |
