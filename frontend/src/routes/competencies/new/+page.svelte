@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { getPlayers, getCompetencies, createPlayerCompetency, getTeamPlayers, pb } from '$lib/pocketbase';
+	import { getContextPlayers, getCompetencies, createPlayerCompetency, pb } from '$lib/pocketbase';
 	import type { Player, Competency, PlayerCompetency } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -24,16 +24,7 @@
 
 	onMount(async () => {
 		try {
-			// Load players
-			if ($selectedTeamId && $selectedSeasonId) {
-				const teamPlayers = await getTeamPlayers($selectedTeamId, $selectedSeasonId);
-				players = teamPlayers
-					.map((tp) => tp.expand?.player)
-					.filter((p): p is Player => !!p && p.status === 'active');
-			}
-			if (players.length === 0) {
-				players = await getPlayers('status = "active"');
-			}
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true });
 
 			competencies = await getCompetencies();
 

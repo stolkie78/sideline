@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.8.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.8.1
 
 ## Tech Stack
 
@@ -311,6 +311,13 @@ seizoen kies je in het menu onder *Context*; de teamlijst is gefilterd op de gek
 script is idempotent en verwijdert geen bestaande velden of data, dus je kunt het veilig
 opnieuw draaien bij een upgrade.
 
+Spelers hangen via `team_players` aan een team + seizoen. Alle overzichten en
+rapportages tonen alleen de selectie van het gekozen team, dus een lege club laat een
+lege applicatie zien in plaats van de spelers van een andere club.
+
+Zet `OWNER_EMAIL` in je `.env` om dat account bij elke setup admin-rechten op alle teams
+te geven.
+
 Wedstrijden hebben een `status` (`open` of `played`). Bestaande wedstrijden zonder status
 krijgen er automatisch een op basis van hun datum: alles in het verleden wordt `played`, de
 rest `open`.
@@ -321,6 +328,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.8.1** | 2026-09-05 | Spelers, rapportages en teamkeuze strikt gescoped op club → team → seizoen, teams gekoppeld aan de juiste club en OWNER_EMAIL voor admin-rechten |
 | **v2.8.0** | 2026-09-05 | Wedstrijdstatus open/gespeeld met bijpassende filters en dashboardknop die pas na afloop op 'Invullen' springt |
 | **v2.7.0** | 2026-09-05 | Clublaag (club → team → seizoen) met Zovoc en ZVH, setstanden thuis-eerst met correcte winst/verlies, en dashboardkaarten gelijkgetrokken |
 | **v2.6.1** | 2026-09-03 | Dashboardactieknoppen vernieuwd, volledige training-lightbox, formuliericonen opgeschoond, welzijnsrapport hersteld en deploy-healthchecks toegevoegd |

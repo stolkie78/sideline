@@ -2,10 +2,11 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { pb, getMatchAttendance, getPlayers } from '$lib/pocketbase';
+	import { pb, getMatchAttendance, getContextPlayers } from '$lib/pocketbase';
 	import type { Match, MatchAttendance, Player } from '$lib/types';
 	import { ATTENDANCE_LABELS } from '$lib/types';
 	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore } from '$lib/utils/match';
+	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
 	let match: Match | null = null;
 	let attendance: MatchAttendance[] = [];
@@ -18,7 +19,7 @@
 		try {
 			const [m, players] = await Promise.all([
 				pb.collection('matches').getOne<Match>($page.params.id),
-				getPlayers('status = "active"'),
+				getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true }),
 			]);
 			match = m;
 			allPlayers = players;

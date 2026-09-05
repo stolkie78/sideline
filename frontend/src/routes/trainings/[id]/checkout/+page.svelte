@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { pb, getTrainingAttendance, getPlayers, updateTrainingAttendance, updateTraining } from '$lib/pocketbase';
+	import { pb, getTrainingAttendance, getContextPlayers, updateTrainingAttendance, updateTraining } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance, Player, AttendanceStatus } from '$lib/types';
 
 	let training: Training | null = null;
@@ -29,7 +29,7 @@
 	onMount(async () => {
 		try {
 			training = await pb.collection('trainings').getOne<Training>($page.params.id);
-			players = await getPlayers('status = "active"');
+			players = await getContextPlayers(training.team || '', training.season || '', { activeOnly: true });
 			const att = await getTrainingAttendance($page.params.id);
 
 			for (const a of att) {

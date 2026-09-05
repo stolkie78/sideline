@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { getPlayers, getFileUrl, createPlayer } from '$lib/pocketbase';
+	import { getContextPlayers, getFileUrl, createPlayer } from '$lib/pocketbase';
 	import type { Player } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS } from '$lib/types';
+	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
 	let players: Player[] = [];
 	let loading = true;
@@ -34,7 +35,7 @@
 	async function loadPlayers() {
 		loading = true;
 		try {
-			players = await getPlayers();
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId);
 		} catch (e) {
 			console.error('Failed to load players:', e);
 		} finally {

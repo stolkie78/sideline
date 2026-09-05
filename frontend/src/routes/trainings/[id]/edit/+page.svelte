@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, getPlayers, getTeamPlayers, updateTraining, getTrainingAttendance, createTrainingAttendance, updateTrainingAttendance, deleteTrainingAttendance, getTrainingTemplates, getTeamAccessForTeam } from '$lib/pocketbase';
+	import { pb, getContextPlayers, updateTraining, getTrainingAttendance, createTrainingAttendance, updateTrainingAttendance, deleteTrainingAttendance, getTrainingTemplates, getTeamAccessForTeam } from '$lib/pocketbase';
 	import type { Player, Training, TrainingAttendance, AttendanceStatus, TrainingTemplate } from '$lib/types';
 	import type { TeamAccess } from '$lib/pocketbase';
 	import { TRAINING_TYPE_LABELS } from '$lib/types';
@@ -142,16 +142,7 @@
 				});
 			} catch (e) { /* ignore */ }
 
-			// Load players
-			if ($selectedTeamId && $selectedSeasonId) {
-				const teamPlayers = await getTeamPlayers($selectedTeamId, $selectedSeasonId);
-				players = teamPlayers
-					.map((tp) => tp.expand?.player)
-					.filter((p): p is Player => !!p && p.status === 'active');
-			}
-			if (players.length === 0) {
-				players = await getPlayers('status = "active"');
-			}
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true });
 
 			// Load existing attendance
 			existingAttendance = await getTrainingAttendance(id);

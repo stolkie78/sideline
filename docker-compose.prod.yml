@@ -87,6 +87,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SITE_URL=${SITE_URL:-}
+      - OWNER_EMAIL=${OWNER_EMAIL:-}
     restart: "no"
     profiles: ["setup"]
 

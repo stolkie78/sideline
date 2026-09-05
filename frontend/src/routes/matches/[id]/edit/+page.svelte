@@ -3,7 +3,7 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, getPlayers, getTeamPlayers, updateMatch, getMatchPlayerStats, createMatchPlayerStats, updateMatchPlayerStats, deleteMatchPlayerStats, getTeamAccessForTeam } from '$lib/pocketbase';
+	import { pb, getContextPlayers, updateMatch, getMatchPlayerStats, createMatchPlayerStats, updateMatchPlayerStats, deleteMatchPlayerStats, getTeamAccessForTeam } from '$lib/pocketbase';
 	import type { Player, PlayerPosition, SetScore, Match, MatchPlayerStats, MatchStatus } from '$lib/types';
 	import { getMatchStatus } from '$lib/utils/match';
 	import type { TeamAccess } from '$lib/pocketbase';
@@ -113,16 +113,7 @@
 				? [...match.set_scores]
 				: [{ team: null, opponent: null }, { team: null, opponent: null }, { team: null, opponent: null }];
 
-			// Load players
-			if ($selectedTeamId && $selectedSeasonId) {
-				const teamPlayers = await getTeamPlayers($selectedTeamId, $selectedSeasonId);
-				players = teamPlayers
-					.map((tp) => tp.expand?.player)
-					.filter((p): p is Player => !!p && p.status === 'active');
-			}
-			if (players.length === 0) {
-				players = await getPlayers('status = "active"');
-			}
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true });
 
 			// Load existing stats
 			existingStats = await getMatchPlayerStats(id);

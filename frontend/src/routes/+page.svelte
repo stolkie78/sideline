@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { base } from '$app/paths';
-	import { getPlayers } from '$lib/pocketbase';
+	import { getContextPlayers } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, Training, Match, TrainingAttendance, MatchAttendance } from '$lib/types';
 	import { getMatchStatus, isMatchFinished } from '$lib/utils/match';
@@ -50,10 +50,12 @@
 	$: if (browser) loadDashboard($selectedTeamId, $selectedSeasonId);
 
 	async function loadDashboard(_teamId: string | null, _seasonId: string | null) {
+		const teamId = _teamId ?? '';
+		const seasonId = _seasonId ?? '';
 		try {
-			const filter = contextFilter(_teamId, _seasonId);
+			const filter = contextFilter(teamId, seasonId);
 			[players, trainings, matches] = await Promise.all([
-				getPlayers('status = "active"'),
+				getContextPlayers(teamId, seasonId, { activeOnly: true }),
 				pb.collection('trainings').getFullList<Training>({ sort: '-date', filter: filter || undefined, expand: 'trainer' }),
 				pb.collection('matches').getFullList<Match>({ sort: '-date', filter: filter || undefined, expand: 'coach' }),
 			]);

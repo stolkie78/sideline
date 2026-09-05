@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { base } from '$app/paths';
 	import { browser } from '$app/environment';
-	import { getPlayers, getTeamPlayers, pb } from '$lib/pocketbase';
+	import { getContextPlayers, pb } from '$lib/pocketbase';
 	import type { Player, Training, TrainingAttendance } from '$lib/types';
 	import { contextFilter, selectedSeasonId, selectedTeamId } from '$lib/stores/context';
 
@@ -36,13 +36,7 @@
 		loadError = '';
 
 		try {
-			const playerPromise = teamId && seasonId
-				? getTeamPlayers(teamId, seasonId).then(teamPlayers =>
-					teamPlayers
-						.map(teamPlayer => teamPlayer.expand?.player)
-						.filter((player): player is Player => Boolean(player && player.status === 'active'))
-				)
-				: getPlayers('status = "active"');
+			const playerPromise = getContextPlayers(teamId, seasonId, { activeOnly: true });
 
 			const [loadedPlayers, loadedTrainings, allAttendance] = await Promise.all([
 				playerPromise,

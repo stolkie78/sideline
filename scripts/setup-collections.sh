@@ -594,6 +594,42 @@ else
   echo "  ✓ Seizoen exists (skipped)"
 fi
 
+OWNER_EMAIL="${OWNER_EMAIL:-}"
+if [ -n "$OWNER_EMAIL" ]; then
+  echo ""
+  echo "👑 Granting admin access to $OWNER_EMAIL..."
+  OWNER_ID=$(curl -sf --get "$PB_URL/api/collections/users/records" \
+    --data-urlencode "filter=email='$OWNER_EMAIL'" --data-urlencode "perPage=1" \
+    -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
+
+  if [ -z "$OWNER_ID" ]; then
+    echo "  ⚠ User $OWNER_EMAIL not found, skipped"
+  else
+    ALL_TEAMS=$(curl -sf --get "$PB_URL/api/collections/teams/records" \
+      --data-urlencode "perPage=200" \
+      -H "Authorization: Bearer $TOKEN" | jq -r '.items[] | "\(.id)|\(.name)"')
+
+    echo "$ALL_TEAMS" | while IFS='|' read -r TID TNAME; do
+      [ -z "$TID" ] && continue
+      EXISTING=$(curl -sf --get "$PB_URL/api/collections/team_access/records" \
+        --data-urlencode "filter=user='$OWNER_ID' && team='$TID'" --data-urlencode "perPage=1" \
+        -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
+
+      if [ -z "$EXISTING" ]; then
+        curl -sf "$PB_URL/api/collections/team_access/records" -X POST \
+          -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+          -d "{\"user\":\"$OWNER_ID\",\"team\":\"$TID\",\"role\":\"admin\"}" > /dev/null \
+          && echo "  ✓ Admin access on '$TNAME' granted"
+      else
+        curl -sf -X PATCH "$PB_URL/api/collections/team_access/records/$EXISTING" \
+          -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+          -d '{"role":"admin"}' > /dev/null \
+          && echo "  ✓ Admin access on '$TNAME' confirmed"
+      fi
+    done
+  fi
+fi
+
 echo ""
 echo "🏁 Backfilling match status..."
 

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { pb, getPlayers, getCompetencies } from '$lib/pocketbase';
+	import { pb, getContextPlayers, getCompetencies } from '$lib/pocketbase';
 	import type { Player, Competency, PlayerCompetency } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
+	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
 	let players: Player[] = [];
 	let competencies: Competency[] = [];
@@ -16,7 +17,7 @@
 	onMount(async () => {
 		try {
 			[players, competencies, allScores] = await Promise.all([
-				getPlayers('status = "active"'),
+				getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true }),
 				getCompetencies(),
 				pb.collection('player_competencies').getFullList<PlayerCompetency>({
 					sort: 'date',

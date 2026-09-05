@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { getPlayers, createTraining, createTrainingAttendance, getTeamPlayers, getTrainingTemplates, getTeamAccessForTeam } from '$lib/pocketbase';
+	import { getContextPlayers, createTraining, createTrainingAttendance, getTrainingTemplates, getTeamAccessForTeam } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, AttendanceStatus, TrainingTemplate } from '$lib/types';
 	import type { TeamAccess } from '$lib/pocketbase';
@@ -128,16 +128,7 @@
 				});
 			} catch (e) { /* ignore */ }
 
-			// Load team players for current context, fallback to all active players
-			if ($selectedTeamId && $selectedSeasonId) {
-				const teamPlayers = await getTeamPlayers($selectedTeamId, $selectedSeasonId);
-				players = teamPlayers
-					.map((tp) => tp.expand?.player)
-					.filter((p): p is Player => !!p && p.status === 'active');
-			}
-			if (players.length === 0) {
-				players = await getPlayers('status = "active"');
-			}
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true });
 			// Initialize player data
 			for (const p of players) {
 				playerData[p.id] = { status: 'present', rating: 7, notes: '' };

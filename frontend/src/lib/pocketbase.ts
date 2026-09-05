@@ -347,6 +347,28 @@ export async function getTeamPlayers(teamId: string, seasonId: string): Promise<
 	});
 }
 
+/**
+ * Players for the given team/season context. Falls back to every player only
+ * when there is no context at all, so one club never sees another club's squad.
+ */
+export async function getContextPlayers(
+	teamId: string,
+	seasonId: string,
+	options: { activeOnly?: boolean } = {}
+): Promise<Player[]> {
+	const activeOnly = options.activeOnly ?? false;
+
+	if (!teamId || !seasonId) {
+		return getPlayers(activeOnly ? 'status = "active"' : '');
+	}
+
+	const teamPlayers = await getTeamPlayers(teamId, seasonId);
+	return teamPlayers
+		.map((tp) => tp.expand?.player)
+		.filter((p): p is Player => !!p && (!activeOnly || p.status === 'active'))
+		.sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function addPlayerToTeam(data: {
 	team: string;
 	season: string;

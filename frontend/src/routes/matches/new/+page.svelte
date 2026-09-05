@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { getPlayers, createMatch, createMatchPlayerStats, getTeamPlayers, getTeamAccessForTeam } from '$lib/pocketbase';
+	import { getContextPlayers, createMatch, createMatchPlayerStats, getTeamAccessForTeam } from '$lib/pocketbase';
 	import type { Player, PlayerPosition, SetScore, GameSystem, SetLineup, SetGameSystem, Substitution, Timeout } from '$lib/types';
 	import type { TeamAccess } from '$lib/pocketbase';
 	import { POSITION_LABELS, GAME_SYSTEM_LABELS, COURT_POSITION_LABELS } from '$lib/types';
@@ -147,15 +147,7 @@
 
 	onMount(async () => {
 		try {
-			if ($selectedTeamId && $selectedSeasonId) {
-				const teamPlayers = await getTeamPlayers($selectedTeamId, $selectedSeasonId);
-				players = teamPlayers
-					.map((tp) => tp.expand?.player)
-					.filter((p): p is Player => !!p && p.status === 'active');
-			}
-			if (players.length === 0) {
-				players = await getPlayers('status = "active"');
-			}
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true });
 			lineup = players.map(p => p.id);
 			for (const p of players) {
 				playerNotes[p.id] = '';

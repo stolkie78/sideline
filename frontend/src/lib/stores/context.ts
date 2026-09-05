@@ -55,8 +55,11 @@ export const currentSeason = derived(
 
 // Helper: build PocketBase filter string for team/season
 export function contextFilter(teamId: string, seasonId: string): string {
-	const parts: string[] = [];
-	if (teamId) parts.push(`team = "${teamId}"`);
+	// Without a team there is no club context, so match nothing rather than
+	// falling back to every team in the season.
+	if (!teamId) return 'team = ""';
+
+	const parts = [`team = "${teamId}"`];
 	if (seasonId) parts.push(`season = "${seasonId}"`);
 	return parts.join(' && ');
 }

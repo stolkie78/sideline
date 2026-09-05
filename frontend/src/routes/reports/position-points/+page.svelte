@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { pb } from '$lib/pocketbase';
-	import { getPlayers } from '$lib/pocketbase';
+	import { getContextPlayers } from '$lib/pocketbase';
 	import type { Player, MatchPlayerStats, PlayerPosition } from '$lib/types';
 	import { POSITION_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -23,7 +23,7 @@
 
 	onMount(async () => {
 		try {
-			players = await getPlayers();
+			players = await getContextPlayers($selectedTeamId, $selectedSeasonId);
 
 			// Get all match_player_stats, optionally filtered by team/season via their match
 			const allStats = await pb.collection('match_player_stats').getFullList<MatchPlayerStats>({

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { getPlayers, getTrainings } from '$lib/pocketbase';
+	import { getContextPlayers, getTrainings } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, Training, TrainingAttendance } from '$lib/types';
+	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
 	let players: Player[] = [];
 	let trainings: Training[] = [];
@@ -24,7 +25,7 @@
 	onMount(async () => {
 		try {
 			[players, trainings] = await Promise.all([
-				getPlayers(),
+				getContextPlayers($selectedTeamId, $selectedSeasonId),
 				getTrainings(),
 			]);
 
