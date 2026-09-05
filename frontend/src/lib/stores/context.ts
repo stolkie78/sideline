@@ -31,11 +31,15 @@ export const currentClub = derived(
 	([$clubs, $id]) => $clubs.find((c) => c.id === $id) || null
 );
 
-// Teams belonging to a club. Teams without a club are always included so an
-// incomplete club relation never leaves the user without a selectable team.
+/**
+ * Teams belonging to a club. A club without teams yields an empty list, so its
+ * pages stay empty instead of showing another club's data. Only when no team
+ * has a club at all — an unmigrated database — do we fall back to every team.
+ */
 export function teamsInClub(allTeams: Team[], clubId: string): Team[] {
 	if (!clubId) return allTeams;
-	return allTeams.filter((t) => !t.club || t.club === clubId);
+	if (!allTeams.some((t) => t.club)) return allTeams;
+	return allTeams.filter((t) => t.club === clubId);
 }
 
 export const clubTeams = derived([teams, selectedClubId], ([$teams, $clubId]) =>

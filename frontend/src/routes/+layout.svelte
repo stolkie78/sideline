@@ -77,9 +77,8 @@
 			teamsStore.set(localTeams);
 			seasonsStore.set(localSeasons);
 
-			// Keep the club selection in sync with the accessible teams
-			const clubIdsWithTeams = new Set(localTeams.map((t) => t.club).filter(Boolean) as string[]);
-			if (!$selectedClubId || (clubIdsWithTeams.size > 0 && !clubIdsWithTeams.has($selectedClubId))) {
+			// Keep the club selection valid, but never override a club the user picked
+			if (!localClubs.some((c) => c.id === $selectedClubId)) {
 				$selectedClubId = localTeams.find((t) => t.club)?.club || localClubs[0]?.id || '';
 			}
 
@@ -130,8 +129,10 @@
 	$: visibleTeams = teamsInClub(localTeams, $selectedClubId);
 
 	function handleClubChange() {
-		if (!visibleTeams.some((t) => t.id === $selectedTeamId)) {
-			$selectedTeamId = visibleTeams[0]?.id || '';
+		// visibleTeams is still the previous club's list at this point
+		const teamsForClub = teamsInClub(localTeams, $selectedClubId);
+		if (!teamsForClub.some((t) => t.id === $selectedTeamId)) {
+			$selectedTeamId = teamsForClub[0]?.id || '';
 		}
 	}
 
@@ -267,11 +268,16 @@
 					</div>
 					<div>
 						<label class="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5">Team</label>
-						<select class="input" bind:value={$selectedTeamId}>
+						<select class="input" bind:value={$selectedTeamId} disabled={visibleTeams.length === 0}>
 							{#each visibleTeams as team}
 								<option value={team.id}>{team.name}</option>
 							{/each}
 						</select>
+						{#if visibleTeams.length === 0}
+							<p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+								{currentClubName} heeft nog geen teams
+							</p>
+						{/if}
 					</div>
 					<div>
 						<label class="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5">Seizoen</label>
