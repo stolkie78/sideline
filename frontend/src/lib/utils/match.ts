@@ -1,4 +1,4 @@
-import type { Match, SetScore } from '$lib/types';
+import type { Match, MatchStatus, SetScore } from '$lib/types';
 
 /**
  * Score convention: the FIRST number of a set (and of the final score) always
@@ -105,4 +105,29 @@ export function formatMatchScore(match: MatchLike): string {
 /** "25-20" as printed on the scoresheet (home first). */
 export function formatSetScore(set: MatchSetResult): string {
 	return `${set.home ?? '?'}-${set.away ?? '?'}`;
+}
+
+/** A match is assumed to be over roughly two hours after its start time. */
+export const MATCH_DURATION_MS = 2 * 60 * 60 * 1000;
+
+type SchedulableMatch = Pick<Match, 'date'> & Partial<Pick<Match, 'status'>>;
+
+/** True once the match should have finished, so the result can be filled in. */
+export function isMatchFinished(match: SchedulableMatch, now: Date = new Date()): boolean {
+	const start = new Date(match.date).getTime();
+	if (Number.isNaN(start)) return false;
+	return start + MATCH_DURATION_MS <= now.getTime();
+}
+
+/**
+ * Status of the match record. Matches created before the status field existed
+ * fall back to their date.
+ */
+export function getMatchStatus(match: SchedulableMatch, now: Date = new Date()): MatchStatus {
+	if (match.status === 'played' || match.status === 'open') return match.status;
+	return isMatchFinished(match, now) ? 'played' : 'open';
+}
+
+export function isMatchOpen(match: SchedulableMatch, now: Date = new Date()): boolean {
+	return getMatchStatus(match, now) === 'open';
 }

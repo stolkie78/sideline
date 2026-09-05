@@ -283,6 +283,7 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"date\", \"type\": \"date\", \"required\": true},
     {\"name\": \"opponent\", \"type\": \"text\", \"required\": true},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": false, \"values\": [\"open\",\"played\"], \"maxSelect\": 1},
     {\"name\": \"home_away\", \"type\": \"select\", \"required\": false, \"values\": [\"home\",\"away\"], \"maxSelect\": 1},
     {\"name\": \"score_team\", \"type\": \"number\", \"required\": false},
     {\"name\": \"score_opponent\", \"type\": \"number\", \"required\": false},
@@ -585,6 +586,31 @@ if [ "$SEASON_COUNT" = "0" ]; then
 else
   echo "  ✓ Seizoen exists (skipped)"
 fi
+
+echo ""
+echo "🏁 Backfilling match status..."
+
+# Matches without a status get one based on their date: anything in the past is
+# considered played, everything else stays open.
+backfill_match_status() {
+  local FILTER="$1"
+  local STATUS="$2"
+  local IDS=$(curl -sf --get "$PB_URL/api/collections/matches/records" \
+    --data-urlencode "filter=$FILTER" --data-urlencode "perPage=500" \
+    -H "Authorization: Bearer $TOKEN" | jq -r '.items[]?.id')
+
+  local COUNT=0
+  for ID in $IDS; do
+    curl -sf -X PATCH "$PB_URL/api/collections/matches/records/$ID" \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d "{\"status\":\"$STATUS\"}" > /dev/null && COUNT=$((COUNT + 1))
+  done
+  echo "$COUNT"
+}
+
+PLAYED_COUNT=$(backfill_match_status "status='' && date < @now" "played")
+OPEN_COUNT=$(backfill_match_status "status='' && date >= @now" "open")
+echo "  ✓ $PLAYED_COUNT gespeeld, $OPEN_COUNT open"
 
 echo ""
 echo "✅ Setup complete! All collections are ready."

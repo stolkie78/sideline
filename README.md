@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.7.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.8.0
 
 ## Tech Stack
 
@@ -43,7 +43,8 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Wedstrijdbeheer** — Per-set lineups (positie 1-6), spelsysteem, wissels, timeouts
 - **Nevobo Import** — Automatisch wedstrijdschema ophalen van volleybal.nl
 - **Set scores** — Setstanden in wedstrijdformulier-volgorde (thuisteam eerst), winst/verlies automatisch vanuit thuis/uit
-- **Dashboardkaarten** — Zelfde opzet als trainingen, met een rode knop 'Invullen'
+- **Wedstrijdstatus** — Open → Gespeeld, wedstrijd afronden zodra de uitslag compleet is
+- **Dashboardkaarten** — Zelfde opzet als trainingen; grijze knop 'Bijwerken' vooraf, rode knop 'Invullen' vanaf 2 uur na aanvang
 
 ### 📊 Rapportages
 - **Trainingsaanwezigheid** — Per speler: aanwezig/afwezig/ziek/geblesseerd (alleen afgeronde trainingen)
@@ -310,12 +311,17 @@ seizoen kies je in het menu onder *Context*; de teamlijst is gefilterd op de gek
 script is idempotent en verwijdert geen bestaande velden of data, dus je kunt het veilig
 opnieuw draaien bij een upgrade.
 
+Wedstrijden hebben een `status` (`open` of `played`). Bestaande wedstrijden zonder status
+krijgen er automatisch een op basis van hun datum: alles in het verleden wordt `played`, de
+rest `open`.
+
 ---
 
 ## Versiegeschiedenis
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.8.0** | 2026-09-05 | Wedstrijdstatus open/gespeeld met bijpassende filters en dashboardknop die pas na afloop op 'Invullen' springt |
 | **v2.7.0** | 2026-09-05 | Clublaag (club → team → seizoen) met Zovoc en ZVH, setstanden thuis-eerst met correcte winst/verlies, en dashboardkaarten gelijkgetrokken |
 | **v2.6.1** | 2026-09-03 | Dashboardactieknoppen vernieuwd, volledige training-lightbox, formuliericonen opgeschoond, welzijnsrapport hersteld en deploy-healthchecks toegevoegd |
 | **v2.6.0** | 2026-09-03 | Aparte trainingsvoorbereiding vanaf het dashboard met Markdown-editor, periodisering, templates en AI |

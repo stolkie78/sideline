@@ -216,6 +216,7 @@
 				date: new Date(`${matchDate}T${matchTime}`).toISOString(),
 				opponent: opponent.trim(),
 				home_away: homeAway,
+				status: 'open',
 				score_team: scoreTeam || undefined,
 				score_opponent: scoreOpponent || undefined,
 				set_scores: filledSets.length > 0 ? filledSets : undefined,

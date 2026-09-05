@@ -4,7 +4,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { pb, getPlayers, getTeamPlayers, updateMatch, getMatchPlayerStats, createMatchPlayerStats, updateMatchPlayerStats, deleteMatchPlayerStats, getTeamAccessForTeam } from '$lib/pocketbase';
-	import type { Player, PlayerPosition, SetScore, Match, MatchPlayerStats } from '$lib/types';
+	import type { Player, PlayerPosition, SetScore, Match, MatchPlayerStats, MatchStatus } from '$lib/types';
+	import { getMatchStatus } from '$lib/utils/match';
 	import type { TeamAccess } from '$lib/pocketbase';
 	import { POSITION_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -22,6 +23,7 @@
 	let matchTime = '19:30';
 	let opponent = '';
 	let homeAway: 'home' | 'away' = 'home';
+	let matchStatus: MatchStatus = 'open';
 	let generalNotes = '';
 
 	// Coaches
@@ -95,6 +97,7 @@
 			matchTime = match.date.slice(11, 16) || '19:30';
 			opponent = match.opponent;
 			homeAway = (match.home_away as 'home' | 'away') || 'home';
+			matchStatus = getMatchStatus(match);
 			generalNotes = match.general_notes || '';
 			selectedCoaches = Array.isArray(match.coach) ? match.coach : match.coach ? [match.coach] : [];
 
@@ -173,6 +176,7 @@
 			await updateMatch(match.id, {
 				date: new Date(`${matchDate}T${matchTime}`).toISOString(),
 				opponent: opponent.trim(),
+				status: matchStatus,
 				home_away: homeAway,
 				score_team: scoreTeam || undefined,
 				score_opponent: scoreOpponent || undefined,
@@ -455,6 +459,21 @@
 					</div>
 				{/if}
 			</div>
+		</div>
+
+		<div class="card space-y-2">
+			<span class="label">Status wedstrijd</span>
+			<div class="flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600">
+				<button type="button"
+					class="flex-1 py-3 text-sm font-semibold transition-colors {matchStatus === 'open' ? 'bg-gray-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
+					on:click={() => (matchStatus = 'open')}>Open</button>
+				<button type="button"
+					class="flex-1 py-3 text-sm font-semibold transition-colors {matchStatus === 'played' ? 'bg-green-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}"
+					on:click={() => (matchStatus = 'played')}>Gespeeld</button>
+			</div>
+			<p class="text-xs text-gray-500 dark:text-gray-400">
+				Zet op 'Gespeeld' zodra de uitslag compleet is; de wedstrijd verdwijnt dan van het dashboard.
+			</p>
 		</div>
 
 		<button type="submit" class="btn-primary w-full text-lg py-4" disabled={saving}>

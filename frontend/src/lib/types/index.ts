@@ -142,6 +142,7 @@ export interface PlayerAvailability extends RecordModel {
 export interface Match extends RecordModel {
 	date: string;
 	opponent: string;
+	status?: MatchStatus;
 	home_away: 'home' | 'away';
 	score_team?: number;
 	score_opponent?: number;
@@ -165,6 +166,14 @@ export interface SetScore {
 	team: number | null;
 	opponent: number | null;
 }
+
+/** open = record nog niet afgerond, played = uitslag ingevuld en afgerond */
+export type MatchStatus = 'open' | 'played';
+
+export const MATCH_STATUS_LABELS: Record<MatchStatus, string> = {
+	open: 'Open',
+	played: 'Gespeeld',
+};
 
 // Positions 1-6 mapped to player IDs
 export interface SetLineup {

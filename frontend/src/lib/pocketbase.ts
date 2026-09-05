@@ -7,6 +7,7 @@ import type {
 	Training,
 	TrainingAttendance,
 	Match,
+	MatchStatus,
 	MatchPlayerStats,
 	MatchAttendance,
 	Club,
@@ -178,7 +179,9 @@ export async function getMatches(): Promise<Match[]> {
 export async function createMatch(data: {
 	date: string;
 	opponent: string;
+	status?: MatchStatus;
 	home_away: string;
+	coach?: string[];
 	score_team?: number;
 	score_opponent?: number;
 	set_scores?: any;

@@ -7,25 +7,28 @@
 	import type { Match } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
-	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore } from '$lib/utils/match';
+	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore, getMatchStatus, isMatchFinished } from '$lib/utils/match';
 
 	let matches: Match[] = [];
 	let loading = true;
-	let statusFilter: 'all' | 'upcoming' | 'played' = 'all';
+	let statusFilter: 'all' | 'open' | 'played' = 'all';
 
 	$: {
 		const urlFilter = $page.url.searchParams.get('status');
-		if (urlFilter === 'upcoming' || urlFilter === 'played') {
-			statusFilter = urlFilter;
+		if (urlFilter === 'played') {
+			statusFilter = 'played';
+		} else if (urlFilter === 'open' || urlFilter === 'upcoming') {
+			statusFilter = 'open';
 		}
 	}
 
-	$: now = new Date();
+	$: openMatches = matches.filter(m => getMatchStatus(m) === 'open');
+	$: playedMatches = matches.filter(m => getMatchStatus(m) === 'played');
 	$: filteredMatches = statusFilter === 'all'
 		? matches
-		: statusFilter === 'upcoming'
-			? matches.filter(m => new Date(m.date) >= now)
-			: matches.filter(m => new Date(m.date) < now);
+		: statusFilter === 'open'
+			? openMatches
+			: playedMatches;
 
 	onMount(async () => {
 		try {
@@ -64,14 +67,14 @@
 			Alles ({matches.length})
 		</button>
 		<button
-			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'upcoming' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
-			on:click={() => statusFilter = 'upcoming'}>
-			Komend ({matches.filter(m => new Date(m.date) >= now).length})
+			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'open' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
+			on:click={() => statusFilter = 'open'}>
+			Open ({openMatches.length})
 		</button>
 		<button
 			class="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors {statusFilter === 'played' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}"
 			on:click={() => statusFilter = 'played'}>
-			Gespeeld ({matches.filter(m => new Date(m.date) < now).length})
+			Gespeeld ({playedMatches.length})
 		</button>
 	</div>
 
@@ -98,6 +101,13 @@
 								<span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
 									{match.home_away === 'home' ? 'Thuis' : 'Uit'}
 								</span>
+								{#if getMatchStatus(match) === 'played'}
+									<span class="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">Gespeeld</span>
+								{:else if isMatchFinished(match)}
+									<span class="text-xs px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">In te vullen</span>
+								{:else}
+									<span class="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Open</span>
+								{/if}
 							</div>
 							<span class="text-xs text-gray-400 dark:text-gray-500">
 								{new Date(match.date).toLocaleDateString('nl-NL', {

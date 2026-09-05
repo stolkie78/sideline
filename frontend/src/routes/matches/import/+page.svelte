@@ -156,6 +156,8 @@
 				} else {
 					await pb.collection('matches').create({
 						...nevoboData,
+						// Imported results are already final; the rest still has to be played
+						status: m.uitslag ? 'played' : 'open',
 						team: $selectedTeamId || undefined,
 						season: $selectedSeasonId || undefined,
 						created_by: $authUser?.id || undefined,

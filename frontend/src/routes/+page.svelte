@@ -3,6 +3,7 @@
 	import { getPlayers } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import type { Player, Training, Match, TrainingAttendance, MatchAttendance } from '$lib/types';
+	import { getMatchStatus, isMatchFinished } from '$lib/utils/match';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 	import { userRole } from '$lib/stores/role';
@@ -28,13 +29,13 @@
 		if (w) { w.document.write(html); w.document.close(); w.print(); }
 	}
 
-	// Upcoming items (future dates)
+	// Matches whose record still has to be completed
 	$: upcomingMatches = matches
-		.filter(m => new Date(m.date) >= new Date())
+		.filter(m => getMatchStatus(m) === 'open')
 		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 		.slice(0, 5);
 
-	$: playedMatchCount = matches.filter(m => new Date(m.date) < new Date()).length;
+	$: playedMatchCount = matches.filter(m => getMatchStatus(m) === 'played').length;
 
 	$: activeTraining = trainings.find(t => t.status === 'active') || null;
 
@@ -288,9 +289,13 @@
 							<div class="mt-3">
 								<a
 									href="{base}/matches/{match.id}/edit?returnTo=/"
-									class="block rounded-xl px-3 py-3 text-center text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
+									class="block rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
+										isMatchFinished(match)
+											? 'bg-red-600 hover:bg-red-700'
+											: 'bg-gray-500 hover:bg-gray-600'
+									}"
 								>
-									Invullen
+									{isMatchFinished(match) ? 'Invullen' : 'Bijwerken'}
 								</a>
 							</div>
 						</div>
