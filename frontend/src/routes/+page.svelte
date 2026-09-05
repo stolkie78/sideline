@@ -138,17 +138,23 @@
 						{@const att = attendanceCounts[activeTraining.id]}
 						<div class="rounded-xl border-2 border-green-500 bg-green-50 dark:bg-green-900/20 p-4 relative overflow-hidden">
 							<div class="absolute top-0 right-0 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-bl-lg">LIVE</div>
-							<a href="{base}/trainings/{activeTraining.id}" class="block">
-								<div class="flex justify-between items-center">
-									<span class="text-sm font-semibold text-green-700 dark:text-green-400">
-										▶️ {new Date(activeTraining.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-										— {new Date(activeTraining.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}
-									</span>
+							<div>
+								<div>
+									<a href="{base}/trainings/{activeTraining.id}" class="text-sm font-semibold text-green-700 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 capitalize">
+										{new Date(activeTraining.date).toLocaleDateString('nl-NL', { weekday: 'long' })}
+									</a>
 									{#if att}
-										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300">👥 {att.present}/{att.total}</span>
+										<span class="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-300 ml-2">👥 {att.present}/{att.total}</span>
 									{/if}
 								</div>
-							</a>
+							</div>
+							<div class="text-xs text-gray-600 dark:text-gray-300 mt-1 space-x-3">
+								<span class="text-sm font-semibold text-green-700 dark:text-green-400">📆 {new Date(activeTraining.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+								<span class="text-sm font-semibold text-green-700 dark:text-green-400">⏰ {new Date(activeTraining.date).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+								{#if activeTraining.expand?.trainer && activeTraining.expand.trainer.length > 0}
+									<span>🧑‍🏫 {activeTraining.expand.trainer.map(t => t.name).join(', ')}</span>
+								{/if}
+							</div>
 							<div class="grid grid-cols-3 gap-2 mt-3">
 								{#if activeTraining.content}
 									<button
