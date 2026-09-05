@@ -6,9 +6,12 @@
 		createCompetency,
 		updateCompetency,
 		deleteCompetency,
+		getClubs,
+		createClub,
 		getTeams,
 		getSeasons,
 		createTeam,
+		updateTeam,
 		createSeason,
 		getTeamAccessForTeam,
 		grantTeamAccess,
@@ -20,8 +23,8 @@
 		pb,
 	} from '$lib/pocketbase';
 	import type { TeamAccess } from '$lib/pocketbase';
-	import { teams as teamsStore, seasons as seasonsStore, selectedTeamId, selectedSeasonId } from '$lib/stores/context';
-	import type { Competency, CompetencyCategory, Team, Season } from '$lib/types';
+	import { clubs as clubsStore, teams as teamsStore, seasons as seasonsStore, selectedClubId, selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import type { Club, Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 
 	import { aiConfig, AI_MODELS, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
@@ -216,11 +219,15 @@
 		}
 	}
 
-	// === Teams & Seasons ===
+	// === Clubs, Teams & Seasons ===
+	let clubs: Club[] = [];
 	let teams: Team[] = [];
 	let seasons: Season[] = [];
 	let loadingTeams = true;
 
+	let newClubName = '';
+	let savingClub = false;
+	let newTeamClubId = '';
 	let newTeamName = '';
 	let savingTeam = false;
 	let newStartYear = new Date().getFullYear();
@@ -230,9 +237,11 @@
 	async function loadTeamsSeasons() {
 		loadingTeams = true;
 		try {
-			[teams, seasons] = await Promise.all([getTeams(), getSeasons()]);
+			[clubs, teams, seasons] = await Promise.all([getClubs(), getTeams(), getSeasons()]);
+			clubsStore.set(clubs);
 			teamsStore.set(teams);
 			seasonsStore.set(seasons);
+			if (!newTeamClubId) newTeamClubId = $selectedClubId || clubs[0]?.id || '';
 		} catch (e) {
 			console.error('Failed to load teams/seasons:', e);
 		} finally {
@@ -240,11 +249,36 @@
 		}
 	}
 
+	async function handleAddClub() {
+		if (!newClubName.trim()) return;
+		savingClub = true;
+		try {
+			await createClub({ name: newClubName.trim() });
+			newClubName = '';
+			await loadTeamsSeasons();
+		} catch (e) {
+			console.error('Failed to create club:', e);
+			alert('Fout bij aanmaken club');
+		} finally {
+			savingClub = false;
+		}
+	}
+
+	async function saveTeamClub(team: Team, clubId: string) {
+		try {
+			await updateTeam(team.id, { club: clubId || undefined });
+			await loadTeamsSeasons();
+		} catch (e) {
+			console.error('Failed to save team club:', e);
+			alert('Fout bij koppelen club');
+		}
+	}
+
 	async function handleAddTeam() {
 		if (!newTeamName.trim()) return;
 		savingTeam = true;
 		try {
-			await createTeam(newTeamName.trim());
+			await createTeam(newTeamName.trim(), newTeamClubId || undefined);
 			newTeamName = '';
 			await loadTeamsSeasons();
 		} catch (e) {
@@ -459,7 +493,7 @@
 					: 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
 			}"
 			on:click={() => (activeTab = 'teams')}>
-			Teams & Seizoenen
+			Clubs & Teams
 		</button>
 		<button
 			class="px-4 py-3 text-sm font-semibold whitespace-nowrap transition-colors {
@@ -593,6 +627,25 @@
 	<!-- Teams & Seasons Tab -->
 	{:else if activeTab === 'teams'}
 		<div class="space-y-4">
+			<!-- Clubs -->
+			<div class="card space-y-3">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Clubs</h3>
+				{#if clubs.length > 0}
+					<div class="space-y-1">
+						{#each clubs as club}
+							<div class="flex items-center gap-2 py-1.5 border-b border-gray-50 dark:border-gray-700 last:border-0">
+								<span class="text-sm font-medium flex-1">{club.name}</span>
+								<span class="text-xs text-gray-400">{teams.filter((t) => t.club === club.id).length} teams</span>
+							</div>
+						{/each}
+					</div>
+				{/if}
+				<form class="flex gap-2" on:submit|preventDefault={handleAddClub}>
+					<input class="input flex-1" type="text" bind:value={newClubName} placeholder="Nieuwe club..." />
+					<button type="submit" class="btn-primary text-sm" disabled={savingClub}>+</button>
+				</form>
+			</div>
+
 			<!-- Teams -->
 			<div class="card space-y-3">
 				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Teams</h3>
@@ -601,6 +654,20 @@
 						{#each teams as team}
 							<div class="p-3 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2">
 								<span class="text-sm font-medium">{team.name}</span>
+								<div class="flex gap-2 items-center">
+									<label class="text-xs text-gray-500 dark:text-gray-400 w-10" for="club-{team.id}">Club</label>
+									<select
+										id="club-{team.id}"
+										class="input text-xs flex-1"
+										value={team.club || ''}
+										on:change={(e) => saveTeamClub(team, e.currentTarget.value)}
+									>
+										<option value="">— geen club —</option>
+										{#each clubs as club}
+											<option value={club.id}>{club.name}</option>
+										{/each}
+									</select>
+								</div>
 								<div class="flex gap-2 items-center">
 									<input
 										class="input text-xs flex-1"
@@ -618,6 +685,12 @@
 					</div>
 				{/if}
 				<form class="flex gap-2" on:submit|preventDefault={handleAddTeam}>
+					<select class="input w-32 text-sm" bind:value={newTeamClubId}>
+						<option value="">Geen club</option>
+						{#each clubs as club}
+							<option value={club.id}>{club.name}</option>
+						{/each}
+					</select>
 					<input class="input flex-1" type="text" bind:value={newTeamName} placeholder="Nieuw team..." />
 					<button type="submit" class="btn-primary text-sm" disabled={savingTeam}>+</button>
 				</form>

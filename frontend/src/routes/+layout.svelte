@@ -5,22 +5,25 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getTeams, getSeasons, getTeamAccessForUser, grantTeamAccess } from '$lib/pocketbase';
+	import { getClubs, getTeams, getSeasons, getTeamAccessForUser, grantTeamAccess } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import {
+		selectedClubId,
 		selectedTeamId,
 		selectedSeasonId,
+		clubs as clubsStore,
 		teams as teamsStore,
 		seasons as seasonsStore,
 	} from '$lib/stores/context';
 	import { authUser, isAuthenticated, AUTH_ENABLED } from '$lib/stores/auth';
 	import { userRole, isCoachOrAdmin, loadUserRoles, clearUserRoles } from '$lib/stores/role';
-	import type { Team, Season } from '$lib/types';
+	import type { Club, Team, Season } from '$lib/types';
 	import { version } from '../../package.json';
 
 	let darkMode = true;
 	let showContextPicker = false;
 	let menuOpen = false;
+	let localClubs: Club[] = [];
 	let localTeams: Team[] = [];
 	let localSeasons: Season[] = [];
 	let authReady = false;
@@ -41,6 +44,7 @@
 
 		try {
 			const allTeams = await getTeams();
+			localClubs = await getClubs();
 			localSeasons = await getSeasons();
 
 			// If auth is enabled, filter teams by user access
@@ -68,11 +72,19 @@
 				localTeams = allTeams;
 			}
 
+			clubsStore.set(localClubs);
 			teamsStore.set(localTeams);
 			seasonsStore.set(localSeasons);
 
-			if (!$selectedTeamId && localTeams.length > 0) {
-				$selectedTeamId = localTeams[0].id;
+			// Keep the club selection in sync with the accessible teams
+			const clubIdsWithTeams = new Set(localTeams.map((t) => t.club).filter(Boolean) as string[]);
+			if (!$selectedClubId || !clubIdsWithTeams.has($selectedClubId)) {
+				$selectedClubId = localTeams.find((t) => t.club)?.club || localClubs[0]?.id || '';
+			}
+
+			if (!$selectedTeamId || !localTeams.some((t) => t.id === $selectedTeamId && (!$selectedClubId || t.club === $selectedClubId))) {
+				const firstOfClub = localTeams.find((t) => !$selectedClubId || t.club === $selectedClubId);
+				$selectedTeamId = firstOfClub?.id || '';
 			}
 			if (!$selectedSeasonId && localSeasons.length > 0) {
 				$selectedSeasonId = localSeasons[0].id;
@@ -114,6 +126,17 @@
 		}
 	}
 
+	$: visibleTeams = $selectedClubId
+		? localTeams.filter((t) => t.club === $selectedClubId)
+		: localTeams;
+
+	function handleClubChange() {
+		if (!visibleTeams.some((t) => t.id === $selectedTeamId)) {
+			$selectedTeamId = visibleTeams[0]?.id || '';
+		}
+	}
+
+	$: currentClubName = localClubs.find((c) => c.id === $selectedClubId)?.name || 'Club';
 	$: currentTeamName = localTeams.find((t) => t.id === $selectedTeamId)?.name || 'Team';
 	$: currentSeasonName = localSeasons.find((s) => s.id === $selectedSeasonId)?.name || 'Seizoen';
 
@@ -236,9 +259,17 @@
 				<div class="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
 					<p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Context</p>
 					<div>
+						<label class="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5">Club</label>
+						<select class="input" bind:value={$selectedClubId} on:change={handleClubChange}>
+							{#each localClubs as club}
+								<option value={club.id}>{club.name}</option>
+							{/each}
+						</select>
+					</div>
+					<div>
 						<label class="text-sm font-medium text-gray-600 dark:text-gray-400 block mb-1.5">Team</label>
 						<select class="input" bind:value={$selectedTeamId}>
-							{#each localTeams as team}
+							{#each visibleTeams as team}
 								<option value={team.id}>{team.name}</option>
 							{/each}
 						</select>
