@@ -48,12 +48,14 @@ if [ -z "$TOKEN" ]; then
 fi
 echo "✅ Authenticated as $ADMIN_EMAIL"
 
-# Update users collection API rules (allow authenticated users to see each other)
+# Update users collection API rules. Signing up stays open because the invite
+# flow creates an account before logging in, but an account may only be changed
+# or removed by its owner.
 echo "→ Updating users collection API rules..."
 curl -sf -X PATCH "$PB_URL/api/collections/users" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"viewRule":"@request.auth.id != \"\"","listRule":"@request.auth.id != \"\"","updateRule":"@request.auth.id != \"\"","createRule":"@request.auth.id != \"\""}' > /dev/null 2>&1 && echo "  ✅ Users API rules updated" || echo "  ⚠️ Could not update users API rules"
+  -d '{"viewRule":"@request.auth.id != \"\"","listRule":"@request.auth.id != \"\"","updateRule":"id = @request.auth.id","createRule":"","deleteRule":"id = @request.auth.id"}' > /dev/null 2>&1 && echo "  ✅ Users API rules updated" || echo "  ⚠️ Could not update users API rules"
 
 # Helper: create or update a collection
 # Usage: ensure_collection '{"name":"...", "type":"...", "fields":[...], ...}'
@@ -97,7 +99,8 @@ ensure_collection() {
     if [ "$RULES" != "{}" ]; then
       curl -sf -X PATCH "$PB_URL/api/collections/$NAME" \
         -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-        -d "$RULES" > /dev/null 2>&1
+        -d "$RULES" > /dev/null 2>&1 \
+        || echo "  ⚠️ Could not apply API rules for $NAME"
     fi
   else
     # Create new collection
@@ -126,11 +129,11 @@ ensure_collection '{
     {"name": "short_name", "type": "text", "required": false},
     {"name": "city", "type": "text", "required": false}
   ],
-  "listRule": "",
-  "viewRule": "",
-  "createRule": "",
-  "updateRule": "",
-  "deleteRule": ""
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id != \"\"",
+  "deleteRule": "@request.auth.id != \"\""
 }'
 
 CLUBS_ID=$(get_col_id "clubs")
@@ -147,11 +150,11 @@ ensure_collection "{
     {\"name\": \"nevobo_team_number\", \"type\": \"number\", \"required\": false},
     {\"name\": \"nevobo_url\", \"type\": \"url\", \"required\": false}
   ],
-  \"listRule\": \"\",
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
   \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 2. Seasons ===
@@ -163,11 +166,11 @@ ensure_collection '{
     {"name": "start_year", "type": "number", "required": true},
     {"name": "end_year", "type": "number", "required": true}
   ],
-  "listRule": "",
-  "viewRule": "",
-  "createRule": "",
-  "updateRule": "",
-  "deleteRule": ""
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id != \"\"",
+  "deleteRule": "@request.auth.id != \"\""
 }'
 
 # === 3. Players ===
@@ -183,11 +186,11 @@ ensure_collection '{
     {"name": "email", "type": "email", "required": false},
     {"name": "user_id", "type": "relation", "required": false, "collectionId": "_pb_users_auth_", "maxSelect": 1}
   ],
-  "listRule": "",
-  "viewRule": "",
-  "createRule": "",
-  "updateRule": "",
-  "deleteRule": ""
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id != \"\"",
+  "deleteRule": "@request.auth.id != \"\""
 }'
 
 # === 4. Competencies ===
@@ -198,11 +201,11 @@ ensure_collection '{
     {"name": "name", "type": "text", "required": true},
     {"name": "category", "type": "select", "required": true, "values": ["technical","tactical","physical","mental"], "maxSelect": 1}
   ],
-  "listRule": "",
-  "viewRule": "",
-  "createRule": "",
-  "updateRule": "",
-  "deleteRule": ""
+  "listRule": "@request.auth.id != \"\"",
+  "viewRule": "@request.auth.id != \"\"",
+  "createRule": "@request.auth.id != \"\"",
+  "updateRule": "@request.auth.id != \"\"",
+  "deleteRule": "@request.auth.id != \"\""
 }'
 
 # Get IDs for relations
@@ -223,11 +226,11 @@ ensure_collection "{
     {\"name\": \"notes\", \"type\": \"text\", \"required\": false},
     {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 6. Trainings ===
@@ -246,11 +249,11 @@ ensure_collection "{
     {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"trainer\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 10}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 TRAININGS_ID=$(get_col_id "trainings")
@@ -268,11 +271,11 @@ ensure_collection "{
     {\"name\": \"happiness\", \"type\": \"number\", \"required\": false},
     {\"name\": \"fitness\", \"type\": \"number\", \"required\": false}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 8. Matches ===
@@ -300,11 +303,11 @@ ensure_collection "{
     {\"name\": \"nevobo_code\", \"type\": \"text\", \"required\": false},
     {\"name\": \"coach\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 10}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 MATCHES_ID=$(get_col_id "matches")
@@ -320,11 +323,11 @@ ensure_collection "{
     {\"name\": \"playing_time\", \"type\": \"number\", \"required\": false},
     {\"name\": \"notes\", \"type\": \"text\", \"required\": false}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 10. Team Players ===
@@ -336,11 +339,11 @@ ensure_collection "{
     {\"name\": \"season\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1},
     {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 10b. Match Attendance ===
@@ -391,11 +394,11 @@ ensure_collection "{
     {\"name\": \"team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 13. Training Plan ===
@@ -411,11 +414,11 @@ ensure_collection "{
     {\"name\": \"team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 14. Season Periods (Periodization) ===
@@ -435,11 +438,11 @@ ensure_collection "{
     {\"name\": \"team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
     {\"name\": \"season\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$SEASONS_ID\", \"maxSelect\": 1}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # === 15. Invitations ===
@@ -457,9 +460,9 @@ ensure_collection "{
   ],
   \"listRule\": \"\",
   \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 echo ""
@@ -478,11 +481,11 @@ ensure_collection "{
     {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"available\",\"unavailable\",\"uncertain\"], \"maxSelect\": 1},
     {\"name\": \"reason\", \"type\": \"text\", \"required\": false}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
-  \"createRule\": \"\",
-  \"updateRule\": \"\",
-  \"deleteRule\": \"\"
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 
 # Set PocketBase application URL for OAuth redirects
