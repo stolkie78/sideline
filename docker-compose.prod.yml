@@ -19,6 +19,7 @@ services:
       - "443:443/udp"
     volumes:
       - ./scripts/generate-caddyfile.sh:/generate-caddyfile.sh:ro
+      - ./caddy/conf.d:/etc/caddy/conf.d:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:

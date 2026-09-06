@@ -1,0 +1,10 @@
+# Example additional site configuration for Caddy
+# Copy or create files named *.caddy in this folder to add custom domains/routes.
+
+# app2.yourdomain.com {
+#     reverse_proxy app2-service:8080
+# }
+
+# anotherdomain.com {
+#     reverse_proxy 10.0.0.5:5000
+# }

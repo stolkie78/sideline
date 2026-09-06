@@ -34,6 +34,9 @@ ${DOMAIN} {
 www.${DOMAIN} {
     redir https://${DOMAIN}{uri} permanent
 }
+
+# Import additional site configurations
+import /etc/caddy/conf.d/*.caddy
 EOF
 else
 cat <<EOF
@@ -61,5 +64,8 @@ cat <<EOF
         reverse_proxy frontend:3000
     }
 }
+
+# Import additional site configurations
+import /etc/caddy/conf.d/*.caddy
 EOF
 fi

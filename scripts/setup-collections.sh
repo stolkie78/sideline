@@ -60,6 +60,13 @@ curl -sf -X PATCH "$PB_URL/api/collections/users" \
 ensure_collection() {
   local DEF="$1"
   local NAME=$(echo "$DEF" | jq -r '.name')
+  local SECURED_DEF=$(echo "$DEF" | jq -c '
+    .listRule = (if .listRule == "" then "@request.auth.id != \"\"" else .listRule end)
+    | .viewRule = (if .viewRule == "" then "@request.auth.id != \"\"" else .viewRule end)
+    | .createRule = (if .createRule == "" then "@request.auth.id != \"\"" else .createRule end)
+    | .updateRule = (if .updateRule == "" then "@request.auth.id != \"\"" else .updateRule end)
+    | .deleteRule = (if .deleteRule == "" then "@request.auth.id != \"\"" else .deleteRule end)
+  ')
 
   # Check if collection exists
   local STATUS=$(curl -sf -o /dev/null -w "%{http_code}" "$PB_URL/api/collections/$NAME" \
@@ -86,7 +93,7 @@ ensure_collection() {
       echo "  ✓ $NAME (exists, up to date)"
     fi
     # Update API rules if specified
-    local RULES=$(echo "$DEF" | jq -c '{listRule,viewRule,createRule,updateRule,deleteRule} | with_entries(select(.value != null))')
+    local RULES=$(echo "$SECURED_DEF" | jq -c '{listRule,viewRule,createRule,updateRule,deleteRule} | with_entries(select(.value != null))')
     if [ "$RULES" != "{}" ]; then
       curl -sf -X PATCH "$PB_URL/api/collections/$NAME" \
         -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
@@ -96,7 +103,7 @@ ensure_collection() {
     # Create new collection
     curl -sf "$PB_URL/api/collections" -X POST \
       -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-      -d "$DEF" > /dev/null
+      -d "$SECURED_DEF" > /dev/null
     echo "  ✓ $NAME (created)"
   fi
 }

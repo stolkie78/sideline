@@ -140,12 +140,26 @@ docker compose -f docker-compose.prod.yml --profile setup run --rm pb-setup
 ./scripts/deploy.sh
 ```
 
-### HTTPS
+### HTTPS & Meerdere Domeinen / Apps
 
 Caddy regelt automatisch Let's Encrypt certificaten:
 - Poort 80 + 443 moeten open staan
 - DNS A-record moet naar het server IP wijzen
 - `www.setbaas.nl` → automatisch redirect naar `setbaas.nl`
+
+#### Extra domeinen / applicaties toevoegen
+Plaats een `.caddy` bestand in `caddy/conf.d/` om extra hostnames en applicaties te rerouten via Caddy.
+
+Voorbeeld (`caddy/conf.d/andereapp.caddy`):
+```caddy
+andereapp.voorbeeld.nl {
+    reverse_proxy container_naam:8080
+}
+```
+Na het toevoegen herstart je Caddy met:
+```bash
+docker compose -f docker-compose.prod.yml restart caddy
+```
 
 ### Google OAuth
 
