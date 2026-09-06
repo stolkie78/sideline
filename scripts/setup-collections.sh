@@ -151,7 +151,7 @@ ensure_collection "{
     {\"name\": \"nevobo_url\", \"type\": \"url\", \"required\": false}
   ],
   \"listRule\": \"@request.auth.id != \\\"\\\"\",
-  \"viewRule\": \"\",
+  \"viewRule\": \"id != \\\"\\\"\",
   \"createRule\": \"@request.auth.id != \\\"\\\"\",
   \"updateRule\": \"@request.auth.id != \\\"\\\"\",
   \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
@@ -458,8 +458,8 @@ ensure_collection "{
     {\"name\": \"invited_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"expires_at\", \"type\": \"date\", \"required\": true}
   ],
-  \"listRule\": \"\",
-  \"viewRule\": \"\",
+  \"listRule\": \"id != \\\"\\\"\",
+  \"viewRule\": \"id != \\\"\\\"\",
   \"createRule\": \"@request.auth.id != \\\"\\\"\",
   \"updateRule\": \"@request.auth.id != \\\"\\\"\",
   \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
