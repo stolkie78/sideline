@@ -4,3 +4,4 @@ pb_data
 build
 .env
 *.db
+.env.production
