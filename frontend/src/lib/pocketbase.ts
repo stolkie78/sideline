@@ -327,6 +327,10 @@ export async function updateTeam(id: string, data: Partial<Team>): Promise<Team>
 	return pb.collection('teams').update<Team>(id, data);
 }
 
+export async function deleteTeam(id: string): Promise<void> {
+	await pb.collection('teams').delete(id);
+}
+
 export async function getSeasons(): Promise<Season[]> {
 	return pb.collection('seasons').getFullList<Season>({ sort: '-start_year' });
 }
@@ -467,6 +471,56 @@ export async function updateTeamAccess(id: string, data: Partial<Pick<TeamAccess
 
 export async function revokeTeamAccess(id: string): Promise<boolean> {
 	return pb.collection('team_access').delete(id);
+}
+
+// === Club Access (multi-user, club-scoped) ===
+// Replaces team_access: a role granted on a club applies to every team under
+// it. default_team is used when a person has access to more than one team
+// (within the club, or across clubs) to pick which one loads initially.
+
+export interface ClubAccess {
+	id: string;
+	user: string;
+	club: string;
+	role: 'admin' | 'user' | 'viewer';
+	default_team?: string;
+	is_trainer?: boolean;
+	is_player?: boolean;
+	is_parent?: boolean;
+	expand?: {
+		user?: { id: string; email: string; name: string };
+		club?: Club;
+		default_team?: Team;
+	};
+}
+
+export async function getClubAccessForUser(userId: string): Promise<ClubAccess[]> {
+	return pb.collection('club_access').getFullList<ClubAccess>({
+		filter: `user = "${userId}"`,
+		expand: 'club,default_team',
+	});
+}
+
+export async function getClubAccessForClub(clubId: string): Promise<ClubAccess[]> {
+	return pb.collection('club_access').getFullList<ClubAccess>({
+		filter: `club = "${clubId}"`,
+		expand: 'user,default_team',
+	});
+}
+
+export async function grantClubAccess(data: { user: string; club: string; role: string; default_team?: string }): Promise<ClubAccess> {
+	return pb.collection('club_access').create<ClubAccess>(data);
+}
+
+export async function updateClubAccess(
+	id: string,
+	data: Partial<Pick<ClubAccess, 'role' | 'default_team' | 'is_trainer' | 'is_player' | 'is_parent'>>
+): Promise<ClubAccess> {
+	return pb.collection('club_access').update<ClubAccess>(id, data);
+}
+
+export async function revokeClubAccess(id: string): Promise<boolean> {
+	return pb.collection('club_access').delete(id);
 }
 
 export async function createUserAsAdmin(data: { name: string; email: string }): Promise<{ id: string; email: string; name: string }> {

@@ -1,40 +1,53 @@
 import { writable, derived, get } from 'svelte/store';
-import { selectedTeamId } from './context';
+import { selectedClubId } from './context';
 import { isAuthenticated } from './auth';
-import { pb, getTeamAccessForUser, getPlayerByUserId, getPlayerByEmail, linkPlayerToUser } from '$lib/pocketbase';
-import type { TeamAccess } from '$lib/pocketbase';
+import { pb, getClubAccessForUser, getPlayerByUserId, getPlayerByEmail, linkPlayerToUser } from '$lib/pocketbase';
+import type { ClubAccess } from '$lib/pocketbase';
 import type { Player } from '$lib/types';
 
-export type UserRole = 'admin' | 'coach' | 'player' | null;
+export type UserRole = 'admin' | 'user' | 'viewer' | null;
 
-// All team_access records for the current user
-export const userTeamAccess = writable<TeamAccess[]>([]);
+// All club_access records for the current user
+export const userClubAccess = writable<ClubAccess[]>([]);
 
 // The player record linked to the current user (if any)
 export const linkedPlayer = writable<Player | null>(null);
 
-// Current role for the selected team
+// Current role for the selected club
 export const userRole = derived(
-	[userTeamAccess, selectedTeamId],
-	([$access, $teamId]) => {
-		if (!$teamId || $access.length === 0) return null;
-		// Admin on any team = admin everywhere
-		const isAdmin = $access.some(a => a.role === 'admin');
-		if (isAdmin) return 'admin' as UserRole;
-		const teamAccess = $access.find(a => a.team === $teamId);
-		return (teamAccess?.role as UserRole) || null;
+	[userClubAccess, selectedClubId],
+	([$access, $clubId]) => {
+		if (!$clubId || $access.length === 0) return null;
+		// Admin on any club = admin everywhere
+		const isAdminAnywhere = $access.some(a => a.role === 'admin');
+		if (isAdminAnywhere) return 'admin' as UserRole;
+		const clubAccess = $access.find(a => a.club === $clubId);
+		return (clubAccess?.role as UserRole) || null;
 	}
 );
 
 // Is admin (global)
-export const isAdmin = derived(userTeamAccess, ($access) =>
+export const isAdmin = derived(userClubAccess, ($access) =>
 	$access.some(a => a.role === 'admin')
 );
 
-// Is coach or admin for current team
+// Is user or admin for current club (i.e. not a read-only viewer)
 export const isCoachOrAdmin = derived(
 	[userRole],
-	([$role]) => $role === 'admin' || $role === 'coach'
+	([$role]) => $role === 'admin' || $role === 'user'
+);
+
+/**
+ * The default team for the current user on the current club, if one was set.
+ * Only meaningful when someone has access to more than one team within the
+ * club — otherwise the regular "first accessible team" fallback applies.
+ */
+export const defaultTeamId = derived(
+	[userClubAccess, selectedClubId],
+	([$access, $clubId]) => {
+		const clubAccess = $access.find(a => a.club === $clubId);
+		return clubAccess?.default_team || '';
+	}
 );
 
 // Load user role data — call after login
@@ -45,9 +58,9 @@ export async function loadUserRoles() {
 	const userId = model.id;
 	const userEmail = model.email;
 
-	// Load team access
-	const access = await getTeamAccessForUser(userId);
-	userTeamAccess.set(access);
+	// Load club access
+	const access = await getClubAccessForUser(userId);
+	userClubAccess.set(access);
 
 	// Try to find linked player
 	let player = await getPlayerByUserId(userId);
@@ -65,6 +78,6 @@ export async function loadUserRoles() {
 
 // Clear on logout
 export function clearUserRoles() {
-	userTeamAccess.set([]);
+	userClubAccess.set([]);
 	linkedPlayer.set(null);
 }

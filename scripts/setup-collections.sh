@@ -57,6 +57,22 @@ curl -sf -X PATCH "$PB_URL/api/collections/users" \
   -H "Content-Type: application/json" \
   -d '{"viewRule":"@request.auth.id != \"\"","listRule":"@request.auth.id != \"\"","updateRule":"id = @request.auth.id","createRule":"","deleteRule":"id = @request.auth.id"}' > /dev/null 2>&1 && echo "  ✅ Users API rules updated" || echo "  ⚠️ Could not update users API rules"
 
+# Add is_platform_admin flag to users. A platform admin is a narrow built-in
+# role (not a superuser): they can only create new clubs and grant the first
+# admin to a freshly created club. They cannot see or manage any other data.
+echo "→ Ensuring is_platform_admin field on users collection..."
+EXISTING_USER_FIELDS=$(curl -sf "$PB_URL/api/collections/users" -H "Authorization: Bearer $TOKEN" | jq -c '.fields')
+HAS_PLATFORM_ADMIN_FIELD=$(echo "$EXISTING_USER_FIELDS" | jq 'any(.name == "is_platform_admin")')
+if [ "$HAS_PLATFORM_ADMIN_FIELD" != "true" ]; then
+  MERGED_USER_FIELDS=$(echo "$EXISTING_USER_FIELDS" | jq -c '. + [{"name":"is_platform_admin","type":"bool","required":false}]')
+  curl -sf -X PATCH "$PB_URL/api/collections/users" \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d "{\"fields\": $MERGED_USER_FIELDS}" > /dev/null \
+    && echo "  ✅ is_platform_admin field added" || echo "  ⚠️ Could not add is_platform_admin field"
+else
+  echo "  ✅ is_platform_admin field exists"
+fi
+
 # Helper: create or update a collection
 # Usage: ensure_collection '{"name":"...", "type":"...", "fields":[...], ...}'
 ensure_collection() {
@@ -213,6 +229,30 @@ TEAMS_ID=$(get_col_id "teams")
 SEASONS_ID=$(get_col_id "seasons")
 PLAYERS_ID=$(get_col_id "players")
 COMPETENCIES_ID=$(get_col_id "competencies")
+
+# === 4b. Club Access (multi-user, club-scoped) ===
+# Replaces team_access: granting a role on a club gives access to every team
+# under it. default_team lets someone with multiple teams in the same club
+# pick which one loads by default.
+ensure_collection "{
+  \"name\": \"club_access\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"user\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
+    {\"name\": \"club\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$CLUBS_ID\", \"maxSelect\": 1},
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"user\",\"viewer\"], \"maxSelect\": 1},
+    {\"name\": \"default_team\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
+    {\"name\": \"is_trainer\", \"type\": \"bool\", \"required\": false},
+    {\"name\": \"is_player\", \"type\": \"bool\", \"required\": false},
+    {\"name\": \"is_parent\", \"type\": \"bool\", \"required\": false}
+  ],
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
+}"
+CLUB_ACCESS_ID=$(get_col_id "club_access")
 
 # === 5. Player Competencies ===
 ensure_collection "{
@@ -596,6 +636,56 @@ else
   echo "  ✓ Seizoen exists (skipped)"
 fi
 
+echo ""
+echo "🔄 Migrating team_access naar club_access..."
+
+# team_access granted a role per team. Access is now granted per club (which
+# covers every team under it), so fold each user's team_access records into
+# one club_access record per club they had any team access in, keeping the
+# highest role and OR-ing the trainer/player/parent flags. Idempotent: a user
+# who already has a club_access record for that club is left untouched.
+TEAM_CLUB_MAP=$(curl -sf --get "$PB_URL/api/collections/teams/records" \
+  --data-urlencode "perPage=200" -H "Authorization: Bearer $TOKEN" \
+  | jq -c '[.items[] | select(.club != "") | {(.id): .club}] | add // {}')
+
+ALL_TEAM_ACCESS=$(curl -sf --get "$PB_URL/api/collections/team_access/records" \
+  --data-urlencode "perPage=500" -H "Authorization: Bearer $TOKEN" | jq -c '.items')
+
+MIGRATIONS=$(jq -n --argjson teamClub "$TEAM_CLUB_MAP" --argjson access "$ALL_TEAM_ACCESS" '
+  def roleRank: {"admin":3,"user":2,"viewer":1}[.] // 0;
+  [$access[]
+    | . as $a
+    | ($teamClub[$a.team] // null) as $club
+    | select($club != null)
+    | {user: $a.user, club: $club, role: $a.role, is_trainer: ($a.is_trainer // false), is_player: ($a.is_player // false), is_parent: ($a.is_parent // false)}
+  ]
+  | group_by(.user + "|" + .club)
+  | map({
+      user: .[0].user,
+      club: .[0].club,
+      role: (reduce .[] as $x (""; if ($x.role | roleRank) > (. | roleRank) then $x.role else . end)),
+      is_trainer: (map(.is_trainer) | any),
+      is_player: (map(.is_player) | any),
+      is_parent: (map(.is_parent) | any)
+    })
+')
+
+MIGRATED_COUNT=0
+while IFS= read -r ROW; do
+  [ -z "$ROW" ] && continue
+  U=$(echo "$ROW" | jq -r '.user')
+  C=$(echo "$ROW" | jq -r '.club')
+  EXISTING=$(curl -sf --get "$PB_URL/api/collections/club_access/records" \
+    --data-urlencode "filter=user='$U' && club='$C'" --data-urlencode "perPage=1" \
+    -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
+  if [ -z "$EXISTING" ]; then
+    curl -sf "$PB_URL/api/collections/club_access/records" -X POST \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d "$ROW" > /dev/null && MIGRATED_COUNT=$((MIGRATED_COUNT + 1))
+  fi
+done < <(echo "$MIGRATIONS" | jq -c '.[]')
+echo "  ✓ $MIGRATED_COUNT club_access record(s) migrated (idempotent, skips existing)"
+
 OWNER_EMAIL="${OWNER_EMAIL:-}"
 if [ -n "$OWNER_EMAIL" ]; then
   echo ""
@@ -607,28 +697,50 @@ if [ -n "$OWNER_EMAIL" ]; then
   if [ -z "$OWNER_ID" ]; then
     echo "  ⚠ User $OWNER_EMAIL not found, skipped"
   else
-    ALL_TEAMS=$(curl -sf --get "$PB_URL/api/collections/teams/records" \
+    ALL_CLUBS=$(curl -sf --get "$PB_URL/api/collections/clubs/records" \
       --data-urlencode "perPage=200" \
       -H "Authorization: Bearer $TOKEN" | jq -r '.items[] | "\(.id)|\(.name)"')
 
-    echo "$ALL_TEAMS" | while IFS='|' read -r TID TNAME; do
-      [ -z "$TID" ] && continue
-      EXISTING=$(curl -sf --get "$PB_URL/api/collections/team_access/records" \
-        --data-urlencode "filter=user='$OWNER_ID' && team='$TID'" --data-urlencode "perPage=1" \
+    echo "$ALL_CLUBS" | while IFS='|' read -r CID CNAME; do
+      [ -z "$CID" ] && continue
+      EXISTING=$(curl -sf --get "$PB_URL/api/collections/club_access/records" \
+        --data-urlencode "filter=user='$OWNER_ID' && club='$CID'" --data-urlencode "perPage=1" \
         -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
 
       if [ -z "$EXISTING" ]; then
-        curl -sf "$PB_URL/api/collections/team_access/records" -X POST \
+        curl -sf "$PB_URL/api/collections/club_access/records" -X POST \
           -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-          -d "{\"user\":\"$OWNER_ID\",\"team\":\"$TID\",\"role\":\"admin\"}" > /dev/null \
-          && echo "  ✓ Admin access on '$TNAME' granted"
+          -d "{\"user\":\"$OWNER_ID\",\"club\":\"$CID\",\"role\":\"admin\"}" > /dev/null \
+          && echo "  ✓ Admin access on '$CNAME' granted"
       else
-        curl -sf -X PATCH "$PB_URL/api/collections/team_access/records/$EXISTING" \
+        curl -sf -X PATCH "$PB_URL/api/collections/club_access/records/$EXISTING" \
           -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
           -d '{"role":"admin"}' > /dev/null \
-          && echo "  ✓ Admin access on '$TNAME' confirmed"
+          && echo "  ✓ Admin access on '$CNAME' confirmed"
       fi
     done
+  fi
+fi
+
+CLUB_ADMIN_EMAIL="${CLUB_ADMIN_EMAIL:-}"
+CLUB_ADMIN_PASSWORD="${CLUB_ADMIN_PASSWORD:-}"
+if [ -n "$CLUB_ADMIN_EMAIL" ] && [ -n "$CLUB_ADMIN_PASSWORD" ]; then
+  echo ""
+  echo "🛡️  Ensuring built-in club admin account ($CLUB_ADMIN_EMAIL)..."
+  EXISTING_CLUB_ADMIN=$(curl -sf --get "$PB_URL/api/collections/users/records" \
+    --data-urlencode "filter=email='$CLUB_ADMIN_EMAIL'" --data-urlencode "perPage=1" \
+    -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
+
+  if [ -z "$EXISTING_CLUB_ADMIN" ]; then
+    curl -sf "$PB_URL/api/collections/users/records" -X POST \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d "{\"email\":\"$CLUB_ADMIN_EMAIL\",\"password\":\"$CLUB_ADMIN_PASSWORD\",\"passwordConfirm\":\"$CLUB_ADMIN_PASSWORD\",\"name\":\"Club Admin\",\"verified\":true,\"emailVisibility\":true,\"is_platform_admin\":true}" > /dev/null \
+      && echo "  ✓ Club admin account created" || echo "  ⚠️ Could not create club admin account"
+  else
+    curl -sf -X PATCH "$PB_URL/api/collections/users/records/$EXISTING_CLUB_ADMIN" \
+      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+      -d '{"is_platform_admin":true,"verified":true}' > /dev/null \
+      && echo "  ✓ Club admin account confirmed (flagged as platform admin)" || echo "  ⚠️ Could not update club admin account"
   fi
 fi
 

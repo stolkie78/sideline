@@ -10,6 +10,7 @@ export interface AuthUser extends RecordModel {
 	email: string;
 	name: string;
 	avatar?: string;
+	is_platform_admin?: boolean;
 }
 
 function getAuthModel(): AuthUser | null {
@@ -65,3 +66,4 @@ function createAuthStore() {
 
 export const authUser = createAuthStore();
 export const isAuthenticated = derived(authUser, ($user) => AUTH_ENABLED ? !!$user : true);
+export const isPlatformAdmin = derived(authUser, ($user) => !!$user?.is_platform_admin);

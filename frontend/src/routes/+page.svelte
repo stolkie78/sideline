@@ -91,7 +91,7 @@
 	<title>SetBaas - Dashboard</title>
 </svelte:head>
 
-{#if $userRole === 'player'}
+{#if $userRole === 'viewer'}
 	<PlayerDashboard />
 {:else if loading}
 	<div class="flex justify-center py-12">

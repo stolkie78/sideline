@@ -5,7 +5,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { getClubs, getTeams, getSeasons, getTeamAccessForUser, grantTeamAccess } from '$lib/pocketbase';
+	import { getClubs, getTeams, getSeasons, getClubAccessForUser, grantClubAccess } from '$lib/pocketbase';
 	import { pb } from '$lib/pocketbase';
 	import {
 		selectedClubId,
@@ -16,8 +16,8 @@
 		seasons as seasonsStore,
 		teamsInClub,
 	} from '$lib/stores/context';
-	import { authUser, isAuthenticated, AUTH_ENABLED } from '$lib/stores/auth';
-	import { userRole, isCoachOrAdmin, loadUserRoles, clearUserRoles } from '$lib/stores/role';
+	import { authUser, isAuthenticated, isPlatformAdmin, AUTH_ENABLED } from '$lib/stores/auth';
+	import { userRole, isCoachOrAdmin, loadUserRoles, clearUserRoles, userClubAccess, defaultTeamId } from '$lib/stores/role';
 	import type { Club, Team, Season } from '$lib/types';
 	import { version } from '../../package.json';
 
@@ -45,31 +45,36 @@
 
 		try {
 			const allTeams = await getTeams();
-			localClubs = await getClubs();
+			const allClubs = await getClubs();
 			localSeasons = await getSeasons();
 
-			// If auth is enabled, filter teams by user access
+			let access: import('$lib/pocketbase').ClubAccess[] = [];
+
+			// If auth is enabled, filter clubs & teams by user access
 			if (AUTH_ENABLED && pb.authStore.isValid) {
 				const model = (pb.authStore as any).record || (pb.authStore as any).model;
 				if (model) {
 					const userId = model.id;
-					const access = await getTeamAccessForUser(userId);
+					access = await getClubAccessForUser(userId);
 
-					if (access.length === 0 && allTeams.length > 0) {
-						// First user: auto-grant admin on all existing teams
-						for (const team of allTeams) {
-							await grantTeamAccess({ user: userId, team: team.id, role: 'admin' });
+					if (access.length === 0 && allClubs.length > 0) {
+						// First user: auto-grant admin on every existing club
+						for (const club of allClubs) {
+							await grantClubAccess({ user: userId, club: club.id, role: 'admin' });
 						}
-						localTeams = allTeams;
-					} else {
-						// Filter to accessible teams only
-						const accessibleIds = new Set(access.map(a => a.team));
-						localTeams = allTeams.filter(t => accessibleIds.has(t.id));
+						access = await getClubAccessForUser(userId);
 					}
+
+					// Filter to accessible clubs/teams only
+					const accessibleClubIds = new Set(access.map(a => a.club));
+					localClubs = allClubs.filter(c => accessibleClubIds.has(c.id));
+					localTeams = allTeams.filter(t => !t.club || accessibleClubIds.has(t.club));
 				} else {
+					localClubs = allClubs;
 					localTeams = allTeams;
 				}
 			} else {
+				localClubs = allClubs;
 				localTeams = allTeams;
 			}
 
@@ -77,20 +82,26 @@
 			teamsStore.set(localTeams);
 			seasonsStore.set(localSeasons);
 
-			// Keep the club selection valid, but never override a club the user picked
+			// Keep the club selection valid, but never override a club the user picked.
+			// Prefer a club with an explicit default_team when picking the initial one.
 			if (!localClubs.some((c) => c.id === $selectedClubId)) {
-				$selectedClubId = localTeams.find((t) => t.club)?.club || localClubs[0]?.id || '';
+				const withDefault = access.find(a => a.default_team);
+				$selectedClubId = withDefault?.club || localTeams.find((t) => t.club)?.club || localClubs[0]?.id || '';
 			}
 
 			const selectableTeams = teamsInClub(localTeams, $selectedClubId);
 			if (!selectableTeams.some((t) => t.id === $selectedTeamId)) {
-				$selectedTeamId = selectableTeams[0]?.id || '';
+				const clubAccessForSelected = access.find(a => a.club === $selectedClubId);
+				const preferredTeam = clubAccessForSelected?.default_team;
+				$selectedTeamId = (preferredTeam && selectableTeams.some((t) => t.id === preferredTeam))
+					? preferredTeam
+					: (selectableTeams[0]?.id || '');
 			}
 			if (!$selectedSeasonId && localSeasons.length > 0) {
 				$selectedSeasonId = localSeasons[0].id;
 			}
 
-			// Load user roles after teams are ready
+			// Load user roles after clubs/teams are ready
 			if (AUTH_ENABLED && pb.authStore.isValid) {
 				await loadUserRoles();
 			}
@@ -131,9 +142,11 @@
 	function handleClubChange() {
 		// visibleTeams is still the previous club's list at this point
 		const teamsForClub = teamsInClub(localTeams, $selectedClubId);
-		if (!teamsForClub.some((t) => t.id === $selectedTeamId)) {
-			$selectedTeamId = teamsForClub[0]?.id || '';
-		}
+		const clubAccessForSelected = $userClubAccess.find(a => a.club === $selectedClubId);
+		const preferredTeam = clubAccessForSelected?.default_team;
+		$selectedTeamId = (preferredTeam && teamsForClub.some((t) => t.id === preferredTeam))
+			? preferredTeam
+			: (teamsForClub[0]?.id || '');
 	}
 
 	$: currentClubName = localClubs.find((c) => c.id === $selectedClubId)?.name || 'Club';
@@ -141,18 +154,19 @@
 	$: currentSeasonName = localSeasons.find((s) => s.id === $selectedSeasonId)?.name || 'Seizoen';
 
 	const allNavItems = [
-		{ href: '/', label: 'Dashboard', roles: ['admin', 'coach', 'player'] },
-		{ href: '/players', label: 'Spelers', roles: ['admin', 'coach'] },
-		{ href: '/trainings', label: 'Trainingen', roles: ['admin', 'coach'] },
-		{ href: '/matches', label: 'Wedstrijden', roles: ['admin', 'coach'] },
-		{ href: '/periodisering', label: 'Periodisering', roles: ['admin', 'coach'] },
-		{ href: '/reports', label: 'Rapporten', roles: ['admin', 'coach'] },
+		{ href: '/', label: 'Dashboard', roles: ['admin', 'user', 'viewer'] },
+		{ href: '/players', label: 'Spelers', roles: ['admin', 'user', 'viewer'] },
+		{ href: '/trainings', label: 'Trainingen', roles: ['admin', 'user', 'viewer'] },
+		{ href: '/matches', label: 'Wedstrijden', roles: ['admin', 'user', 'viewer'] },
+		{ href: '/periodisering', label: 'Periodisering', roles: ['admin', 'user', 'viewer'] },
+		{ href: '/reports', label: 'Rapporten', roles: ['admin', 'user', 'viewer'] },
 		{ href: '/config', label: 'Configuratie', roles: ['admin'] },
 	];
 
-	$: navItems = allNavItems.filter(item =>
-		!$userRole || item.roles.includes($userRole)
-	);
+	$: navItems = [
+		...allNavItems.filter(item => !$userRole || item.roles.includes($userRole)),
+		...($isPlatformAdmin ? [{ href: '/platform-admin', label: 'Clubs beheren', roles: [] as string[] }] : []),
+	];
 </script>
 
 <svelte:head>
@@ -303,7 +317,7 @@
 								{#if $userRole}
 									<span class="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full
 										{$userRole === 'admin' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-										 $userRole === 'coach' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+										 $userRole === 'user' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
 										 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}"
 									>{$userRole}</span>
 								{/if}
