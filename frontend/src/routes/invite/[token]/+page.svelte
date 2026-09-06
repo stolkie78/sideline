@@ -7,7 +7,7 @@
 
 	let status: 'loading' | 'valid' | 'expired' | 'error' | 'accepted' = 'loading';
 	let invitation: any = null;
-	let teamName = '';
+	let clubName = '';
 	let errorMsg = '';
 
 	// Registration form
@@ -39,11 +39,11 @@
 
 			email = invitation.email;
 
-			// Get team name
+			// Get club name
 			try {
-				const team = await pb.collection('teams').getOne(invitation.team);
-				teamName = team.name;
-			} catch { teamName = 'Team'; }
+				const club = await pb.collection('clubs').getOne(invitation.club);
+				clubName = club.name;
+			} catch { clubName = 'Club'; }
 
 			// If user is already logged in, auto-accept
 			if (pb.authStore.isValid) {
@@ -60,10 +60,10 @@
 
 	async function acceptInvitation() {
 		try {
-			// Grant team_access
-			await pb.collection('team_access').create({
+			// Grant club_access
+			await pb.collection('club_access').create({
 				user: pb.authStore.record?.id,
-				team: invitation.team,
+				club: invitation.club,
 				role: invitation.role
 			});
 
@@ -160,16 +160,16 @@
 			</div>
 		{:else if status === 'accepted'}
 			<div class="card text-center">
-				<h2 class="text-xl font-bold text-green-600 mb-2">✅ Welkom bij {teamName}!</h2>
+				<h2 class="text-xl font-bold text-green-600 mb-2">✅ Welkom bij {clubName}!</h2>
 				<p class="text-gray-600 dark:text-gray-400">Je hebt nu toegang. Je wordt doorgestuurd...</p>
 			</div>
 		{:else if status === 'valid'}
 			<div class="card space-y-4">
 				<h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 text-center">
-					🏐 Uitnodiging voor {teamName}
+					🏐 Uitnodiging voor {clubName}
 				</h2>
 				<p class="text-center text-gray-600 dark:text-gray-400">
-					Je bent uitgenodigd als <strong class="text-primary-600">{invitation.role === 'admin' ? 'Admin' : invitation.role === 'coach' ? 'Coach' : 'Kijker'}</strong>
+					Je bent uitgenodigd als <strong class="text-primary-600">{invitation.role === 'admin' ? 'Admin' : invitation.role === 'user' ? 'Gebruiker' : 'Lezer'}</strong>
 				</p>
 
 				<div class="border-t dark:border-gray-700 pt-4 space-y-3">

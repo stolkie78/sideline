@@ -492,8 +492,8 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"email\", \"type\": \"email\", \"required\": true},
     {\"name\": \"token\", \"type\": \"text\", \"required\": true},
-    {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
-    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"coach\",\"player\"], \"maxSelect\": 1},
+    {\"name\": \"club\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$CLUBS_ID\", \"maxSelect\": 1},
+    {\"name\": \"role\", \"type\": \"select\", \"required\": true, \"values\": [\"admin\",\"user\",\"viewer\"], \"maxSelect\": 1},
     {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"pending\",\"accepted\",\"expired\"], \"maxSelect\": 1},
     {\"name\": \"invited_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
     {\"name\": \"expires_at\", \"type\": \"date\", \"required\": true}
@@ -504,6 +504,30 @@ ensure_collection "{
   \"updateRule\": \"@request.auth.id != \\\"\\\"\",
   \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
+
+# Legacy installs required the (now removed from the definition above, but
+# never dropped) "team" field and only allowed admin/coach/player as role
+# values. Loosen "team" so it's no longer required and fix the role select so
+# admin/user/viewer invites actually validate.
+INVITATIONS_FIELDS=$(curl -sf "$PB_URL/api/collections/invitations" -H "Authorization: Bearer $TOKEN" | jq -c '.fields')
+NEEDS_INVITATIONS_FIX=$(echo "$INVITATIONS_FIELDS" | jq '
+  (map(select(.name == "team" and .required == true)) | length > 0)
+  or (map(select(.name == "role")) | (.[0].values // []) != ["admin","user","viewer"])
+')
+if [ "$NEEDS_INVITATIONS_FIX" = "true" ]; then
+  echo "  🔄 Fixing legacy invitations fields (team optional, role values)"
+  FIXED_INVITATIONS_FIELDS=$(echo "$INVITATIONS_FIELDS" | jq -c '
+    map(
+      if .name == "team" then . + {"required": false}
+      elif .name == "role" then . + {"values": ["admin","user","viewer"]}
+      else . end
+    )
+  ')
+  curl -sf -X PATCH "$PB_URL/api/collections/invitations" \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d "{\"fields\": $FIXED_INVITATIONS_FIELDS}" > /dev/null \
+    && echo "  ✓ invitations fields fixed" || echo "  ⚠️ Could not fix invitations fields"
+fi
 
 echo ""
 echo "🔐 Configuring Google OAuth..."

@@ -8,21 +8,24 @@
 		deleteCompetency,
 		getClubs,
 		createClub,
+		updateClub,
+		deleteClub,
 		getTeams,
 		getSeasons,
 		createTeam,
 		updateTeam,
+		deleteTeam,
 		createSeason,
-		getTeamAccessForTeam,
-		grantTeamAccess,
-		revokeTeamAccess,
-		updateTeamAccess,
+		getClubAccessForClub,
+		grantClubAccess,
+		revokeClubAccess,
+		updateClubAccess,
 		findUserByEmail,
 		createUserAsAdmin,
 		createTraining,
 		pb,
 	} from '$lib/pocketbase';
-	import type { TeamAccess } from '$lib/pocketbase';
+	import type { ClubAccess } from '$lib/pocketbase';
 	import { clubs as clubsStore, teams as teamsStore, seasons as seasonsStore, selectedClubId, selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import type { Club, Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
@@ -49,7 +52,7 @@
 
 	async function handleToggleRole(access: any, field: 'is_trainer' | 'is_player' | 'is_parent', value: boolean) {
 		try {
-			await updateTeamAccess(access.id, { [field]: value });
+			await updateClubAccess(access.id, { [field]: value });
 		} catch (e) { alert('Fout: ' + e); await loadAccess(); }
 	}
 
@@ -164,6 +167,10 @@
 		await Promise.all([loadCompetencies(), loadTeamsSeasons()]);
 	});
 
+	// Keep the access list in sync whenever the selected club changes,
+	// regardless of which tab is active.
+	$: if ($selectedClubId) loadAccess();
+
 	async function loadCompetencies() {
 		loadingComp = true;
 		try {
@@ -227,8 +234,7 @@
 
 	let newClubName = '';
 	let savingClub = false;
-	let newTeamClubId = '';
-	let newTeamName = '';
+	let newTeamNameByClub: Record<string, string> = {};
 	let savingTeam = false;
 	let newStartYear = new Date().getFullYear();
 	let newEndYear = new Date().getFullYear() + 1;
@@ -241,7 +247,6 @@
 			clubsStore.set(clubs);
 			teamsStore.set(teams);
 			seasonsStore.set(seasons);
-			if (!newTeamClubId) newTeamClubId = $selectedClubId || clubs[0]?.id || '';
 		} catch (e) {
 			console.error('Failed to load teams/seasons:', e);
 		} finally {
@@ -264,6 +269,55 @@
 		}
 	}
 
+	async function handleRenameClub(club: Club, newName: string) {
+		if (!newName.trim() || newName.trim() === club.name) return;
+		try {
+			await updateClub(club.id, { name: newName.trim() });
+			await loadTeamsSeasons();
+		} catch (e) {
+			console.error('Failed to rename club:', e);
+			alert('Fout bij hernoemen club');
+		}
+	}
+
+	async function handleDeleteClub(club: Club) {
+		const clubTeamCount = teams.filter((t) => t.club === club.id).length;
+		if (clubTeamCount > 0) {
+			alert(`Verwijder eerst alle ${clubTeamCount} team(s) onder "${club.name}" voordat je de club verwijdert.`);
+			return;
+		}
+		if (!confirm(`Club "${club.name}" verwijderen? Alle gekoppelde toegangsrechten worden ook verwijderd.`)) return;
+		try {
+			await deleteClub(club.id);
+			await loadTeamsSeasons();
+		} catch (e) {
+			console.error('Failed to delete club:', e);
+			alert('Fout bij verwijderen club');
+		}
+	}
+
+	async function handleRenameTeam(team: Team, newName: string) {
+		if (!newName.trim() || newName.trim() === team.name) return;
+		try {
+			await updateTeam(team.id, { name: newName.trim() });
+			await loadTeamsSeasons();
+		} catch (e) {
+			console.error('Failed to rename team:', e);
+			alert('Fout bij hernoemen team');
+		}
+	}
+
+	async function handleDeleteTeam(team: Team) {
+		if (!confirm(`Team "${team.name}" verwijderen? Trainingen, wedstrijden en spelerskoppelingen van dit team blijven bestaan maar verliezen hun teamkoppeling. Dit kan niet ongedaan worden.`)) return;
+		try {
+			await deleteTeam(team.id);
+			await loadTeamsSeasons();
+		} catch (e) {
+			console.error('Failed to delete team:', e);
+			alert('Fout bij verwijderen team');
+		}
+	}
+
 	async function saveTeamClub(team: Team, clubId: string) {
 		try {
 			await updateTeam(team.id, { club: clubId || undefined });
@@ -274,12 +328,13 @@
 		}
 	}
 
-	async function handleAddTeam() {
-		if (!newTeamName.trim()) return;
+	async function handleAddTeam(clubId: string) {
+		const name = (newTeamNameByClub[clubId] || '').trim();
+		if (!name) return;
 		savingTeam = true;
 		try {
-			await createTeam(newTeamName.trim(), newTeamClubId || undefined);
-			newTeamName = '';
+			await createTeam(name, clubId || undefined);
+			newTeamNameByClub = { ...newTeamNameByClub, [clubId]: '' };
 			await loadTeamsSeasons();
 		} catch (e) {
 			console.error('Failed to create team:', e);
@@ -315,8 +370,8 @@
 		}
 	}
 
-	// === Team Access ===
-	let accessList: TeamAccess[] = [];
+	// === Club Access ===
+	let accessList: ClubAccess[] = [];
 	let loadingAccess = false;
 	let addMemberName = '';
 	let addMemberEmail = '';
@@ -325,8 +380,10 @@
 	let addMemberSuccess = '';
 	let addingMember = false;
 
+	$: clubTeams = teams.filter((t) => t.club === $selectedClubId);
+
 	async function handleAddMember() {
-		if (!addMemberName.trim() || !addMemberEmail.trim() || !$selectedTeamId) return;
+		if (!addMemberName.trim() || !addMemberEmail.trim() || !$selectedClubId) return;
 		addMemberError = '';
 		addMemberSuccess = '';
 		addingMember = true;
@@ -335,13 +392,13 @@
 			if (user) {
 				const existing = accessList.find(a => a.user === user!.id);
 				if (existing) {
-					addMemberError = 'Deze gebruiker heeft al toegang tot dit team.';
+					addMemberError = 'Deze gebruiker heeft al toegang tot deze club.';
 					return;
 				}
 			} else {
 				user = await createUserAsAdmin({ name: addMemberName.trim(), email: addMemberEmail.trim() });
 			}
-			await grantTeamAccess({ user: user.id, team: $selectedTeamId, role: addMemberRole });
+			await grantClubAccess({ user: user.id, club: $selectedClubId, role: addMemberRole });
 			const isGmail = addMemberEmail.trim().toLowerCase().endsWith('@gmail.com');
 			addMemberSuccess = isGmail
 				? `✅ ${addMemberName} toegevoegd — kan inloggen met Google`
@@ -368,10 +425,10 @@
 	};
 
 	async function loadAccess() {
-		if (!$selectedTeamId) return;
+		if (!$selectedClubId) return;
 		loadingAccess = true;
 		try {
-			accessList = await getTeamAccessForTeam($selectedTeamId);
+			accessList = await getClubAccessForClub($selectedClubId);
 		} catch (e) {
 			console.error('Failed to load access:', e);
 		} finally {
@@ -383,7 +440,7 @@
 	let inviteLink = '';
 
 	async function handleInvite() {
-		if (!inviteEmail.trim() || !$selectedTeamId) return;
+		if (!inviteEmail.trim() || !$selectedClubId) return;
 		inviteError = '';
 		inviteSuccess = '';
 		inviteLink = '';
@@ -394,11 +451,11 @@
 			if (user) {
 				const existing = accessList.find(a => a.user === user.id);
 				if (existing) {
-					inviteError = 'Deze gebruiker heeft al toegang tot dit team.';
+					inviteError = 'Deze gebruiker heeft al toegang tot deze club.';
 					return;
 				}
 				// User exists, grant directly
-				await grantTeamAccess({ user: user.id, team: $selectedTeamId, role: inviteRole });
+				await grantClubAccess({ user: user.id, club: $selectedClubId, role: inviteRole });
 				inviteEmail = '';
 				inviteSuccess = 'Toegang direct verleend (gebruiker bestaat al).';
 				await loadAccess();
@@ -406,14 +463,14 @@
 			}
 
 			// User doesn't exist — send invitation email
-			const teamObj = teams.find(t => t.id === $selectedTeamId);
+			const clubObj = clubs.find(c => c.id === $selectedClubId);
 			const res = await fetch(`${base}/api/invite`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					email: inviteEmail.trim(),
-					team: $selectedTeamId,
-					teamName: teamObj?.name || 'Team',
+					club: $selectedClubId,
+					clubName: clubObj?.name || 'Club',
 					role: inviteRole,
 					invitedBy: pb.authStore.record?.id,
 					siteUrl: window.location.origin
@@ -437,27 +494,36 @@
 		}
 	}
 
-	async function handleRoleChange(access: TeamAccess, newRole: string) {
+	async function handleRoleChange(access: ClubAccess, newRole: string) {
 		try {
-			await updateTeamAccess(access.id, { role: newRole });
+			await updateClubAccess(access.id, { role: newRole });
 			await loadAccess();
 		} catch (e) {
 			alert('Fout bij wijzigen rol');
 		}
 	}
 
-	async function handleRevoke(access: TeamAccess) {
+	async function handleDefaultTeamChange(access: ClubAccess, teamId: string) {
+		try {
+			await updateClubAccess(access.id, { default_team: teamId || undefined });
+			await loadAccess();
+		} catch (e) {
+			alert('Fout bij wijzigen standaard team');
+		}
+	}
+
+	async function handleRevoke(access: ClubAccess) {
 		const name = access.expand?.user?.name || access.expand?.user?.email || '?';
 		if (!confirm(`Toegang voor ${name} intrekken?`)) return;
 		try {
-			await revokeTeamAccess(access.id);
+			await revokeClubAccess(access.id);
 			await loadAccess();
 		} catch (e) {
 			alert('Fout bij intrekken toegang');
 		}
 	}
 
-	async function handleNameChange(access: TeamAccess, newName: string) {
+	async function handleNameChange(access: ClubAccess, newName: string) {
 		if (!access.user || !newName.trim()) return;
 		try {
 			await pb.collection('users').update(access.user, { name: newName.trim() });
@@ -627,74 +693,96 @@
 	<!-- Teams & Seasons Tab -->
 	{:else if activeTab === 'teams'}
 		<div class="space-y-4">
-			<!-- Clubs -->
-			<div class="card space-y-3">
-				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Clubs</h3>
-				{#if clubs.length > 0}
-					<div class="space-y-1">
-						{#each clubs as club}
-							<div class="flex items-center gap-2 py-1.5 border-b border-gray-50 dark:border-gray-700 last:border-0">
-								<span class="text-sm font-medium flex-1">{club.name}</span>
-								<span class="text-xs text-gray-400">{teams.filter((t) => t.club === club.id).length} teams</span>
-							</div>
-						{/each}
-					</div>
-				{/if}
-				<form class="flex gap-2" on:submit|preventDefault={handleAddClub}>
-					<input class="input flex-1" type="text" bind:value={newClubName} placeholder="Nieuwe club..." />
-					<button type="submit" class="btn-primary text-sm" disabled={savingClub}>+</button>
-				</form>
-			</div>
+			<!-- New club form -->
+			<form class="card flex gap-2" on:submit|preventDefault={handleAddClub}>
+				<input class="input flex-1" type="text" bind:value={newClubName} placeholder="Nieuwe club..." />
+				<button type="submit" class="btn-primary text-sm" disabled={savingClub}>+ Club</button>
+			</form>
 
-			<!-- Teams -->
-			<div class="card space-y-3">
-				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Teams</h3>
-				{#if teams.length > 0}
-					<div class="space-y-3">
-						{#each teams as team}
-							<div class="p-3 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2">
-								<span class="text-sm font-medium">{team.name}</span>
-								<div class="flex gap-2 items-center">
-									<label class="text-xs text-gray-500 dark:text-gray-400 w-10" for="club-{team.id}">Club</label>
-									<select
-										id="club-{team.id}"
-										class="input text-xs flex-1"
-										value={team.club || ''}
-										on:change={(e) => saveTeamClub(team, e.currentTarget.value)}
-									>
-										<option value="">— geen club —</option>
-										{#each clubs as club}
-											<option value={club.id}>{club.name}</option>
-										{/each}
-									</select>
-								</div>
-								<div class="flex gap-2 items-center">
-									<input
-										class="input text-xs flex-1"
-										type="url"
-										placeholder="Nevobo URL (bijv. https://www.volleybal.nl/competitie/...)"
-										value={team.nevobo_url || ''}
-										on:blur={(e) => saveTeamNevoboUrl(team, e.currentTarget.value)}
-									/>
-									{#if team.nevobo_url}
-										<a href={team.nevobo_url} target="_blank" class="text-blue-400 text-xs hover:underline">↗</a>
-									{/if}
-								</div>
-							</div>
-						{/each}
+			<!-- Clubs with nested teams -->
+			{#each clubs as club (club.id)}
+				<div class="card space-y-3">
+					<div class="flex items-center gap-2">
+						<input
+							class="text-lg font-semibold text-gray-800 dark:text-gray-200 bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-primary-500 focus:outline-none flex-1"
+							value={club.name}
+							on:blur={(e) => handleRenameClub(club, e.currentTarget.value)}
+							on:keydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+						/>
+						<button class="text-xs text-red-500 hover:underline whitespace-nowrap" on:click={() => handleDeleteClub(club)}>
+							Verwijder club
+						</button>
 					</div>
-				{/if}
-				<form class="flex gap-2" on:submit|preventDefault={handleAddTeam}>
-					<select class="input w-32 text-sm" bind:value={newTeamClubId}>
-						<option value="">Geen club</option>
-						{#each clubs as club}
-							<option value={club.id}>{club.name}</option>
-						{/each}
-					</select>
-					<input class="input flex-1" type="text" bind:value={newTeamName} placeholder="Nieuw team..." />
-					<button type="submit" class="btn-primary text-sm" disabled={savingTeam}>+</button>
-				</form>
-			</div>
+
+					{#each teams.filter((t) => t.club === club.id) as team (team.id)}
+						<div class="p-3 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2 ml-2">
+							<div class="flex items-center gap-2">
+								<input
+									class="text-sm font-medium text-gray-800 dark:text-gray-200 bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-primary-500 focus:outline-none flex-1"
+									value={team.name}
+									on:blur={(e) => handleRenameTeam(team, e.currentTarget.value)}
+									on:keydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+								/>
+								<button class="text-xs text-red-500 hover:underline whitespace-nowrap" on:click={() => handleDeleteTeam(team)}>
+									Verwijder
+								</button>
+							</div>
+							<div class="flex gap-2 items-center">
+								<input
+									class="input text-xs flex-1"
+									type="url"
+									placeholder="Nevobo URL (bijv. https://www.volleybal.nl/competitie/...)"
+									value={team.nevobo_url || ''}
+									on:blur={(e) => saveTeamNevoboUrl(team, e.currentTarget.value)}
+								/>
+								{#if team.nevobo_url}
+									<a href={team.nevobo_url} target="_blank" class="text-blue-400 text-xs hover:underline">↗</a>
+								{/if}
+							</div>
+						</div>
+					{/each}
+
+					<form class="flex gap-2 ml-2" on:submit|preventDefault={() => handleAddTeam(club.id)}>
+						<input
+							class="input flex-1 text-sm"
+							type="text"
+							value={newTeamNameByClub[club.id] || ''}
+							on:input={(e) => (newTeamNameByClub = { ...newTeamNameByClub, [club.id]: e.currentTarget.value })}
+							placeholder="Nieuw team in {club.name}..."
+						/>
+						<button type="submit" class="btn-primary text-sm" disabled={savingTeam}>+ Team</button>
+					</form>
+				</div>
+			{/each}
+
+			<!-- Teams without a club (legacy / unassigned) -->
+			{#if teams.some((t) => !t.club)}
+				<div class="card space-y-3">
+					<h3 class="font-semibold text-gray-800 dark:text-gray-200">Teams zonder club</h3>
+					{#each teams.filter((t) => !t.club) as team (team.id)}
+						<div class="p-3 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2">
+							<span class="text-sm font-medium">{team.name}</span>
+							<div class="flex gap-2 items-center">
+								<label class="text-xs text-gray-500 dark:text-gray-400 w-10" for="club-{team.id}">Club</label>
+								<select
+									id="club-{team.id}"
+									class="input text-xs flex-1"
+									value={team.club || ''}
+									on:change={(e) => saveTeamClub(team, e.currentTarget.value)}
+								>
+									<option value="">— geen club —</option>
+									{#each clubs as club}
+										<option value={club.id}>{club.name}</option>
+									{/each}
+								</select>
+								<button class="text-xs text-red-500 hover:underline whitespace-nowrap" on:click={() => handleDeleteTeam(team)}>
+									Verwijder
+								</button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
 
 			<!-- Seasons -->
 			<div class="card space-y-3">
@@ -735,7 +823,7 @@
 	{:else if activeTab === 'access'}
 		<div class="space-y-4">
 			<p class="text-sm text-gray-500 dark:text-gray-400">
-				Beheer wie toegang heeft tot het huidige team.
+				Beheer wie toegang heeft tot de huidige club (en daarmee tot alle teams eronder).
 			</p>
 
 			<!-- Add member form -->
@@ -820,55 +908,72 @@
 				</div>
 			{:else}
 				<div class="card">
-					<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Teamleden</h3>
+					<h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-3">Clubleden</h3>
 					<div class="space-y-2">
 						{#each accessList as access}
-							<div class="flex items-center gap-3 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
-								<div class="flex-1 min-w-0">
-									<input
-										class="text-sm font-medium text-gray-800 dark:text-gray-200 bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-primary-500 focus:outline-none w-full truncate"
-										value={access.expand?.user?.name || ''}
-										placeholder="Naam..."
-										on:blur={(e) => handleNameChange(access, e.currentTarget.value)}
-										on:keydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
-									/>
-									<span class="text-xs text-gray-400 dark:text-gray-500 block truncate">
-										{access.expand?.user?.email || ''}
-									</span>
-								</div>
+							<div class="flex flex-col gap-2 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
 								<div class="flex items-center gap-3">
-									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-											checked={access.is_trainer}
-											on:change={() => { access.is_trainer = !access.is_trainer; handleToggleRole(access, 'is_trainer', access.is_trainer); }} />
-										Trainer
-									</label>
-									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-											checked={access.is_player}
-											on:change={() => { access.is_player = !access.is_player; handleToggleRole(access, 'is_player', access.is_player); }} />
-										Speler
-									</label>
-									<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
-										<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
-											checked={access.is_parent}
-											on:change={() => { access.is_parent = !access.is_parent; handleToggleRole(access, 'is_parent', access.is_parent); }} />
-										Ouder
-									</label>
+									<div class="flex-1 min-w-0">
+										<input
+											class="text-sm font-medium text-gray-800 dark:text-gray-200 bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-primary-500 focus:outline-none w-full truncate"
+											value={access.expand?.user?.name || ''}
+											placeholder="Naam..."
+											on:blur={(e) => handleNameChange(access, e.currentTarget.value)}
+											on:keydown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+										/>
+										<span class="text-xs text-gray-400 dark:text-gray-500 block truncate">
+											{access.expand?.user?.email || ''}
+										</span>
+									</div>
+									<div class="flex items-center gap-3">
+										<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+											<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+												checked={access.is_trainer}
+												on:change={() => { access.is_trainer = !access.is_trainer; handleToggleRole(access, 'is_trainer', access.is_trainer); }} />
+											Trainer
+										</label>
+										<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+											<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+												checked={access.is_player}
+												on:change={() => { access.is_player = !access.is_player; handleToggleRole(access, 'is_player', access.is_player); }} />
+											Speler
+										</label>
+										<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer">
+											<input type="checkbox" class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+												checked={access.is_parent}
+												on:change={() => { access.is_parent = !access.is_parent; handleToggleRole(access, 'is_parent', access.is_parent); }} />
+											Ouder
+										</label>
+									</div>
+									<select
+										class="input w-24 py-1 text-xs"
+										value={access.role}
+										on:change={(e) => handleRoleChange(access, e.currentTarget.value)}>
+										<option value="admin">Admin</option>
+										<option value="user">Gebruiker</option>
+										<option value="viewer">Lezer</option>
+									</select>
+									<button
+										class="text-xs text-red-500 hover:underline"
+										on:click={() => handleRevoke(access)}>
+										Verwijder
+									</button>
 								</div>
-								<select
-									class="input w-24 py-1 text-xs"
-									value={access.role}
-									on:change={(e) => handleRoleChange(access, e.currentTarget.value)}>
-									<option value="admin">Admin</option>
-									<option value="user">Gebruiker</option>
-									<option value="viewer">Lezer</option>
-								</select>
-								<button
-									class="text-xs text-red-500 hover:underline"
-									on:click={() => handleRevoke(access)}>
-									Verwijder
-								</button>
+								{#if clubTeams.length > 1}
+									<div class="flex items-center gap-2 pl-1">
+										<label class="text-xs text-gray-500 dark:text-gray-400" for="default-team-{access.id}">Standaard team</label>
+										<select
+											id="default-team-{access.id}"
+											class="input w-40 py-1 text-xs"
+											value={access.default_team || ''}
+											on:change={(e) => handleDefaultTeamChange(access, e.currentTarget.value)}>
+											<option value="">— eerste beschikbare —</option>
+											{#each clubTeams as t}
+												<option value={t.id}>{t.name}</option>
+											{/each}
+										</select>
+									</div>
+								{/if}
 							</div>
 						{/each}
 					</div>

@@ -4,10 +4,10 @@ import { env as pubEnv } from '$env/dynamic/public';
 import nodemailer from 'nodemailer';
 
 export const POST: RequestHandler = async ({ request }) => {
-	const { email, team, teamName, role, invitedBy, siteUrl } = await request.json();
+	const { email, club, clubName, role, invitedBy, siteUrl } = await request.json();
 
-	if (!email || !team || !role) {
-		return new Response(JSON.stringify({ error: 'Missing email, team or role' }), {
+	if (!email || !club || !role) {
+		return new Response(JSON.stringify({ error: 'Missing email, club or role' }), {
 			status: 400,
 			headers: { 'Content-Type': 'application/json' }
 		});
@@ -71,7 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			body: JSON.stringify({
 				email,
 				token,
-				team,
+				club,
 				role,
 				status: 'pending',
 				invited_by: invitedBy || '',
@@ -118,16 +118,16 @@ export const POST: RequestHandler = async ({ request }) => {
 		});
 
 		const inviteLink = `${siteUrl || 'http://localhost:3000'}/invite/${token}`;
-		const roleLabel = role === 'admin' ? 'Admin' : role === 'coach' ? 'Coach' : 'Kijker';
+		const roleLabel = role === 'admin' ? 'Admin' : role === 'user' ? 'Gebruiker' : 'Lezer';
 
 		await transporter.sendMail({
 			from: `"SetBaas" <${smtpFrom}>`,
 			to: email,
-			subject: `Uitnodiging voor ${teamName || 'een team'} op SetBaas`,
+			subject: `Uitnodiging voor ${clubName || 'een club'} op SetBaas`,
 			html: `
 				<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
 					<h2 style="color: #2563eb;">🏐 Je bent uitgenodigd!</h2>
-					<p>Je bent uitgenodigd als <strong>${roleLabel}</strong> voor <strong>${teamName || 'een team'}</strong> op SetBaas.</p>
+					<p>Je bent uitgenodigd als <strong>${roleLabel}</strong> voor <strong>${clubName || 'een club'}</strong> op SetBaas.</p>
 					<p>Klik op de onderstaande knop om je account aan te maken en toegang te krijgen:</p>
 					<a href="${inviteLink}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin: 16px 0;">
 						Accepteer uitnodiging
