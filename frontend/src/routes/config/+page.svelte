@@ -27,6 +27,8 @@
 	} from '$lib/pocketbase';
 	import type { ClubAccess } from '$lib/pocketbase';
 	import { clubs as clubsStore, teams as teamsStore, seasons as seasonsStore, selectedClubId, selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { userClubAccess, isAdmin } from '$lib/stores/role';
+	import { isPlatformAdmin } from '$lib/stores/auth';
 	import type { Club, Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 
@@ -231,6 +233,13 @@
 	let teams: Team[] = [];
 	let seasons: Season[] = [];
 	let loadingTeams = true;
+
+	// A club_access "admin" role is required to manage a club's teams/members
+	// here — being admin of one club must not grant management rights over
+	// every other club, even though the global $userRole flag treats "admin
+	// anywhere" as admin (used only for showing/hiding nav items).
+	$: myAdminClubIds = new Set($userClubAccess.filter((a) => a.role === 'admin').map((a) => a.club));
+	$: manageableClubs = clubs.filter((c) => myAdminClubIds.has(c.id));
 
 	let newClubName = '';
 	let savingClub = false;
@@ -699,8 +708,17 @@
 				<button type="submit" class="btn-primary text-sm" disabled={savingClub}>+ Club</button>
 			</form>
 
-			<!-- Clubs with nested teams -->
-			{#each clubs as club (club.id)}
+			{#if manageableClubs.length === 0}
+				<div class="card text-center py-8 text-gray-500 dark:text-gray-400 space-y-2">
+					<p>Je bent nog geen admin van een club, dus er zijn geen teams om te beheren.</p>
+					{#if $isPlatformAdmin}
+						<a href="{base}/platform-admin" class="text-primary-600 hover:underline text-sm">Ga naar Clubs beheren</a>
+					{/if}
+				</div>
+			{/if}
+
+			<!-- Clubs with nested teams (only clubs you administer) -->
+			{#each manageableClubs as club (club.id)}
 				<div class="card space-y-3">
 					<div class="flex items-center gap-2">
 						<input
@@ -771,7 +789,7 @@
 									on:change={(e) => saveTeamClub(team, e.currentTarget.value)}
 								>
 									<option value="">— geen club —</option>
-									{#each clubs as club}
+									{#each manageableClubs as club}
 										<option value={club.id}>{club.name}</option>
 									{/each}
 								</select>
@@ -822,8 +840,16 @@
 	<!-- Access Tab -->
 	{:else if activeTab === 'access'}
 		<div class="space-y-4">
+			<div class="card space-y-2">
+				<label class="label text-xs" for="access-club-select">Club</label>
+				<select id="access-club-select" class="input" bind:value={$selectedClubId}>
+					{#each clubs as club}
+						<option value={club.id}>{club.name}</option>
+					{/each}
+				</select>
+			</div>
 			<p class="text-sm text-gray-500 dark:text-gray-400">
-				Beheer wie toegang heeft tot de huidige club (en daarmee tot alle teams eronder).
+				Beheer wie toegang heeft tot <strong>{clubs.find(c => c.id === $selectedClubId)?.name || 'de geselecteerde club'}</strong> (en daarmee tot alle teams eronder).
 			</p>
 
 			<!-- Add member form -->

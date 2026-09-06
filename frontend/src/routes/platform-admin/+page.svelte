@@ -5,20 +5,31 @@
 	import {
 		getClubs,
 		createClub,
+		deleteClub,
+		getTeams,
 		getClubAccessForClub,
 		grantClubAccess,
 		findUserByEmail,
 		createUserAsAdmin,
 	} from '$lib/pocketbase';
 	import type { Club } from '$lib/types';
+	import type { ClubAccess } from '$lib/pocketbase';
 	import { isPlatformAdmin } from '$lib/stores/auth';
+	import { userClubAccess } from '$lib/stores/role';
 
 	// This page is intentionally narrow: a platform admin can only bootstrap a
 	// new club and hand it its first admin. Once a club has an admin, all
 	// further team/member management happens in the regular /config screen.
 	let clubs: Club[] = [];
 	let ownedClubIds = new Set<string>();
+	let clubAdmins: Record<string, ClubAccess[]> = {};
 	let loading = true;
+	let deletingClubId = '';
+
+	// Clubs where the current user itself has the admin role — only these
+	// clubs may be deleted from this page, even though any platform admin can
+	// view the whole list and bootstrap new clubs.
+	$: myAdminClubIds = new Set($userClubAccess.filter((a) => a.role === 'admin').map((a) => a.club));
 
 	// New club form
 	let newClubName = '';
@@ -47,11 +58,15 @@
 		try {
 			clubs = await getClubs();
 			const owned = new Set<string>();
+			const admins: Record<string, ClubAccess[]> = {};
 			for (const club of clubs) {
 				const access = await getClubAccessForClub(club.id);
-				if (access.length > 0) owned.add(club.id);
+				const clubAdminAccess = access.filter((a) => a.role === 'admin');
+				if (clubAdminAccess.length > 0) owned.add(club.id);
+				admins[club.id] = clubAdminAccess;
 			}
 			ownedClubIds = owned;
+			clubAdmins = admins;
 		} catch (e) {
 			console.error('Failed to load clubs:', e);
 		} finally {
@@ -108,6 +123,26 @@
 			assigningClubId = '';
 		}
 	}
+
+	async function handleDeleteClub(club: Club) {
+		if (!myAdminClubIds.has(club.id)) return;
+		try {
+			const clubTeams = await getTeams(club.id);
+			if (clubTeams.length > 0) {
+				alert(`Verwijder eerst alle ${clubTeams.length} team(s) onder "${club.name}" voordat je de club verwijdert.`);
+				return;
+			}
+			if (!confirm(`Club "${club.name}" verwijderen? Alle gekoppelde toegangsrechten worden ook verwijderd.`)) return;
+			deletingClubId = club.id;
+			await deleteClub(club.id);
+			await loadClubs();
+		} catch (e: any) {
+			console.error('Failed to delete club:', e);
+			alert(e?.message || 'Fout bij verwijderen club');
+		} finally {
+			deletingClubId = '';
+		}
+	}
 </script>
 
 <svelte:head>
@@ -118,7 +153,7 @@
 	<div>
 		<h1 class="text-xl font-bold text-gray-900 dark:text-white">Clubs beheren</h1>
 		<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-			Als club admin kun je nieuwe clubs aanmaken en de eerste admin toewijzen.
+			Als setbaas-admin kun je nieuwe clubs aanmaken en de eerste admin toewijzen.
 			Verder beheer (teams, leden) gebeurt daarna via Configuratie door die admin zelf.
 		</p>
 	</div>
@@ -147,12 +182,35 @@
 				<div class="border-b border-gray-100 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
 					<div class="flex items-center justify-between">
 						<span class="font-medium text-gray-800 dark:text-gray-200">{club.name}</span>
-						{#if ownedClubIds.has(club.id)}
-							<span class="text-xs text-green-600 dark:text-green-400">Heeft al een admin</span>
-						{:else}
-							<span class="text-xs text-amber-600 dark:text-amber-400">Nog geen admin</span>
-						{/if}
+						<div class="flex items-center gap-2">
+							{#if ownedClubIds.has(club.id)}
+								<span class="text-xs text-green-600 dark:text-green-400">Heeft al een admin</span>
+							{:else}
+								<span class="text-xs text-amber-600 dark:text-amber-400">Nog geen admin</span>
+							{/if}
+							{#if myAdminClubIds.has(club.id)}
+								<button
+									class="text-xs text-red-500 hover:underline whitespace-nowrap"
+									disabled={deletingClubId === club.id}
+									on:click={() => handleDeleteClub(club)}>
+									{deletingClubId === club.id ? 'Bezig...' : 'Verwijderen'}
+								</button>
+							{/if}
+						</div>
 					</div>
+
+					{#if clubAdmins[club.id]?.length}
+						<ul class="mt-1 space-y-0.5">
+							{#each clubAdmins[club.id] as access}
+								<li class="text-xs text-gray-500 dark:text-gray-400">
+									👤 {access.expand?.user?.name || access.expand?.user?.email || 'Onbekend'}
+									{#if access.expand?.user?.name}
+										<span class="text-gray-400 dark:text-gray-500">({access.expand.user.email})</span>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					{/if}
 
 					{#if !ownedClubIds.has(club.id)}
 						<div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">

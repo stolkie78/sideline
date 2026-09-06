@@ -746,25 +746,25 @@ if [ -n "$OWNER_EMAIL" ]; then
   fi
 fi
 
-CLUB_ADMIN_EMAIL="${CLUB_ADMIN_EMAIL:-}"
-CLUB_ADMIN_PASSWORD="${CLUB_ADMIN_PASSWORD:-}"
-if [ -n "$CLUB_ADMIN_EMAIL" ] && [ -n "$CLUB_ADMIN_PASSWORD" ]; then
+SETBAAS_ADMIN_EMAIL="${SETBAAS_ADMIN_EMAIL:-}"
+SETBAAS_ADMIN_PASSWORD="${SETBAAS_ADMIN_PASSWORD:-}"
+if [ -n "$SETBAAS_ADMIN_EMAIL" ] && [ -n "$SETBAAS_ADMIN_PASSWORD" ]; then
   echo ""
-  echo "🛡️  Ensuring built-in club admin account ($CLUB_ADMIN_EMAIL)..."
-  EXISTING_CLUB_ADMIN=$(curl -sf --get "$PB_URL/api/collections/users/records" \
-    --data-urlencode "filter=email='$CLUB_ADMIN_EMAIL'" --data-urlencode "perPage=1" \
+  echo "🛡️  Ensuring built-in setbaas-admin account ($SETBAAS_ADMIN_EMAIL)..."
+  EXISTING_SETBAAS_ADMIN=$(curl -sf --get "$PB_URL/api/collections/users/records" \
+    --data-urlencode "filter=email='$SETBAAS_ADMIN_EMAIL'" --data-urlencode "perPage=1" \
     -H "Authorization: Bearer $TOKEN" | jq -r '.items[0].id // empty')
 
-  if [ -z "$EXISTING_CLUB_ADMIN" ]; then
+  if [ -z "$EXISTING_SETBAAS_ADMIN" ]; then
     curl -sf "$PB_URL/api/collections/users/records" -X POST \
       -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-      -d "{\"email\":\"$CLUB_ADMIN_EMAIL\",\"password\":\"$CLUB_ADMIN_PASSWORD\",\"passwordConfirm\":\"$CLUB_ADMIN_PASSWORD\",\"name\":\"Club Admin\",\"verified\":true,\"emailVisibility\":true,\"is_platform_admin\":true}" > /dev/null \
-      && echo "  ✓ Club admin account created" || echo "  ⚠️ Could not create club admin account"
+      -d "{\"email\":\"$SETBAAS_ADMIN_EMAIL\",\"password\":\"$SETBAAS_ADMIN_PASSWORD\",\"passwordConfirm\":\"$SETBAAS_ADMIN_PASSWORD\",\"name\":\"SetBaas Admin\",\"verified\":true,\"emailVisibility\":true,\"is_platform_admin\":true}" > /dev/null \
+      && echo "  ✓ SetBaas admin account created" || echo "  ⚠️ Could not create setbaas-admin account"
   else
-    curl -sf -X PATCH "$PB_URL/api/collections/users/records/$EXISTING_CLUB_ADMIN" \
+    curl -sf -X PATCH "$PB_URL/api/collections/users/records/$EXISTING_SETBAAS_ADMIN" \
       -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
       -d '{"is_platform_admin":true,"verified":true}' > /dev/null \
-      && echo "  ✓ Club admin account confirmed (flagged as platform admin)" || echo "  ⚠️ Could not update club admin account"
+      && echo "  ✓ SetBaas admin account confirmed (flagged as platform admin)" || echo "  ⚠️ Could not update setbaas-admin account"
   fi
 fi
 
