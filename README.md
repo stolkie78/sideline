@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.8.5
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.9.2
 
 ## Tech Stack
 
@@ -280,6 +280,9 @@ De AI gebruikt automatisch:
 | `HTTP_PORT` | HTTP poort (standaard 80) | `80` |
 | `PB_ADMIN_EMAIL` | PocketBase admin email | `admin@setbaas.nl` |
 | `PB_ADMIN_PASSWORD` | PocketBase admin wachtwoord | (secret) |
+| `OWNER_EMAIL` | Krijgt bij elke setup automatisch admin-rechten op alle teams (optioneel) | `jouw@gmail.com` |
+| `SETBAAS_ADMIN_EMAIL` | Built-in platform-beheerder account (optioneel): kan alleen nieuwe clubs aanmaken en de eerste admin per club toewijzen — verder géén toegang tot teamdata | `admin@setbaas.nl` |
+| `SETBAAS_ADMIN_PASSWORD` | Wachtwoord voor bovenstaand account | (secret) |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | `*.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | (secret) |
 | `SMTP_HOST` | SMTP server | `smtp.gmail.com` |
@@ -332,6 +335,16 @@ lege applicatie zien in plaats van de spelers van een andere club.
 Zet `OWNER_EMAIL` in je `.env` om dat account bij elke setup admin-rechten op alle teams
 te geven.
 
+Toegang wordt geregeld via `club_access`: elke gebruiker heeft per club een rol
+(`admin`/`user`/`viewer`), plus optionele vlaggen (trainer/speler/ouder). Admin op één
+club geeft geen rechten op andere clubs — Configuratie scoped dit clientside op
+`manageableClubs` (de clubs waar de ingelogde gebruiker zelf `admin` is). Zet
+`SETBAAS_ADMIN_EMAIL`/`SETBAAS_ADMIN_PASSWORD` in je `.env` voor een built-in
+platform-beheerder-account dat op `/platform-admin` nieuwe clubs kan aanmaken en de
+eerste admin per club kan toewijzen — daarna beheert die admin zijn club zelf verder
+via Configuratie → Toegang (leden toevoegen/uitnodigen, rollen wijzigen, teams
+hernoemen/verwijderen).
+
 Wedstrijden hebben een `status` (`open` of `played`). Bestaande wedstrijden zonder status
 krijgen er automatisch een op basis van hun datum: alles in het verleden wordt `played`, de
 rest `open`.
@@ -342,6 +355,9 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.9.2** | 2026-09-06 | Docs: club_access/platform-admin/manageableClubs beschreven, env-var-tabel aangevuld met OWNER_EMAIL en SETBAAS_ADMIN_EMAIL/PASSWORD |
+| **v2.9.1** | 2026-09-06 | Fix: Google OAuth-login zet emailVisibility=true (loste 'undefined' e-mail op platform-admin-pagina op); Access-tab club-selector gescoped op manageableClubs |
+| **v2.9.0** | 2026-09-06 | Platform-admin-pagina toont admins per club en staat clubverwijdering toe (alleen door club-admin zelf); CLUB_ADMIN_EMAIL/PASSWORD hernoemd naar SETBAAS_ADMIN_EMAIL/PASSWORD |
 | **v2.8.5** | 2026-09-06 | Fix: club zonder team liet nog steeds een andere club's spelers zien (fallback in getContextPlayers verwijderd); nieuwe speler wordt nu direct gekoppeld aan het gekozen team/seizoen |
 | **v2.8.4** | 2026-09-06 | Beveiligingsfix: alle collecties vereisen nu een ingelogde gebruiker (lezen/schrijven), behalve de team-naam en uitnodigingslink die de invite-flow nodig heeft |
 | **v2.8.3** | 2026-09-05 | Fix: setup voegt nieuwe velden nu wel toe aan bestaande collecties, waardoor teams.club en matches.status eindelijk in productie landen |
