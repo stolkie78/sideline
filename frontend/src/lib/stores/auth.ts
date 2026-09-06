@@ -48,6 +48,16 @@ function createAuthStore() {
 			}
 
 			const authData = await pb.collection('users').authWithOAuth2({ provider: 'google' });
+			// Google OAuth-created accounts default to emailVisibility=false, which
+			// hides the email from other users (e.g. on the platform-admin page).
+			// Since this is an internal team-management app, always make it visible.
+			if (authData.record && !authData.record.emailVisibility) {
+				try {
+					await pb.collection('users').update(authData.record.id, { emailVisibility: true });
+				} catch (e) {
+					console.error('Failed to set emailVisibility:', e);
+				}
+			}
 			set(getAuthModel());
 			return authData;
 		},

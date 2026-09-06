@@ -843,13 +843,21 @@
 			<div class="card space-y-2">
 				<label class="label text-xs" for="access-club-select">Club</label>
 				<select id="access-club-select" class="input" bind:value={$selectedClubId}>
-					{#each clubs as club}
+					{#each manageableClubs as club}
 						<option value={club.id}>{club.name}</option>
 					{/each}
 				</select>
 			</div>
+			{#if manageableClubs.length === 0}
+				<p class="card text-sm text-gray-500 dark:text-gray-400">
+					Je bent nog geen admin van een club, dus je kunt hier nog geen toegang beheren.
+					{#if $isPlatformAdmin}
+						Ga naar <a href="{base}/platform-admin" class="underline">Clubs beheren</a> om jezelf als admin toe te wijzen aan een club.
+					{/if}
+				</p>
+			{:else}
 			<p class="text-sm text-gray-500 dark:text-gray-400">
-				Beheer wie toegang heeft tot <strong>{clubs.find(c => c.id === $selectedClubId)?.name || 'de geselecteerde club'}</strong> (en daarmee tot alle teams eronder).
+				Beheer wie toegang heeft tot <strong>{manageableClubs.find(c => c.id === $selectedClubId)?.name || 'de geselecteerde club'}</strong> (en daarmee tot alle teams eronder).
 			</p>
 
 			<!-- Add member form -->
@@ -1004,6 +1012,7 @@
 						{/each}
 					</div>
 				</div>
+			{/if}
 			{/if}
 		</div>
 	{:else if activeTab === 'ai'}
