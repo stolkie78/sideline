@@ -192,10 +192,11 @@
 		<div class="flex items-center justify-between px-5 py-3 max-w-2xl md:max-w-4xl lg:max-w-5xl mx-auto">
 			<!-- Left: Logo + Title -->
 			<a href="{base}/" class="flex items-center gap-3">
-				<img src="/logo.svg" alt="SetBaas" class="h-10 w-10" />
+				<img src="/logo.svg" alt="SetBaas" class="h-12 w-12" />
 				<div class="leading-tight">
-					<span class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">SetBaas</span>
-					<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentTeamName} · {currentSeasonName}</span>
+					<span class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">SetBaas</span>
+					<span class="block text-sm font-medium text-gray-600 dark:text-gray-300">{currentClubName} · {currentTeamName}</span>
+					<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentSeasonName}</span>
 				</div>
 			</a>
 
