@@ -348,8 +348,10 @@ export async function getTeamPlayers(teamId: string, seasonId: string): Promise<
 }
 
 /**
- * Players for the given team/season context. Falls back to every player only
- * when there is no context at all, so one club never sees another club's squad.
+ * Players for the given team/season context. No team means no roster — a club
+ * without a team, or a team without a season, sees zero players rather than
+ * falling back to every player in the database (which used to leak another
+ * club's squad into an empty context).
  */
 export async function getContextPlayers(
 	teamId: string,
@@ -359,7 +361,7 @@ export async function getContextPlayers(
 	const activeOnly = options.activeOnly ?? false;
 
 	if (!teamId || !seasonId) {
-		return getPlayers(activeOnly ? 'status = "active"' : '');
+		return [];
 	}
 
 	const teamPlayers = await getTeamPlayers(teamId, seasonId);

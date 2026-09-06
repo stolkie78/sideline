@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { getContextPlayers, getFileUrl, createPlayer } from '$lib/pocketbase';
+	import { getContextPlayers, getFileUrl, createPlayer, addPlayerToTeam } from '$lib/pocketbase';
 	import type { Player } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
@@ -45,6 +45,10 @@
 
 	async function handleSubmit() {
 		if (!formName.trim()) return;
+		if (!$selectedTeamId || !$selectedSeasonId) {
+			alert('Kies eerst een team en seizoen voordat je een speler toevoegt');
+			return;
+		}
 		saving = true;
 
 		try {
@@ -55,7 +59,9 @@
 			if (formJersey) data.append('jersey_number', formJersey);
 			if (formPhoto && formPhoto[0]) data.append('photo', formPhoto[0]);
 
-			await createPlayer(data);
+			const player = await createPlayer(data);
+			// A player only shows up in a roster once linked to the selected team/season
+			await addPlayerToTeam({ team: $selectedTeamId, season: $selectedSeasonId, player: player.id });
 			showForm = false;
 			formName = '';
 			formPositions = [];

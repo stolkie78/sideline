@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.8.4
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 2.8.5
 
 ## Tech Stack
 
@@ -342,6 +342,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v2.8.5** | 2026-09-06 | Fix: club zonder team liet nog steeds een andere club's spelers zien (fallback in getContextPlayers verwijderd); nieuwe speler wordt nu direct gekoppeld aan het gekozen team/seizoen |
 | **v2.8.4** | 2026-09-06 | Beveiligingsfix: alle collecties vereisen nu een ingelogde gebruiker (lezen/schrijven), behalve de team-naam en uitnodigingslink die de invite-flow nodig heeft |
 | **v2.8.3** | 2026-09-05 | Fix: setup voegt nieuwe velden nu wel toe aan bestaande collecties, waardoor teams.club en matches.status eindelijk in productie landen |
 | **v2.8.2** | 2026-09-05 | Fix: teamkeuze toont alleen teams van de gekozen club, met melding wanneer een club nog geen teams heeft |
