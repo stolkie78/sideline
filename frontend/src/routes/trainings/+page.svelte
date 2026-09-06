@@ -6,7 +6,7 @@
 	import { marked } from 'marked';
 	import type { Training, TrainingAttendance } from '$lib/types';
 	import { ATTENDANCE_LABELS } from '$lib/types';
-	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { selectedTeamId, selectedSeasonId, trainingsSortOrder } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 
 	let trainings: Training[] = [];
@@ -32,9 +32,17 @@
 		}
 	}
 
+	$: sortedTrainings = [...trainings].sort((a, b) => {
+		const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+		return $trainingsSortOrder === 'asc' ? diff : -diff;
+	});
 	$: filteredTrainings = statusFilter === 'all'
-		? trainings
-		: trainings.filter(t => statusFilter === 'open' ? (t.status === 'open' || t.status === 'active') : t.status === 'closed');
+		? sortedTrainings
+		: sortedTrainings.filter(t => statusFilter === 'open' ? (t.status === 'open' || t.status === 'active') : t.status === 'closed');
+
+	function toggleSort() {
+		trainingsSortOrder.set($trainingsSortOrder === 'desc' ? 'asc' : 'desc');
+	}
 
 	onMount(async () => {
 		try {
@@ -84,7 +92,12 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Trainingen</h2>
-		<a href="{base}/trainings/new" class="btn-primary">+ Training</a>
+		<div class="flex gap-2">
+			<button class="btn-secondary text-sm" on:click={toggleSort} title="Sorteervolgorde wisselen">
+				📅 {$trainingsSortOrder === 'desc' ? 'Nieuwste eerst' : 'Oudste eerst'}
+			</button>
+			<a href="{base}/trainings/new" class="btn-primary">+ Training</a>
+		</div>
 	</div>
 
 	<!-- Filter tabs -->

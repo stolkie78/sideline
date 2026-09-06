@@ -20,6 +20,10 @@ export const selectedClubId = createPersistentStore('selectedClubId', '');
 export const selectedTeamId = createPersistentStore('selectedTeamId', '');
 export const selectedSeasonId = createPersistentStore('selectedSeasonId', '');
 
+// Remembered sort direction ('desc' = nieuwste eerst) for the matches and trainings overviews
+export const matchesSortOrder = createPersistentStore('matchesSortOrder', 'desc');
+export const trainingsSortOrder = createPersistentStore('trainingsSortOrder', 'desc');
+
 // Full objects (set from layout)
 export const clubs = writable<Club[]>([]);
 export const teams = writable<Team[]>([]);

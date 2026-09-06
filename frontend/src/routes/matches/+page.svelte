@@ -5,7 +5,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { page } from '$app/stores';
 	import type { Match } from '$lib/types';
-	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { selectedTeamId, selectedSeasonId, matchesSortOrder } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore, getMatchStatus, isMatchFinished } from '$lib/utils/match';
 
@@ -22,13 +22,21 @@
 		}
 	}
 
-	$: openMatches = matches.filter(m => getMatchStatus(m) === 'open');
-	$: playedMatches = matches.filter(m => getMatchStatus(m) === 'played');
+	$: sortedMatches = [...matches].sort((a, b) => {
+		const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+		return $matchesSortOrder === 'asc' ? diff : -diff;
+	});
+	$: openMatches = sortedMatches.filter(m => getMatchStatus(m) === 'open');
+	$: playedMatches = sortedMatches.filter(m => getMatchStatus(m) === 'played');
 	$: filteredMatches = statusFilter === 'all'
-		? matches
+		? sortedMatches
 		: statusFilter === 'open'
 			? openMatches
 			: playedMatches;
+
+	function toggleSort() {
+		matchesSortOrder.set($matchesSortOrder === 'desc' ? 'asc' : 'desc');
+	}
 
 	onMount(async () => {
 		try {
@@ -55,6 +63,9 @@
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Wedstrijden</h2>
 		<div class="flex gap-2">
 			<a href="{base}/matches/import" class="btn-secondary text-sm">📥 Nevobo</a>
+			<button class="btn-secondary text-sm" on:click={toggleSort} title="Sorteervolgorde wisselen">
+				📅 {$matchesSortOrder === 'desc' ? 'Nieuwste eerst' : 'Oudste eerst'}
+			</button>
 			<a href="{base}/matches/new" class="btn-primary">+ Wedstrijd</a>
 		</div>
 	</div>
