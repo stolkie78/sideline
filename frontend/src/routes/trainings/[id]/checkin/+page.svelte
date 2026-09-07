@@ -379,8 +379,8 @@
 
 		<!-- STEP 3: Start -->
 		{:else if step === 'start'}
-			<div class="text-center py-8 space-y-6">
-				<div class="text-7xl">🏐</div>
+			<div class="text-center py-4 space-y-4">
+				<div class="text-6xl">🏐</div>
 				<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Klaar om te starten!</h2>
 				<div class="text-sm text-gray-500 space-y-1">
 					<p>👥 {presentCount} spelers aanwezig</p>
@@ -388,14 +388,37 @@
 						<p>😊 {checkedInIds.size} spelers ingecheckt</p>
 					{/if}
 				</div>
-				<button on:click={startTraining}
-					class="w-full py-5 rounded-2xl text-xl font-bold bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all">
-					Start Training!
-				</button>
-				<a href="{base}/trainings/{training.id}" class="inline-block text-sm text-gray-400 hover:text-primary-600">
-					Terug zonder starten
-				</a>
 			</div>
+
+			{#if checkedInIds.size > 0}
+				<div class="card !p-4 space-y-2 text-left">
+					<h3 class="font-semibold text-gray-900 dark:text-gray-100 text-sm">Check-in overzicht</h3>
+					{#each presentPlayers as player, i}
+						{@const att = existingAttendance[player.id]}
+						{#if att?.happiness && att?.fitness}
+							<div class="flex items-center justify-between gap-2 py-1">
+								<span class="text-sm font-medium text-gray-700 dark:text-gray-300">{player.name}</span>
+								<div class="flex items-center gap-2">
+									<span class="text-xl">{HAPPINESS_EMOJIS[att.happiness - 1]}</span>
+									<span class="text-xl">{FITNESS_EMOJIS[att.fitness - 1]}</span>
+									<button type="button" class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+										on:click={() => { selectPlayer(i); step = 'checkin'; }}>
+										Wijzig
+									</button>
+								</div>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			{/if}
+
+			<button on:click={startTraining}
+				class="w-full py-5 rounded-2xl text-xl font-bold bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg hover:shadow-xl active:scale-95 transition-all">
+				Start Training!
+			</button>
+			<a href="{base}/trainings/{training.id}" class="block text-center text-sm text-gray-400 hover:text-primary-600">
+				Terug zonder starten
+			</a>
 
 		<!-- DONE -->
 		{:else if step === 'done'}

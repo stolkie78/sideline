@@ -2,15 +2,24 @@
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
-	import { pb, getTrainingAttendance } from '$lib/pocketbase';
+	import { pb, getTrainingAttendance, updateTrainingAttendance } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance } from '$lib/types';
 	import { marked } from 'marked';
+
+	const HAPPINESS_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'];
+	const HAPPINESS_LABELS = ['Baal', 'Meh', 'Oké', 'Blij', 'Super!'];
+	const FITNESS_EMOJIS = ['🥱', '😴', '💪', '🔥', '⚡'];
+	const FITNESS_LABELS = ['Moe', 'Sloom', 'Goed', 'Fit', 'Top!'];
 
 	let training: Training | null = null;
 	let attendance: TrainingAttendance[] = [];
 	let loading = true;
+	let editingCheckinId: string | null = null;
+	let savingCheckin = false;
 
 	$: presentCount = attendance.filter(a => a.status === 'present').length;
+	$: checkedInAttendance = attendance.filter(a => a.status === 'present' && (a.happiness || a.fitness));
+	$: reflectionAttendance = attendance.filter(a => a.checkout_selected);
 
 	onMount(async () => {
 		try {
@@ -24,6 +33,23 @@
 
 	function exportPDF() {
 		window.print();
+	}
+
+	function startEditCheckin(attendanceId: string) {
+		editingCheckinId = editingCheckinId === attendanceId ? null : attendanceId;
+	}
+
+	async function saveCheckin(att: TrainingAttendance, happiness: number, fitness: number) {
+		savingCheckin = true;
+		try {
+			const updated = await updateTrainingAttendance(att.id, { happiness, fitness });
+			attendance = attendance.map(a => a.id === att.id ? { ...a, ...updated } : a);
+			editingCheckinId = null;
+		} catch (e) {
+			console.error('Failed to update check-in:', e);
+			alert('Fout bij bijwerken check-in');
+		}
+		savingCheckin = false;
 	}
 </script>
 
@@ -99,6 +125,85 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Check-in overzicht -->
+		{#if checkedInAttendance.length > 0}
+			<div class="card space-y-3">
+				<h2 class="font-semibold text-gray-900 dark:text-gray-100">😊 Check-in overzicht</h2>
+				<div class="space-y-2">
+					{#each checkedInAttendance as att}
+						{@const player = att.expand?.player}
+						<div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+							<div class="flex items-center justify-between gap-2">
+								<span class="font-medium text-gray-800 dark:text-gray-200">{player ? player.name : '...'}</span>
+								<div class="flex items-center gap-3">
+									{#if att.happiness}<span class="text-xl" title="Gevoel">{HAPPINESS_EMOJIS[att.happiness - 1]}</span>{/if}
+									{#if att.fitness}<span class="text-xl" title="Fitheid">{FITNESS_EMOJIS[att.fitness - 1]}</span>{/if}
+									<button class="no-print text-xs text-primary-600 hover:text-primary-700 font-medium" on:click={() => startEditCheckin(att.id)}>
+										{editingCheckinId === att.id ? 'Sluit' : 'Wijzig'}
+									</button>
+								</div>
+							</div>
+							{#if editingCheckinId === att.id}
+								{@const editHappiness = att.happiness || 0}
+								{@const editFitness = att.fitness || 0}
+								<div class="mt-3 space-y-3 no-print">
+									<div>
+										<p class="text-xs font-semibold text-gray-500 mb-1">Gevoel</p>
+										<div class="flex gap-1">
+											{#each HAPPINESS_EMOJIS as emoji, i}
+												<button type="button"
+													class="text-2xl p-1.5 rounded-lg {editHappiness === i + 1 ? 'bg-amber-100 dark:bg-amber-900/40 ring-2 ring-amber-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
+													title={HAPPINESS_LABELS[i]}
+													disabled={savingCheckin}
+													on:click={() => saveCheckin(att, i + 1, editFitness || att.fitness || 1)}>
+													{emoji}
+												</button>
+											{/each}
+										</div>
+									</div>
+									<div>
+										<p class="text-xs font-semibold text-gray-500 mb-1">Fitheid</p>
+										<div class="flex gap-1">
+											{#each FITNESS_EMOJIS as emoji, i}
+												<button type="button"
+													class="text-2xl p-1.5 rounded-lg {editFitness === i + 1 ? 'bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
+													title={FITNESS_LABELS[i]}
+													disabled={savingCheckin}
+													on:click={() => saveCheckin(att, editHappiness || att.happiness || 1, i + 1)}>
+													{emoji}
+												</button>
+											{/each}
+										</div>
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		<!-- Check-out reflectie -->
+		{#if reflectionAttendance.length > 0}
+			<div class="card space-y-3">
+				<h2 class="font-semibold text-gray-900 dark:text-gray-100">💬 Reflectie</h2>
+				{#if training.checkout_question}
+					<p class="text-sm text-gray-600 dark:text-gray-400 italic">"{training.checkout_question}"</p>
+				{/if}
+				<div class="space-y-2">
+					{#each reflectionAttendance as att}
+						{@const player = att.expand?.player}
+						<div class="rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+							<p class="font-medium text-gray-800 dark:text-gray-200">{player ? player.name : '...'}</p>
+							<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+								{att.checkout_answer || '— geen antwoord gegeven —'}
+							</p>
+						</div>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<!-- Resultaten (voor gesloten trainingen) -->
 		{#if training.status === 'closed' && (training.overall_rating || training.general_comments)}

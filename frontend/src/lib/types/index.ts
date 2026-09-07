@@ -91,6 +91,7 @@ export interface Training extends RecordModel {
 	content?: string;
 	created_by?: string;
 	trainer?: string[];
+	checkout_question?: string;
 	expand?: {
 		template?: TrainingTemplate;
 		created_by?: { id: string; name: string; email: string };
@@ -106,6 +107,8 @@ export interface TrainingAttendance extends RecordModel {
 	player_notes?: string;
 	happiness?: number;
 	fitness?: number;
+	checkout_selected?: boolean;
+	checkout_answer?: string;
 	// Expanded relations
 	expand?: {
 		player?: Player;

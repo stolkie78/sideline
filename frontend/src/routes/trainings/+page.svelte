@@ -9,6 +9,9 @@
 	import { selectedTeamId, selectedSeasonId, trainingsSortOrder } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
 
+	const HAPPINESS_EMOJIS = ['', '😢', '😕', '😐', '😊', '🤩'];
+	const FITNESS_EMOJIS = ['', '🥱', '😴', '💪', '🔥', '⚡'];
+
 	let trainings: Training[] = [];
 	let loading = true;
 	let expandedId: string | null = null;
@@ -172,9 +175,6 @@
 							>
 								Bekijk
 							</button>
-							<a href="{base}/trainings/{training.id}/checkin" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-green-600 transition-colors text-sm" title="Start Training">
-								▶️
-							</a>
 							<a href="{base}/trainings/{training.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-sm" title="Bewerken">
 								Bewerk
 							</a>
@@ -213,6 +213,15 @@
 					</p>
 				</div>
 				<div class="flex items-center gap-2">
+					{#if lightboxTraining.status === 'open'}
+						<a href="{base}/trainings/{lightboxTraining.id}/checkin" class="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors">
+							Start Training
+						</a>
+					{:else if lightboxTraining.status === 'active'}
+						<a href="{base}/trainings/{lightboxTraining.id}/checkout" class="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 transition-colors">
+							Afronden
+						</a>
+					{/if}
 					<button
 						class="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
 						on:click={() => { window.print(); }}
@@ -308,8 +317,12 @@
 									</div>
 									{#if attendance.happiness || attendance.fitness || attendance.player_notes}
 										<div class="mt-2 text-sm text-gray-600 dark:text-gray-400 space-y-1">
-											{#if attendance.happiness}<p>Gevoel: {attendance.happiness}/5</p>{/if}
-											{#if attendance.fitness}<p>Fitheid: {attendance.fitness}/5</p>{/if}
+											{#if attendance.happiness || attendance.fitness}
+												<p class="flex items-center gap-3">
+													{#if attendance.happiness}<span>{HAPPINESS_EMOJIS[attendance.happiness]} <span class="text-xs text-gray-400">gevoel</span></span>{/if}
+													{#if attendance.fitness}<span>{FITNESS_EMOJIS[attendance.fitness]} <span class="text-xs text-gray-400">fitheid</span></span>{/if}
+												</p>
+											{/if}
 											{#if attendance.player_notes}<p>Notities: {attendance.player_notes}</p>{/if}
 										</div>
 									{/if}

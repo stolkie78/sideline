@@ -287,7 +287,8 @@ ensure_collection "{
     {\"name\": \"status\", \"type\": \"select\", \"required\": false, \"values\": [\"open\",\"active\",\"closed\"], \"maxSelect\": 1},
     {\"name\": \"content\", \"type\": \"editor\", \"required\": false},
     {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1},
-    {\"name\": \"trainer\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 10}
+    {\"name\": \"trainer\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 10},
+    {\"name\": \"checkout_question\", \"type\": \"text\", \"required\": false}
   ],
   \"listRule\": \"@request.auth.id != \\\"\\\"\",
   \"viewRule\": \"@request.auth.id != \\\"\\\"\",
@@ -309,7 +310,9 @@ ensure_collection "{
     {\"name\": \"player_rating\", \"type\": \"number\", \"required\": false},
     {\"name\": \"player_notes\", \"type\": \"text\", \"required\": false},
     {\"name\": \"happiness\", \"type\": \"number\", \"required\": false},
-    {\"name\": \"fitness\", \"type\": \"number\", \"required\": false}
+    {\"name\": \"fitness\", \"type\": \"number\", \"required\": false},
+    {\"name\": \"checkout_selected\", \"type\": \"bool\", \"required\": false},
+    {\"name\": \"checkout_answer\", \"type\": \"text\", \"required\": false}
   ],
   \"listRule\": \"@request.auth.id != \\\"\\\"\",
   \"viewRule\": \"@request.auth.id != \\\"\\\"\",
