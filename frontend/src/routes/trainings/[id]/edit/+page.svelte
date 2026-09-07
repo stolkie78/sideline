@@ -95,7 +95,14 @@
 		status: AttendanceStatus;
 		rating: number;
 		notes: string;
+		happiness: number;
+		fitness: number;
 	}> = {};
+
+	const HAPPINESS_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'];
+	const HAPPINESS_LABELS = ['Baal', 'Meh', 'Oké', 'Blij', 'Super!'];
+	const FITNESS_EMOJIS = ['🥱', '😴', '💪', '🔥', '⚡'];
+	const FITNESS_LABELS = ['Moe', 'Sloom', 'Goed', 'Fit', 'Top!'];
 
 	onMount(async () => {
 		try {
@@ -156,9 +163,11 @@
 						status: existing.status as AttendanceStatus,
 						rating: existing.player_rating || 7,
 						notes: existing.player_notes || '',
+						happiness: existing.happiness || 0,
+						fitness: existing.fitness || 0,
 					};
 				} else {
-					playerData[p.id] = { status: 'present', rating: 7, notes: '' };
+					playerData[p.id] = { status: 'present', rating: 7, notes: '', happiness: 0, fitness: 0 };
 				}
 			}
 		} catch (e) {
@@ -201,6 +210,8 @@
 						status: pd.status,
 						player_rating: pd.status === 'present' ? pd.rating : undefined,
 						player_notes: pd.notes || undefined,
+						happiness: pd.happiness || undefined,
+						fitness: pd.fitness || undefined,
 					};
 
 					if (pd.id) {
@@ -360,6 +371,43 @@
 					{/if}
 				{/each}
 			</div>
+		</div>
+
+		<!-- Check-in (gevoel & fitheid) -->
+		<div class="card space-y-3">
+			<h3 class="font-semibold text-gray-800 dark:text-gray-200">😊 Check-in</h3>
+			{#each players.filter(p => playerData[p.id]?.status === 'present') as player (player.id)}
+				{@const pd = playerData[player.id]}
+				{#if pd}
+					<div class="p-2 rounded-lg bg-gray-50 dark:bg-gray-800 space-y-2">
+						<span class="text-sm font-medium truncate block">{player.name}</span>
+						<div class="flex flex-wrap items-center gap-4">
+							<div class="flex items-center gap-1">
+								<span class="text-xs text-gray-400 mr-1">Gevoel</span>
+								{#each HAPPINESS_EMOJIS as emoji, i}
+									<button type="button"
+										class="text-xl p-1 rounded-lg {pd.happiness === i + 1 ? 'bg-amber-100 dark:bg-amber-900/40 ring-2 ring-amber-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
+										title={HAPPINESS_LABELS[i]}
+										on:click={() => { playerData[player.id].happiness = playerData[player.id].happiness === i + 1 ? 0 : i + 1; playerData = playerData; }}>
+										{emoji}
+									</button>
+								{/each}
+							</div>
+							<div class="flex items-center gap-1">
+								<span class="text-xs text-gray-400 mr-1">Fitheid</span>
+								{#each FITNESS_EMOJIS as emoji, i}
+									<button type="button"
+										class="text-xl p-1 rounded-lg {pd.fitness === i + 1 ? 'bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}"
+										title={FITNESS_LABELS[i]}
+										on:click={() => { playerData[player.id].fitness = playerData[player.id].fitness === i + 1 ? 0 : i + 1; playerData = playerData; }}>
+										{emoji}
+									</button>
+								{/each}
+							</div>
+						</div>
+					</div>
+				{/if}
+			{/each}
 		</div>
 
 		{#if trainingStatus === 'closed'}
