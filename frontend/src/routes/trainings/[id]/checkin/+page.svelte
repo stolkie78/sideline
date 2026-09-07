@@ -128,6 +128,8 @@
 			const existing = existingAttendance[currentPlayer.id];
 			if (existing) {
 				await updateTrainingAttendance(existing.id, { happiness: selectedHappiness, fitness: selectedFitness });
+				existingAttendance[currentPlayer.id] = { ...existing, happiness: selectedHappiness, fitness: selectedFitness };
+				existingAttendance = existingAttendance;
 			}
 			checkedInIds.add(currentPlayer.id);
 			checkedInIds = checkedInIds;

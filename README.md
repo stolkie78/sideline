@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.0.2
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.0.3
 
 ## Tech Stack
 
@@ -355,6 +355,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v3.0.3** | 2026-09-07 | Fix: check-in overzicht (stap "Start" in de check-in wizard) bleef leeg na het inchecken van spelers — de lokale cache werd niet bijgewerkt met de opgeslagen gevoel/fitheid-waarden, waardoor de overview-check faalde ondanks dat de data wel goed in de database stond |
 | **v3.0.2** | 2026-09-07 | Trainingen-lijst: overbodige ▶️ start-knop verwijderd (contextueel Start/Afronden staat al in detailpagina en overzicht-modal); check-in overzicht met emoji's op trainingsdetailpagina + bewerkbaar achteraf; nieuwe check-out reflectieflow (trainer kiezen, 2-4 spelers + reflectievraag) met AI-gegenereerde vraag op basis van de training (valt terug op standaardvragen zonder AI-config) |
 | **v3.0.1** | 2026-09-07 | Fix: PWA-installatie op tablet/telefoon toonde nog het oude logo als app-icon — alle icon-bestanden (favicon, apple-touch-icon, manifest icon-192/512, enz.) opnieuw gegenereerd vanuit het huidige logo |
 | **v3.0.0** | 2026-09-06 | 🎉 Stable release: club-based multi-tenant beheer (clubs, teams, toegang), platform-admin bootstrap-flow, header toont club + team + seizoen |
