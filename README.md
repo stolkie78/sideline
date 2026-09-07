@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.0.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.0.1
 
 ## Tech Stack
 
@@ -355,6 +355,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v3.0.1** | 2026-09-07 | Fix: PWA-installatie op tablet/telefoon toonde nog het oude logo als app-icon — alle icon-bestanden (favicon, apple-touch-icon, manifest icon-192/512, enz.) opnieuw gegenereerd vanuit het huidige logo |
 | **v3.0.0** | 2026-09-06 | 🎉 Stable release: club-based multi-tenant beheer (clubs, teams, toegang), platform-admin bootstrap-flow, header toont club + team + seizoen |
 | **v2.9.2** | 2026-09-06 | Docs: club_access/platform-admin/manageableClubs beschreven, env-var-tabel aangevuld met OWNER_EMAIL en SETBAAS_ADMIN_EMAIL/PASSWORD |
 | **v2.9.1** | 2026-09-06 | Fix: Google OAuth-login zet emailVisibility=true (loste 'undefined' e-mail op platform-admin-pagina op); Access-tab club-selector gescoped op manageableClubs |
