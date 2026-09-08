@@ -26,7 +26,10 @@
 			const [t, m, a] = await Promise.all([
 				pb.collection('trainings').getFullList<Training>({
 					sort: 'date',
-					filter: [filter, `date >= "${now}"`, 'status = "open"'].filter(Boolean).join(' && '),
+					// Any upcoming training that isn't finished yet (open or
+					// currently active) — a training marked "closed" is done
+					// and no longer needs a response.
+					filter: [filter, `date >= "${now}"`, 'status != "closed"'].filter(Boolean).join(' && '),
 				}),
 				pb.collection('matches').getFullList<Match>({
 					sort: 'date',
@@ -36,7 +39,7 @@
 			]);
 
 			trainings = t.slice(0, 4);
-			matches = m.slice(0, 5);
+			matches = m.slice(0, 4);
 			availability = a;
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
