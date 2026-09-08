@@ -371,6 +371,55 @@ export const SEASON_PHASE_COLORS: Record<SeasonPhase, string> = {
 	off_season: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 };
 
+// === Questionnaires ===
+
+export type QuestionType = 'text' | 'choice' | 'scale';
+
+export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
+	text: 'Open tekst',
+	choice: 'Meerkeuze',
+	scale: 'Schaal',
+};
+
+export interface QuestionnaireQuestion {
+	id: string;
+	type: QuestionType;
+	text: string;
+	options: string[]; // used for 'choice' (empty for other types)
+	scale_min?: number; // for 'scale', default 1
+	scale_max?: number; // for 'scale', default 5
+}
+
+export type QuestionnaireStatus = 'draft' | 'active' | 'closed';
+
+export const QUESTIONNAIRE_STATUS_LABELS: Record<QuestionnaireStatus, string> = {
+	draft: 'Concept',
+	active: 'Actief',
+	closed: 'Gesloten',
+};
+
+export interface Questionnaire extends RecordModel {
+	team: string;
+	name: string;
+	status: QuestionnaireStatus;
+	questions: QuestionnaireQuestion[];
+	created_by?: string;
+	expand?: {
+		team?: Team;
+		created_by?: { id: string; name: string; email: string };
+	};
+}
+
+export interface QuestionnaireResponse extends RecordModel {
+	questionnaire: string;
+	player: string;
+	answers: Record<string, string | number>;
+	expand?: {
+		player?: Player;
+		questionnaire?: Questionnaire;
+	};
+}
+
 export interface SeasonPeriod extends RecordModel {
 	name: string;
 	phase: SeasonPhase;

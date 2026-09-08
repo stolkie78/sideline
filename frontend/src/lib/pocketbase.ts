@@ -18,6 +18,10 @@ import type {
 	TrainingPlan,
 	SeasonPeriod,
 	AttendanceStatus,
+	Questionnaire,
+	QuestionnaireStatus,
+	QuestionnaireQuestion,
+	QuestionnaireResponse,
 } from '$lib/types';
 
 // PocketBase URL: in production same origin (proxied via Caddy), in local dev use port 8090
@@ -337,6 +341,108 @@ export async function getPlayerTotalPlayingTime(playerId: string): Promise<numbe
 		filter: `player = "${playerId}"`,
 	});
 	return stats.reduce((sum, s) => sum + (s.playing_time || 0), 0);
+}
+
+// === Questionnaires ===
+// A coach builds a questionnaire (mix of text/choice/scale questions) for a
+// team. Players see active questionnaires in their Inbox / on the dashboard
+// and submit one response each, stored per-player so a coach can review who
+// answered what (and a player's response history lives with their profile).
+
+export async function getQuestionnaires(teamId: string): Promise<Questionnaire[]> {
+	if (!teamId) return [];
+	return pb.collection('questionnaires').getFullList<Questionnaire>({
+		filter: `team = "${teamId}"`,
+	});
+}
+
+export async function getQuestionnaire(id: string): Promise<Questionnaire> {
+	return pb.collection('questionnaires').getOne<Questionnaire>(id);
+}
+
+export async function createQuestionnaire(data: {
+	team: string;
+	name: string;
+	status?: QuestionnaireStatus;
+	questions: QuestionnaireQuestion[];
+	created_by?: string;
+}): Promise<Questionnaire> {
+	return pb.collection('questionnaires').create<Questionnaire>({ status: 'draft', ...data });
+}
+
+export async function updateQuestionnaire(id: string, data: Partial<Pick<Questionnaire, 'name' | 'status' | 'questions'>>): Promise<Questionnaire> {
+	return pb.collection('questionnaires').update<Questionnaire>(id, data);
+}
+
+export async function deleteQuestionnaire(id: string): Promise<boolean> {
+	// Clean up responses first — PocketBase doesn't cascade-delete by default.
+	const responses = await pb.collection('questionnaire_responses').getFullList({
+		filter: `questionnaire = "${id}"`,
+	});
+	await Promise.all(responses.map((r) => pb.collection('questionnaire_responses').delete(r.id)));
+	return pb.collection('questionnaires').delete(id);
+}
+
+// Active questionnaires for a team that a given player has NOT answered yet
+// (used for the Inbox / dashboard "nieuw" badge).
+export async function getPendingQuestionnaires(teamId: string, playerId: string): Promise<Questionnaire[]> {
+	if (!teamId || !playerId) return [];
+	const active = await pb.collection('questionnaires').getFullList<Questionnaire>({
+		filter: `team = "${teamId}" && status = "active"`,
+	});
+	if (active.length === 0) return [];
+	const responses = await pb.collection('questionnaire_responses').getFullList<QuestionnaireResponse>({
+		filter: `player = "${playerId}" && (${active.map((q) => `questionnaire = "${q.id}"`).join(' || ')})`,
+	});
+	const answeredIds = new Set(responses.map((r) => r.questionnaire));
+	return active.filter((q) => !answeredIds.has(q.id));
+}
+
+// All questionnaires for a team + the player's own response (if any) — used
+// by the Inbox to show both pending and already-answered items.
+export async function getQuestionnairesForPlayer(teamId: string, playerId: string): Promise<{ questionnaire: Questionnaire; response: QuestionnaireResponse | null }[]> {
+	if (!teamId || !playerId) return [];
+	const list = await pb.collection('questionnaires').getFullList<Questionnaire>({
+		filter: `team = "${teamId}" && status != "draft"`,
+	});
+	if (list.length === 0) return [];
+	const responses = await pb.collection('questionnaire_responses').getFullList<QuestionnaireResponse>({
+		filter: `player = "${playerId}" && (${list.map((q) => `questionnaire = "${q.id}"`).join(' || ')})`,
+	});
+	return list.map((questionnaire) => ({
+		questionnaire,
+		response: responses.find((r) => r.questionnaire === questionnaire.id) || null,
+	}));
+}
+
+export async function getQuestionnaireResponses(questionnaireId: string): Promise<QuestionnaireResponse[]> {
+	return pb.collection('questionnaire_responses').getFullList<QuestionnaireResponse>({
+		filter: `questionnaire = "${questionnaireId}"`,
+		expand: 'player',
+	});
+}
+
+export async function getQuestionnaireResponsesForPlayer(playerId: string): Promise<QuestionnaireResponse[]> {
+	return pb.collection('questionnaire_responses').getFullList<QuestionnaireResponse>({
+		filter: `player = "${playerId}"`,
+		expand: 'questionnaire',
+	});
+}
+
+// Upsert — a player can only submit a questionnaire once, editing overwrites
+// their previous answers.
+export async function submitQuestionnaireResponse(data: {
+	questionnaire: string;
+	player: string;
+	answers: Record<string, string | number>;
+}): Promise<QuestionnaireResponse> {
+	const filter = `questionnaire = "${data.questionnaire}" && player = "${data.player}"`;
+	try {
+		const existing = await pb.collection('questionnaire_responses').getFirstListItem<QuestionnaireResponse>(filter);
+		return pb.collection('questionnaire_responses').update<QuestionnaireResponse>(existing.id, { answers: data.answers });
+	} catch {
+		return pb.collection('questionnaire_responses').create<QuestionnaireResponse>(data);
+	}
 }
 
 // === Helpers ===

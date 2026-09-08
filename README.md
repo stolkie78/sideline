@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.4.1
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.5.0
 
 ## Tech Stack
 
@@ -38,6 +38,8 @@ Een Progressive Web App voor het beheren van je volleybalteam: spelers, training
 - **Competenties** — 4x per seizoen meetbaar, categorieën: Technisch/Tactisch/Fysiek/Mentaal
 - **Email koppeling** — Spelers automatisch gekoppeld aan gebruikersaccount via email
 - **Cascade delete** — Verwijderen van speler ruimt alle gerelateerde data op
+- **Vragenlijsten** — Coaches maken en versturen named vragenlijsten met open tekst-, meerkeuze- en schaalvragen; antwoorden zijn per speler zichtbaar in het teamoverzicht en spelersprofiel
+- **Inbox** — Spelers beantwoorden actieve vragenlijsten vanuit hun eigen Inbox en zien daar ook eerdere antwoorden terug
 
 ### 🏆 Wedstrijden
 - **Wedstrijdbeheer** — Per-set lineups (positie 1-6), spelsysteem, wissels, timeouts
@@ -355,6 +357,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v3.5.0** | 2026-09-08 | Nieuwe teamvragenlijsten: onder **Team → Vragenlijsten** maken coaches een benoemde vragenlijst met open tekst-, meerkeuze- en schaalvragen, als concept of direct actief voor het hele team. Coaches zien per speler wie antwoordde en wat het antwoord was, zowel in de vragenlijst als op het spelersprofiel. Spelers krijgen een nieuwe **Inbox** met openstaande en eerder beantwoorde vragenlijsten; het eigen dashboard toont een opvallende kaart zodra er iets nieuws klaarstaat. De navigatienaam **Spelers** is gewijzigd naar **Team**. Privéberichten kunnen later in dezelfde Inbox worden toegevoegd. Daarnaast laden alle nieuwe vragenlijstschermen pas nadat de asynchrone team-/seizoenscontext is bepaald, en gebruiken ze geen niet-bestaand PocketBase-veld `created` meer voor sortering, zodat een nieuwe browser- of loginsessie de lijst niet leeg laat lijken. |
 | **v3.4.1** | 2026-09-08 | Detailpagina's van training en wedstrijd tonen de aanwezigheid nu correct met alle 6 statussen: `trainings/[id]` toonde voorheen altijd een simpele ✅/❌-pil (alles niet-Aanwezig werd als ❌ getoond, ongeacht Ziek/School/Afwezig/Later/Geblesseerd); `matches/[id]` had een handmatige, onvolledige kleurmapping die School/Later/Geblesseerd verkeerd (oranje i.p.v. eigen kleur) inkleurde. Beide gebruiken nu de gedeelde `ATTENDANCE_STYLES`/`ATTENDANCE_LABELS` als enige bron van waarheid voor kleur en label, plus een tooltip met de opgegeven reden waar aanwezig |
 | **v3.4.0** | 2026-09-08 | Beschikbaarheid en aanwezigheid samengevoegd tot één systeem: de aparte `player_availability`-collectie/`AvailabilityStatusSwitcher` (Beschikbaar/Niet beschikbaar/Onzeker) is verwijderd — spelers zetten hun eigen (voorlopige) status voortaan rechtstreeks in dezelfde `training_attendance`/`match_attendance`-records en dezelfde 6 statussen (Aanwezig/Ziek/School/Afwezig/Later/Geblesseerd) die de trainer gebruikt bij check-in/check-out, met dezelfde `AttendanceStatusSwitcher`. Eén bron van waarheid: wat een speler vooraf invult zie je als trainer direct terug tijdens het inchecken, en de trainer kan het achteraf gewoon bijstellen. `match_attendance` heeft nu ook de volledige statusset + een `reason`-veld (was eerder alleen op `training_attendance`). Bestaande `player_availability`-testdata is gemigreerd naar de nieuwe collecties; de collectie wordt niet meer aangemaakt bij nieuwe installaties |
 | **v3.3.1** | 2026-09-08 | Spelerdashboard: eigen beschikbaarheid voor een training/wedstrijd is nu één grote tap-to-cycle statusknop (`AvailabilityStatusSwitcher`) i.p.v. drie losse knoppen — de datum (en bij wedstrijden de tegenstander) staat nu direct in de knop zelf, dus geen apart "Mijn beschikbaarheid"-label meer nodig. Bij Niet beschikbaar/Onzeker verschijnt een optioneel tekstveld voor een reden. Daarnaast een reactiviteitsfix: klikken op de status paste de data al direct in PocketBase aan, maar de UI toonde de nieuwe status pas na een page refresh — Svelte's dependency-tracking zag niet dat de statuslookup-functies intern van de `availability`-array afhingen omdat die alleen impliciet (via closure) werd gelezen; `availability` wordt nu expliciet als argument doorgegeven zodat de UI meteen bijwerkt |

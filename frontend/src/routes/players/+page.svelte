@@ -82,6 +82,16 @@
 </svelte:head>
 
 <div class="space-y-4">
+	<!-- Sub-nav -->
+	<div class="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+		<a href="{base}/players" class="px-3 py-2 text-sm font-medium text-primary-600 border-b-2 border-primary-600">
+			Spelers
+		</a>
+		<a href="{base}/players/questionnaires" class="px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+			Vragenlijsten
+		</a>
+	</div>
+
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Spelers</h2>
 		<button class="btn-primary" on:click={() => (showForm = !showForm)}>

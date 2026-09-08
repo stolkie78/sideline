@@ -8,8 +8,9 @@
 		getCompetencies,
 		getPlayerCompetencies,
 		createPlayerCompetency,
+		getQuestionnaireResponsesForPlayer,
 	} from '$lib/pocketbase';
-	import type { Player, Competency, PlayerCompetency } from '$lib/types';
+	import type { Player, Competency, PlayerCompetency, QuestionnaireResponse } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS, CATEGORY_LABELS } from '$lib/types';
 	import { authUser } from '$lib/stores/auth';
 	import CompetencyChart from '$lib/components/CompetencyChart.svelte';
@@ -17,6 +18,7 @@
 	let player: Player | null = null;
 	let competencies: Competency[] = [];
 	let playerCompetencies: PlayerCompetency[] = [];
+	let questionnaireResponses: QuestionnaireResponse[] = [];
 	let loading = true;
 	let selectedCompetency = '';
 	let showRatingForm = false;
@@ -35,6 +37,7 @@
 				getCompetencies(),
 			]);
 			await loadCompetencyData();
+			questionnaireResponses = await getQuestionnaireResponsesForPlayer(playerId);
 		} catch (e) {
 			console.error('Failed to load player:', e);
 		} finally {
@@ -175,6 +178,24 @@
 				</p>
 			{/if}
 		</div>
+
+		<!-- Questionnaire response history -->
+		{#if questionnaireResponses.length > 0}
+			<div class="card space-y-2">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">📋 Vragenlijst-antwoorden</h3>
+				{#each questionnaireResponses as response}
+					<div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 space-y-1">
+						<p class="text-sm font-semibold text-gray-800 dark:text-gray-200">{response.expand?.questionnaire?.name || 'Vragenlijst'}</p>
+						{#each response.expand?.questionnaire?.questions || [] as q}
+							<div class="text-sm">
+								<span class="text-gray-500 dark:text-gray-400">{q.text}:</span>
+								<span class="font-medium text-gray-800 dark:text-gray-200 ml-1">{response.answers?.[q.id] ?? '—'}</span>
+							</div>
+						{/each}
+					</div>
+				{/each}
+			</div>
+		{/if}
 
 		<!-- Back button -->
 		<a href="{base}/players" class="btn-secondary w-full text-center">← Terug naar spelers</a>

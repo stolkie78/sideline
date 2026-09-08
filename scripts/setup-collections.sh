@@ -439,6 +439,46 @@ ensure_collection "{
 # Ensure existing installs (created before "school"/"late" were added) get the new status values.
 ensure_select_values "match_attendance" "status" '["present","sick","school","absent","late","injured"]'
 
+# === 10c. Questionnaires ===
+# A coach-built questionnaire for a team: a name + a list of questions (text/
+# choice/scale, stored as JSON since the question set is fully dynamic).
+ensure_collection "{
+  \"name\": \"questionnaires\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"team\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TEAMS_ID\", \"maxSelect\": 1},
+    {\"name\": \"name\", \"type\": \"text\", \"required\": true},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"draft\",\"active\",\"closed\"], \"maxSelect\": 1},
+    {\"name\": \"questions\", \"type\": \"json\", \"required\": false},
+    {\"name\": \"created_by\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"_pb_users_auth_\", \"maxSelect\": 1}
+  ],
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
+}"
+
+QUESTIONNAIRES_ID=$(get_col_id "questionnaires")
+
+# === 10d. Questionnaire Responses ===
+# One record per player per questionnaire — answers keyed by question id.
+# Players can only ever have one response per questionnaire (upserted).
+ensure_collection "{
+  \"name\": \"questionnaire_responses\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"questionnaire\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$QUESTIONNAIRES_ID\", \"maxSelect\": 1},
+    {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
+    {\"name\": \"answers\", \"type\": \"json\", \"required\": false}
+  ],
+  \"listRule\": \"@request.auth.id != \\\"\\\"\",
+  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
+  \"createRule\": \"@request.auth.id != \\\"\\\"\",
+  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
+  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
+}"
+
 # === 11. Team Access ===
 ensure_collection "{
   \"name\": \"team_access\",

@@ -155,7 +155,7 @@
 
 	const allNavItems = [
 		{ href: '/', label: 'Dashboard', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/players', label: 'Spelers', roles: ['admin', 'user', 'viewer'] },
+		{ href: '/players', label: 'Team', roles: ['admin', 'user', 'viewer'] },
 		{ href: '/trainings', label: 'Trainingen', roles: ['admin', 'user', 'viewer'] },
 		{ href: '/matches', label: 'Wedstrijden', roles: ['admin', 'user', 'viewer'] },
 		{ href: '/periodisering', label: 'Periodisering', roles: ['admin', 'user', 'viewer'] },
@@ -165,6 +165,7 @@
 
 	$: navItems = [
 		...allNavItems.filter(item => !$userRole || item.roles.includes($userRole)),
+		...($isPlayer ? [{ href: '/inbox', label: '📬 Inbox', roles: [] as string[] }] : []),
 		...($isPlayer ? [{ href: '/profile', label: '👤 Mijn profiel', roles: [] as string[] }] : []),
 		...($isPlayer && $userRole !== 'viewer' ? [{ href: '/me', label: '🏐 Mijn training', roles: [] as string[] }] : []),
 		...($isPlatformAdmin ? [{ href: '/platform-admin', label: 'Clubs beheren', roles: [] as string[] }] : []),
@@ -226,7 +227,15 @@
 				</button>
 
 				{#if isPlayerOnlyView}
-					<!-- Simplified actions for pure players: profile + logout, no hamburger/app-nav -->
+					<!-- Simplified actions for pure players: inbox + profile + logout, no hamburger/app-nav -->
+					<a href="{base}/inbox"
+						class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+						aria-label="Inbox"
+					>
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+						</svg>
+					</a>
 					<a href="{base}/profile"
 						class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
 						aria-label="Mijn profiel"

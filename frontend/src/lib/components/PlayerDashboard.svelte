@@ -1,45 +1,50 @@
 <script lang="ts">
-	import { pb, getAttendanceForPlayer, setPlayerAttendance } from '$lib/pocketbase';
+	import { pb, getAttendanceForPlayer, setPlayerAttendance, getPendingQuestionnaires } from '$lib/pocketbase';
 	import { linkedPlayer, rolesLoaded } from '$lib/stores/role';
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
-	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus } from '$lib/types';
+	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus, Questionnaire } from '$lib/types';
 	import { marked } from 'marked';
+	import { base } from '$app/paths';
 	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
 
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
 	let trainingAttendance: TrainingAttendance[] = [];
 	let matchAttendance: MatchAttendance[] = [];
+	let pendingQuestionnaires: Questionnaire[] = [];
 	let loading = true;
 	let submitting: Record<string, boolean> = {};
 	let lightboxTraining: Training | null = null;
-	let hasLoaded = false;
+	let loadedContext = '';
 	let showAllTrainings = false;
 	let showAllMatches = false;
 
 	$: playerId = $linkedPlayer?.id;
 
-	// Wait for the (async) user-role/linked-player lookup to finish before
-	// deciding what to show. Loading immediately on mount would race with
-	// `loadUserRoles()` in +layout.svelte — `$linkedPlayer` is still null at
-	// that point, causing an early bail-out with a permanently empty
-	// dashboard even though the player IS linked, just not resolved yet.
-	$: if ($rolesLoaded && !hasLoaded) {
-		hasLoaded = true;
-		if (playerId) {
-			loadData();
-		} else {
-			loading = false;
-		}
+	// The player link and roster context both arrive asynchronously after
+	// login. Query only after all IDs are available and reload on context
+	// changes, so a fresh browser session cannot remain permanently empty.
+	$: context = $rolesLoaded && playerId && $selectedTeamId && $selectedSeasonId
+		? `${playerId}:${$selectedTeamId}:${$selectedSeasonId}`
+		: '';
+	$: if (context && context !== loadedContext) {
+		loadedContext = context;
+		loadData(playerId, $selectedTeamId, $selectedSeasonId);
 	}
+	$: if ($rolesLoaded && !playerId) loading = false;
 
-	async function loadData() {
-		if (!playerId) { loading = false; return; }
+	async function loadData(
+		currentPlayerId = playerId,
+		teamId = $selectedTeamId,
+		seasonId = $selectedSeasonId
+	) {
+		if (!currentPlayerId || !teamId || !seasonId) return;
+		loading = true;
 		try {
-			const filter = contextFilter($selectedTeamId, $selectedSeasonId);
+			const filter = contextFilter(teamId, seasonId);
 			const now = new Date().toISOString().slice(0, 10);
 
-			const [t, m, att] = await Promise.all([
+			const [t, m, att, pendingQ] = await Promise.all([
 				pb.collection('trainings').getFullList<Training>({
 					sort: 'date',
 					// Any upcoming training that isn't finished yet (open or
@@ -51,13 +56,15 @@
 					sort: 'date',
 					filter: [filter, `date >= "${now}"`].filter(Boolean).join(' && '),
 				}),
-				getAttendanceForPlayer(playerId),
+				getAttendanceForPlayer(currentPlayerId),
+				getPendingQuestionnaires(teamId, currentPlayerId),
 			]);
 
 			trainings = t;
 			matches = m;
 			trainingAttendance = att.training;
 			matchAttendance = att.match;
+			pendingQuestionnaires = pendingQ;
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
 		} finally {
@@ -140,6 +147,17 @@
 			</p>
 			<p class="text-sm text-gray-500 dark:text-gray-400">Geef je aanwezigheid op voor trainingen en wedstrijden.</p>
 		</div>
+
+		<!-- Pending Questionnaires -->
+		{#if pendingQuestionnaires.length > 0}
+			<a href="{base}/inbox" class="card flex items-center justify-between gap-3 bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-300 dark:border-primary-700 hover:shadow-md transition-shadow">
+				<div>
+					<p class="font-semibold text-gray-800 dark:text-gray-200">📋 {pendingQuestionnaires.length} nieuwe vragenlijst{pendingQuestionnaires.length === 1 ? '' : 'en'}</p>
+					<p class="text-sm text-gray-500 dark:text-gray-400">Bekijk je Inbox om te beantwoorden</p>
+				</div>
+				<span class="text-primary-600 dark:text-primary-400 text-xl">→</span>
+			</a>
+		{/if}
 
 		<!-- Upcoming Trainings -->
 		<div>
