@@ -4,6 +4,7 @@
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
 	import type { Training, Match, PlayerAvailability, AvailabilityStatus } from '$lib/types';
 	import { marked } from 'marked';
+	import AvailabilityStatusSwitcher from '$lib/components/AvailabilityStatusSwitcher.svelte';
 
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
@@ -62,22 +63,33 @@
 		}
 	}
 
-	function getTrainingStatus(trainingId: string): AvailabilityStatus | null {
-		const a = availability.find(a => a.training === trainingId);
+	function getTrainingStatus(trainingId: string, avail: PlayerAvailability[]): AvailabilityStatus | null {
+		const a = avail.find(a => a.training === trainingId);
 		return a?.status || null;
 	}
 
-	function getMatchStatus(matchId: string): AvailabilityStatus | null {
-		const a = availability.find(a => a.match === matchId);
+	function getMatchStatus(matchId: string, avail: PlayerAvailability[]): AvailabilityStatus | null {
+		const a = avail.find(a => a.match === matchId);
 		return a?.status || null;
 	}
 
-	async function submitAvailability(type: 'training' | 'match', id: string, status: AvailabilityStatus) {
+	function getTrainingReason(trainingId: string, avail: PlayerAvailability[]): string {
+		const a = avail.find(a => a.training === trainingId);
+		return a?.reason || '';
+	}
+
+	function getMatchReason(matchId: string, avail: PlayerAvailability[]): string {
+		const a = avail.find(a => a.match === matchId);
+		return a?.reason || '';
+	}
+
+	async function submitAvailability(type: 'training' | 'match', id: string, status: AvailabilityStatus, reason?: string) {
 		if (!playerId) return;
 		const key = `${type}-${id}`;
 		submitting[key] = true;
 		try {
-			const data: any = { player: playerId, status };
+			const existingReason = type === 'training' ? getTrainingReason(id, availability) : getMatchReason(id, availability);
+			const data: any = { player: playerId, status, reason: reason !== undefined ? reason : existingReason };
 			if (type === 'training') data.training = id;
 			else data.match = id;
 			const result = await setAvailability(data);
@@ -92,20 +104,6 @@
 			submitting = submitting; // trigger reactivity
 		}
 	}
-
-	const STATUS_COLORS: Record<AvailabilityStatus, string> = {
-		available: 'bg-green-500',
-		unavailable: 'bg-red-500',
-		uncertain: 'bg-yellow-500',
-	};
-
-	const STATUS_LABELS: Record<AvailabilityStatus, string> = {
-		available: '✓ Beschikbaar',
-		unavailable: '✗ Niet beschikbaar',
-		uncertain: '? Onzeker',
-	};
-
-	const availabilityOptions: AvailabilityStatus[] = ['available', 'unavailable', 'uncertain'];
 
 	$: visibleTrainings = showAllTrainings ? trainings : trainings.slice(0, 1);
 	$: visibleMatches = showAllMatches ? matches : matches.slice(0, 1);
@@ -153,41 +151,26 @@
 			{:else}
 				<div class="space-y-3">
 					{#each visibleTrainings as training}
-						{@const current = getTrainingStatus(training.id)}
+						{@const current = getTrainingStatus(training.id, availability)}
 						{@const key = `training-${training.id}`}
-						<div class="card py-3 px-4">
-							<div class="flex items-center justify-between mb-2">
-								<div>
-									<span class="font-medium text-gray-800 dark:text-gray-200">
-										{new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-									</span>
-									{#if current}
-										<span class="ml-2 inline-block w-2 h-2 rounded-full {STATUS_COLORS[current]}"></span>
-									{/if}
-								</div>
-								{#if training.content}
+						<div class="card py-3 px-4 space-y-2">
+							{#if training.content}
+								<div class="flex justify-end">
 									<button
 										class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
 										on:click={() => lightboxTraining = training}
 									>
 										👁 Bekijken
 									</button>
-								{/if}
-							</div>
-							<div class="flex gap-2">
-								{#each availabilityOptions as status}
-									<button
-										class="flex-1 text-xs py-2 px-2 rounded-lg font-medium transition-all
-											{current === status
-												? status === 'available' ? 'bg-green-600 text-white' : status === 'unavailable' ? 'bg-red-600 text-white' : 'bg-yellow-500 text-white'
-												: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}"
-										disabled={submitting[key]}
-										on:click={() => submitAvailability('training', training.id, status)}
-									>
-										{STATUS_LABELS[status]}
-									</button>
-								{/each}
-							</div>
+								</div>
+							{/if}
+							<AvailabilityStatusSwitcher
+								label={new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+								status={current}
+								reason={getTrainingReason(training.id, availability)}
+								on:change={(e) => submitAvailability('training', training.id, e.detail)}
+								on:reason={(e) => submitAvailability('training', training.id, current ?? 'available', e.detail)}
+							/>
 						</div>
 					{/each}
 				</div>
@@ -212,37 +195,17 @@
 			{:else}
 				<div class="space-y-3">
 					{#each visibleMatches as match}
-						{@const current = getMatchStatus(match.id)}
+						{@const current = getMatchStatus(match.id, availability)}
 						{@const key = `match-${match.id}`}
-						<div class="card py-3 px-4">
-							<div class="flex items-center justify-between mb-2">
-								<div>
-									<span class="font-medium text-gray-800 dark:text-gray-200">
-										{new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
-									</span>
-									<span class="text-sm text-gray-500 dark:text-gray-400 ml-2">
-										vs {match.opponent}
-										<span class="text-xs">({match.home_away === 'home' ? 'Thuis' : 'Uit'})</span>
-									</span>
-									{#if current}
-										<span class="ml-2 inline-block w-2 h-2 rounded-full {STATUS_COLORS[current]}"></span>
-									{/if}
-								</div>
-							</div>
-							<div class="flex gap-2">
-								{#each availabilityOptions as status}
-									<button
-										class="flex-1 text-xs py-2 px-2 rounded-lg font-medium transition-all
-											{current === status
-												? status === 'available' ? 'bg-green-600 text-white' : status === 'unavailable' ? 'bg-red-600 text-white' : 'bg-yellow-500 text-white'
-												: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}"
-										disabled={submitting[key]}
-										on:click={() => submitAvailability('match', match.id, status)}
-									>
-										{STATUS_LABELS[status]}
-									</button>
-								{/each}
-							</div>
+						<div class="card py-3 px-4 space-y-2">
+							<AvailabilityStatusSwitcher
+								label={new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
+								sublabel={`vs ${match.opponent} (${match.home_away === 'home' ? 'Thuis' : 'Uit'})`}
+								status={current}
+								reason={getMatchReason(match.id, availability)}
+								on:change={(e) => submitAvailability('match', match.id, e.detail)}
+								on:reason={(e) => submitAvailability('match', match.id, current ?? 'available', e.detail)}
+							/>
 						</div>
 					{/each}
 				</div>
