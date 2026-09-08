@@ -137,21 +137,6 @@ export const ATTENDANCE_CYCLE_ORDER: AttendanceStatus[] = ['present', 'sick', 's
 
 export const ATTENDANCE_STATUSES_WITH_REASON: AttendanceStatus[] = ['absent', 'late'];
 
-export type AvailabilityStatus = 'available' | 'unavailable' | 'uncertain';
-
-export interface PlayerAvailability extends RecordModel {
-	player: string;
-	training?: string;
-	match?: string;
-	status: AvailabilityStatus;
-	reason?: string;
-	expand?: {
-		player?: Player;
-		training?: Training;
-		match?: Match;
-	};
-}
-
 export interface Match extends RecordModel {
 	date: string;
 	opponent: string;
@@ -305,40 +290,6 @@ export const ATTENDANCE_STYLES: Record<AttendanceStatus, { card: string; badge: 
 		card: 'bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-300 dark:border-purple-700',
 		badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
 		dot: 'bg-purple-500',
-	},
-};
-
-// Tap-to-cycle order used by the player-facing availability status switcher
-// (used on the player dashboard to indicate whether they plan to attend a
-// training/match). This is a *plan* set by the player themselves, distinct
-// from AttendanceStatus which the trainer records afterwards. Starts on
-// "available" as the default (green).
-export const AVAILABILITY_CYCLE_ORDER: AvailabilityStatus[] = ['available', 'unavailable', 'uncertain'];
-
-export const AVAILABILITY_STATUSES_WITH_REASON: AvailabilityStatus[] = ['unavailable', 'uncertain'];
-
-export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
-	available: 'Beschikbaar',
-	unavailable: 'Niet beschikbaar',
-	uncertain: 'Onzeker',
-};
-
-// Tailwind classes for the availability status switcher (card bg/border, badge, dot).
-export const AVAILABILITY_STYLES: Record<AvailabilityStatus, { card: string; badge: string; dot: string }> = {
-	available: {
-		card: 'bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700',
-		badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-		dot: 'bg-green-500',
-	},
-	unavailable: {
-		card: 'bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700',
-		badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
-		dot: 'bg-red-500',
-	},
-	uncertain: {
-		card: 'bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700',
-		badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-		dot: 'bg-yellow-500',
 	},
 };
 

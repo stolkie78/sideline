@@ -426,7 +426,8 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"match\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$MATCHES_ID\", \"maxSelect\": 1},
     {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
-    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"present\",\"absent\",\"sick\",\"injured\"], \"maxSelect\": 1}
+    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"present\",\"sick\",\"school\",\"absent\",\"late\",\"injured\"], \"maxSelect\": 1},
+    {\"name\": \"reason\", \"type\": \"text\", \"required\": false}
   ],
   \"listRule\": \"@request.auth.id != \\\"\\\"\",
   \"viewRule\": \"@request.auth.id != \\\"\\\"\",
@@ -434,6 +435,9 @@ ensure_collection "{
   \"updateRule\": \"@request.auth.id != \\\"\\\"\",
   \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
+
+# Ensure existing installs (created before "school"/"late" were added) get the new status values.
+ensure_select_values "match_attendance" "status" '["present","sick","school","absent","late","injured"]'
 
 # === 11. Team Access ===
 ensure_collection "{
@@ -564,25 +568,12 @@ fi
 echo ""
 echo "🔐 Configuring Google OAuth..."
 
-# === 16. Player Availability ===
-TRAININGS_ID=$(get_col_id "trainings")
-MATCHES_ID=$(get_col_id "matches")
-ensure_collection "{
-  \"name\": \"player_availability\",
-  \"type\": \"base\",
-  \"fields\": [
-    {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
-    {\"name\": \"training\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$TRAININGS_ID\", \"maxSelect\": 1},
-    {\"name\": \"match\", \"type\": \"relation\", \"required\": false, \"collectionId\": \"$MATCHES_ID\", \"maxSelect\": 1},
-    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"available\",\"unavailable\",\"uncertain\"], \"maxSelect\": 1},
-    {\"name\": \"reason\", \"type\": \"text\", \"required\": false}
-  ],
-  \"listRule\": \"@request.auth.id != \\\"\\\"\",
-  \"viewRule\": \"@request.auth.id != \\\"\\\"\",
-  \"createRule\": \"@request.auth.id != \\\"\\\"\",
-  \"updateRule\": \"@request.auth.id != \\\"\\\"\",
-  \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
-}"
+# === 16. Player Availability (deprecated) ===
+# player_availability was merged into training_attendance/match_attendance —
+# players now write their own planned status directly into those collections
+# using the same 6-status set the trainer uses. This collection is no longer
+# provisioned for new installs. Existing installs that already have it are
+# left untouched (harmless orphan) rather than dropped automatically.
 
 # Set PocketBase application URL for OAuth redirects
 SITE_URL="${SITE_URL:-}"

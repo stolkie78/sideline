@@ -17,8 +17,7 @@ import type {
 	TrainingTemplate,
 	TrainingPlan,
 	SeasonPeriod,
-	PlayerAvailability,
-	AvailabilityStatus,
+	AttendanceStatus,
 } from '$lib/types';
 
 // PocketBase URL: in production same origin (proxied via Caddy), in local dev use port 8090
@@ -54,14 +53,14 @@ export async function updatePlayer(id: string, data: FormData): Promise<Player> 
 
 export async function deletePlayer(id: string): Promise<boolean> {
 	// Delete related records first to avoid foreign key constraints
-	const [attendanceRecords, availabilityRecords, scoreRecords] = await Promise.all([
+	const [attendanceRecords, matchAttendanceRecords, scoreRecords] = await Promise.all([
 		pb.collection('training_attendance').getFullList({ filter: `player = "${id}"`, fields: 'id' }),
-		pb.collection('player_availability').getFullList({ filter: `player = "${id}"`, fields: 'id' }).catch(() => []),
+		pb.collection('match_attendance').getFullList({ filter: `player = "${id}"`, fields: 'id' }).catch(() => []),
 		pb.collection('competency_scores').getFullList({ filter: `player = "${id}"`, fields: 'id' }).catch(() => []),
 	]);
 	await Promise.all([
 		...attendanceRecords.map(r => pb.collection('training_attendance').delete(r.id)),
-		...availabilityRecords.map(r => pb.collection('player_availability').delete(r.id)),
+		...matchAttendanceRecords.map(r => pb.collection('match_attendance').delete(r.id)),
 		...scoreRecords.map(r => pb.collection('competency_scores').delete(r.id)),
 	]);
 	return pb.collection('players').delete(id);
@@ -157,6 +156,7 @@ export async function createTrainingAttendance(data: {
 	training: string;
 	player: string;
 	status: string;
+	reason?: string;
 	player_rating?: number;
 	player_notes?: string;
 }): Promise<TrainingAttendance> {
@@ -273,12 +273,63 @@ export async function createMatchAttendance(data: {
 	match: string;
 	player: string;
 	status: string;
+	reason?: string;
 }): Promise<MatchAttendance> {
 	return pb.collection('match_attendance').create<MatchAttendance>(data);
 }
 
 export async function updateMatchAttendance(id: string, data: Partial<MatchAttendance>): Promise<MatchAttendance> {
 	return pb.collection('match_attendance').update<MatchAttendance>(id, data);
+}
+
+// Upsert a player's own attendance status ahead of a training/match — used by
+// the player dashboard so a player can declare their own status (present by
+// default), which the trainer can later confirm/adjust during check-in or
+// check-out. Same `training_attendance`/`match_attendance` records/statuses
+// as the trainer flow — there is no separate "availability" concept anymore.
+export async function setPlayerAttendance(data: {
+	player: string;
+	training?: string;
+	match?: string;
+	status: AttendanceStatus;
+	reason?: string;
+}): Promise<TrainingAttendance | MatchAttendance> {
+	if (data.training) {
+		const filter = `player = "${data.player}" && training = "${data.training}"`;
+		try {
+			const existing = await pb.collection('training_attendance').getFirstListItem<TrainingAttendance>(filter);
+			return updateTrainingAttendance(existing.id, { status: data.status, reason: data.reason });
+		} catch {
+			return createTrainingAttendance({ training: data.training, player: data.player, status: data.status, reason: data.reason });
+		}
+	}
+	if (data.match) {
+		const filter = `player = "${data.player}" && match = "${data.match}"`;
+		try {
+			const existing = await pb.collection('match_attendance').getFirstListItem<MatchAttendance>(filter);
+			return updateMatchAttendance(existing.id, { status: data.status, reason: data.reason });
+		} catch {
+			return createMatchAttendance({ match: data.match, player: data.player, status: data.status, reason: data.reason });
+		}
+	}
+	throw new Error('setPlayerAttendance requires either training or match');
+}
+
+// Fetch a player's own attendance records across all trainings + matches
+// (used by the player dashboard). Combines training_attendance and
+// match_attendance since availability is no longer a separate concept.
+export async function getAttendanceForPlayer(playerId: string): Promise<{ training: TrainingAttendance[]; match: MatchAttendance[] }> {
+	const [training, match] = await Promise.all([
+		pb.collection('training_attendance').getFullList<TrainingAttendance>({
+			filter: `player = "${playerId}"`,
+			expand: 'training',
+		}),
+		pb.collection('match_attendance').getFullList<MatchAttendance>({
+			filter: `player = "${playerId}"`,
+			expand: 'match',
+		}),
+	]);
+	return { training, match };
 }
 
 export async function getPlayerTotalPlayingTime(playerId: string): Promise<number> {
@@ -612,54 +663,6 @@ export async function deleteSeasonPeriod(id: string): Promise<boolean> {
 	return pb.collection('season_periods').delete(id);
 }
 
-// === Player Availability ===
-
-export async function getAvailabilityForTraining(trainingId: string): Promise<PlayerAvailability[]> {
-	return pb.collection('player_availability').getFullList<PlayerAvailability>({
-		filter: `training = "${trainingId}"`,
-		expand: 'player',
-	});
-}
-
-export async function getAvailabilityForMatch(matchId: string): Promise<PlayerAvailability[]> {
-	return pb.collection('player_availability').getFullList<PlayerAvailability>({
-		filter: `match = "${matchId}"`,
-		expand: 'player',
-	});
-}
-
-export async function getAvailabilityForPlayer(playerId: string): Promise<PlayerAvailability[]> {
-	// Note: this collection has no `created`/`updated` autodate fields, so a
-	// `sort: '-created'` here would make PocketBase reject the request with a
-	// generic 400 ("Something went wrong") — silently breaking every caller
-	// that depends on it (e.g. PlayerDashboard's Promise.all).
-	return pb.collection('player_availability').getFullList<PlayerAvailability>({
-		filter: `player = "${playerId}"`,
-		expand: 'training,match',
-	});
-}
-
-export async function setAvailability(data: {
-	player: string;
-	training?: string;
-	match?: string;
-	status: AvailabilityStatus;
-	reason?: string;
-}): Promise<PlayerAvailability> {
-	// Upsert: check if availability already exists for this player+training/match
-	const filterParts = [`player = "${data.player}"`];
-	if (data.training) filterParts.push(`training = "${data.training}"`);
-	if (data.match) filterParts.push(`match = "${data.match}"`);
-
-	try {
-		const existing = await pb.collection('player_availability').getFirstListItem<PlayerAvailability>(
-			filterParts.join(' && ')
-		);
-		return pb.collection('player_availability').update<PlayerAvailability>(existing.id, data);
-	} catch {
-		return pb.collection('player_availability').create<PlayerAvailability>(data);
-	}
-}
 
 // === Player-User Linking ===
 

@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { pb, getAvailabilityForPlayer, setAvailability } from '$lib/pocketbase';
+	import { pb, getAttendanceForPlayer, setPlayerAttendance } from '$lib/pocketbase';
 	import { linkedPlayer, rolesLoaded } from '$lib/stores/role';
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
-	import type { Training, Match, PlayerAvailability, AvailabilityStatus } from '$lib/types';
+	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus } from '$lib/types';
 	import { marked } from 'marked';
-	import AvailabilityStatusSwitcher from '$lib/components/AvailabilityStatusSwitcher.svelte';
+	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
 
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
-	let availability: PlayerAvailability[] = [];
+	let trainingAttendance: TrainingAttendance[] = [];
+	let matchAttendance: MatchAttendance[] = [];
 	let loading = true;
 	let submitting: Record<string, boolean> = {};
 	let lightboxTraining: Training | null = null;
@@ -38,7 +39,7 @@
 			const filter = contextFilter($selectedTeamId, $selectedSeasonId);
 			const now = new Date().toISOString().slice(0, 10);
 
-			const [t, m, a] = await Promise.all([
+			const [t, m, att] = await Promise.all([
 				pb.collection('trainings').getFullList<Training>({
 					sort: 'date',
 					// Any upcoming training that isn't finished yet (open or
@@ -50,12 +51,13 @@
 					sort: 'date',
 					filter: [filter, `date >= "${now}"`].filter(Boolean).join(' && '),
 				}),
-				getAvailabilityForPlayer(playerId),
+				getAttendanceForPlayer(playerId),
 			]);
 
 			trainings = t;
 			matches = m;
-			availability = a;
+			trainingAttendance = att.training;
+			matchAttendance = att.match;
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
 		} finally {
@@ -63,42 +65,48 @@
 		}
 	}
 
-	function getTrainingStatus(trainingId: string, avail: PlayerAvailability[]): AvailabilityStatus | null {
-		const a = avail.find(a => a.training === trainingId);
-		return a?.status || null;
+	// `avail`/`match` params are passed explicitly (rather than read via
+	// closure) so Svelte's dependency tracking for `{@const}` inside `{#each}`
+	// recognizes the dependency and re-evaluates immediately after a status
+	// change — reading the outer array only via closure does NOT trigger a
+	// re-render until something else causes a refresh (e.g. a page reload).
+	function getTrainingStatus(trainingId: string, records: TrainingAttendance[]): AttendanceStatus {
+		return records.find(a => a.training === trainingId)?.status || 'present';
 	}
 
-	function getMatchStatus(matchId: string, avail: PlayerAvailability[]): AvailabilityStatus | null {
-		const a = avail.find(a => a.match === matchId);
-		return a?.status || null;
+	function getMatchStatus(matchId: string, records: MatchAttendance[]): AttendanceStatus {
+		return records.find(a => a.match === matchId)?.status || 'present';
 	}
 
-	function getTrainingReason(trainingId: string, avail: PlayerAvailability[]): string {
-		const a = avail.find(a => a.training === trainingId);
-		return a?.reason || '';
+	function getTrainingReason(trainingId: string, records: TrainingAttendance[]): string {
+		return records.find(a => a.training === trainingId)?.reason || '';
 	}
 
-	function getMatchReason(matchId: string, avail: PlayerAvailability[]): string {
-		const a = avail.find(a => a.match === matchId);
-		return a?.reason || '';
+	function getMatchReason(matchId: string, records: MatchAttendance[]): string {
+		return records.find(a => a.match === matchId)?.reason || '';
 	}
 
-	async function submitAvailability(type: 'training' | 'match', id: string, status: AvailabilityStatus, reason?: string) {
+	async function submitStatus(type: 'training' | 'match', id: string, status: AttendanceStatus, reason?: string) {
 		if (!playerId) return;
 		const key = `${type}-${id}`;
 		submitting[key] = true;
 		try {
-			const existingReason = type === 'training' ? getTrainingReason(id, availability) : getMatchReason(id, availability);
+			const existingReason = type === 'training' ? getTrainingReason(id, trainingAttendance) : getMatchReason(id, matchAttendance);
 			const data: any = { player: playerId, status, reason: reason !== undefined ? reason : existingReason };
 			if (type === 'training') data.training = id;
 			else data.match = id;
-			const result = await setAvailability(data);
-			// Update local availability
-			const idx = availability.findIndex(a => type === 'training' ? a.training === id : a.match === id);
-			if (idx >= 0) availability[idx] = result;
-			else availability = [...availability, result];
+			const result = await setPlayerAttendance(data);
+			if (type === 'training') {
+				const idx = trainingAttendance.findIndex(a => a.training === id);
+				if (idx >= 0) trainingAttendance[idx] = result as TrainingAttendance;
+				else trainingAttendance = [...trainingAttendance, result as TrainingAttendance];
+			} else {
+				const idx = matchAttendance.findIndex(a => a.match === id);
+				if (idx >= 0) matchAttendance[idx] = result as MatchAttendance;
+				else matchAttendance = [...matchAttendance, result as MatchAttendance];
+			}
 		} catch (e) {
-			console.error('Failed to submit availability:', e);
+			console.error('Failed to submit attendance:', e);
 		} finally {
 			submitting[key] = false;
 			submitting = submitting; // trigger reactivity
@@ -130,7 +138,7 @@
 			<p class="text-lg font-bold text-gray-800 dark:text-gray-200">
 				👋 Hoi {$linkedPlayer.name}!
 			</p>
-			<p class="text-sm text-gray-500 dark:text-gray-400">Geef je beschikbaarheid op voor trainingen en wedstrijden.</p>
+			<p class="text-sm text-gray-500 dark:text-gray-400">Geef je aanwezigheid op voor trainingen en wedstrijden.</p>
 		</div>
 
 		<!-- Upcoming Trainings -->
@@ -151,7 +159,7 @@
 			{:else}
 				<div class="space-y-3">
 					{#each visibleTrainings as training}
-						{@const current = getTrainingStatus(training.id, availability)}
+						{@const current = getTrainingStatus(training.id, trainingAttendance)}
 						{@const key = `training-${training.id}`}
 						<div class="card py-3 px-4 space-y-2">
 							{#if training.content}
@@ -164,12 +172,12 @@
 									</button>
 								</div>
 							{/if}
-							<AvailabilityStatusSwitcher
+							<AttendanceStatusSwitcher
 								label={new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								status={current}
-								reason={getTrainingReason(training.id, availability)}
-								on:change={(e) => submitAvailability('training', training.id, e.detail)}
-								on:reason={(e) => submitAvailability('training', training.id, current ?? 'available', e.detail)}
+								reason={getTrainingReason(training.id, trainingAttendance)}
+								on:change={(e) => submitStatus('training', training.id, e.detail)}
+								on:reason={(e) => submitStatus('training', training.id, current, e.detail)}
 							/>
 						</div>
 					{/each}
@@ -195,16 +203,16 @@
 			{:else}
 				<div class="space-y-3">
 					{#each visibleMatches as match}
-						{@const current = getMatchStatus(match.id, availability)}
+						{@const current = getMatchStatus(match.id, matchAttendance)}
 						{@const key = `match-${match.id}`}
 						<div class="card py-3 px-4 space-y-2">
-							<AvailabilityStatusSwitcher
+							<AttendanceStatusSwitcher
 								label={new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								sublabel={`vs ${match.opponent} (${match.home_away === 'home' ? 'Thuis' : 'Uit'})`}
 								status={current}
-								reason={getMatchReason(match.id, availability)}
-								on:change={(e) => submitAvailability('match', match.id, e.detail)}
-								on:reason={(e) => submitAvailability('match', match.id, current ?? 'available', e.detail)}
+								reason={getMatchReason(match.id, matchAttendance)}
+								on:change={(e) => submitStatus('match', match.id, e.detail)}
+								on:reason={(e) => submitStatus('match', match.id, current, e.detail)}
 							/>
 						</div>
 					{/each}
