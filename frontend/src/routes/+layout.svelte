@@ -165,9 +165,15 @@
 
 	$: navItems = [
 		...allNavItems.filter(item => !$userRole || item.roles.includes($userRole)),
+		...($isPlayer ? [{ href: '/profile', label: '👤 Mijn profiel', roles: [] as string[] }] : []),
 		...($isPlayer && $userRole !== 'viewer' ? [{ href: '/me', label: '🏐 Mijn training', roles: [] as string[] }] : []),
 		...($isPlatformAdmin ? [{ href: '/platform-admin', label: 'Clubs beheren', roles: [] as string[] }] : []),
 	];
+
+	// Pure players (role "viewer") get a stripped-down header: no hamburger
+	// menu / app navigation / context picker — just their landing page,
+	// a way to reach their own profile, and logout.
+	$: isPlayerOnlyView = $userRole === 'viewer';
 </script>
 
 <svelte:head>
@@ -196,8 +202,10 @@
 				<img src="/logo.svg" alt="SetBaas" class="h-12 w-12" />
 				<div class="leading-tight">
 					<span class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">SetBaas</span>
-					<span class="block text-sm font-medium text-gray-600 dark:text-gray-300">{currentClubName} · {currentTeamName}</span>
-					<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentSeasonName}</span>
+					{#if !isPlayerOnlyView}
+						<span class="block text-sm font-medium text-gray-600 dark:text-gray-300">{currentClubName} · {currentTeamName}</span>
+						<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentSeasonName}</span>
+					{/if}
 				</div>
 			</a>
 
@@ -217,6 +225,28 @@
 					</svg>
 				</button>
 
+				{#if isPlayerOnlyView}
+					<!-- Simplified actions for pure players: profile + logout, no hamburger/app-nav -->
+					<a href="{base}/profile"
+						class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+						aria-label="Mijn profiel"
+					>
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+						</svg>
+					</a>
+					{#if AUTH_ENABLED}
+						<button
+							on:click={handleLogout}
+							class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+							aria-label="Uitloggen"
+						>
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+							</svg>
+						</button>
+					{/if}
+				{:else}
 				<!-- Hamburger -->
 				<button
 					on:click={() => (menuOpen = !menuOpen)}
@@ -231,6 +261,7 @@
 						{/if}
 					</svg>
 				</button>
+				{/if}
 			</div>
 		</div>
 	</header>

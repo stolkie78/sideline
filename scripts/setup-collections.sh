@@ -200,7 +200,8 @@ ensure_collection '{
     {"name": "status", "type": "select", "required": true, "values": ["active","injured","inactive"], "maxSelect": 1},
     {"name": "jersey_number", "type": "number", "required": false, "min": 1, "max": 999, "onlyInt": true},
     {"name": "email", "type": "email", "required": false},
-    {"name": "user_id", "type": "relation", "required": false, "collectionId": "_pb_users_auth_", "maxSelect": 1}
+    {"name": "user_id", "type": "relation", "required": false, "collectionId": "_pb_users_auth_", "maxSelect": 1},
+    {"name": "bio", "type": "text", "required": false, "max": 300}
   ],
   "listRule": "@request.auth.id != \"\"",
   "viewRule": "@request.auth.id != \"\"",

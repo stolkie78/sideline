@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.1.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.2.0
 
 ## Tech Stack
 
@@ -355,6 +355,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v3.2.0** | 2026-09-08 | Speler-eigen profiel: nieuwe pagina `/profile` waar spelers hun foto en een vrij "Over mij"-tekstveld (nieuw `bio`-veld op spelers) zelf kunnen bijwerken. Spelers die nog geen gekoppeld spelersprofiel hebben kunnen zichzelf nu ook zelf koppelen door hun club/team te kiezen en zichzelf aan te wijzen uit de lijst met nog niet-gekoppelde teamleden — hoeft niet meer via de coach. Header voor pure spelers (rol "Lezer") is vereenvoudigd: geen hamburgermenu/context-picker meer, alleen donker-modus, profielicoon en uitloggen. Gebruikers met de "Speler"-vlag krijgen in het volledige menu een "👤 Mijn profiel"-item |
 | **v3.1.0** | 2026-09-08 | Spelerlandingspagina: gekoppelde spelers zien nu maximaal 4 komende trainingen met datum/trainer, kunnen de training-inhoud (markdown) bekijken in een lightbox en hun beschikbaarheid (beschikbaar/onzeker/niet beschikbaar) direct bijwerken. Nieuw: gebruikers met de "Speler"-vlag (`is_player` in Toegang) krijgen — los van hun rol (admin/coach/lezer) — een "🏐 Mijn training"-item in het menu naar `/me` met dezelfde pagina, zodat bv. een spelende coach zowel het coach-dashboard als zijn eigen beschikbaarheid kan bijhouden |
 | **v3.0.4** | 2026-09-07 | Trainingen bewerken: check-in waardes (gevoel & fitheid emoji's) van aanwezige spelers zijn nu ook op de bewerkpagina in te zien en achteraf aan te passen |
 | **v3.0.3** | 2026-09-07 | Fix: check-in overzicht (stap "Start" in de check-in wizard) bleef leeg na het inchecken van spelers — de lokale cache werd niet bijgewerkt met de opgeslagen gevoel/fitheid-waarden, waardoor de overview-check faalde ondanks dat de data wel goed in de database stond |

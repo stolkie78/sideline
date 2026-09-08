@@ -10,6 +10,7 @@ export interface Player extends RecordModel {
 	jersey_number?: number;
 	email?: string;
 	user_id?: string;
+	bio?: string;
 }
 
 export interface Club extends RecordModel {

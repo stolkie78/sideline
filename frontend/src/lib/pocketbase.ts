@@ -679,3 +679,30 @@ export async function getPlayerByEmail(email: string): Promise<Player | null> {
 export async function linkPlayerToUser(playerId: string, userId: string): Promise<Player> {
 	return pb.collection('players').update<Player>(playerId, { user_id: userId });
 }
+
+/**
+ * Players on a team/season roster that aren't linked to any user account yet
+ * (user_id is empty). Used by the self-service "link my account" flow on
+ * /profile, so a player can find and claim their own roster entry without
+ * needing a coach to set it up for them.
+ */
+export async function getUnlinkedTeamPlayers(teamId: string, seasonId: string): Promise<Player[]> {
+	if (!teamId || !seasonId) return [];
+	const teamPlayers = await pb.collection('team_players').getFullList<TeamPlayer>({
+		filter: `team = "${teamId}" && season = "${seasonId}"`,
+		expand: 'player',
+		sort: 'player',
+	});
+	return teamPlayers
+		.map((tp) => tp.expand?.player)
+		.filter((p): p is Player => !!p && !p.user_id)
+		.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Self-service profile update for the linked player record: photo and bio
+ * only — name/position/jersey/status stay coach-managed via /players.
+ */
+export async function updatePlayerProfile(id: string, data: FormData): Promise<Player> {
+	return pb.collection('players').update<Player>(id, data);
+}
