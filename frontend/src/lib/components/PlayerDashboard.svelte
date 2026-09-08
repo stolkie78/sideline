@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { pb, getAvailabilityForPlayer, setAvailability } from '$lib/pocketbase';
-	import { linkedPlayer } from '$lib/stores/role';
+	import { linkedPlayer, rolesLoaded } from '$lib/stores/role';
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
 	import type { Training, Match, PlayerAvailability, AvailabilityStatus } from '$lib/types';
 	import { marked } from 'marked';
@@ -12,10 +11,23 @@
 	let loading = true;
 	let submitting: Record<string, boolean> = {};
 	let lightboxTraining: Training | null = null;
+	let hasLoaded = false;
 
 	$: playerId = $linkedPlayer?.id;
 
-	onMount(loadData);
+	// Wait for the (async) user-role/linked-player lookup to finish before
+	// deciding what to show. Loading immediately on mount would race with
+	// `loadUserRoles()` in +layout.svelte — `$linkedPlayer` is still null at
+	// that point, causing an early bail-out with a permanently empty
+	// dashboard even though the player IS linked, just not resolved yet.
+	$: if ($rolesLoaded && !hasLoaded) {
+		hasLoaded = true;
+		if (playerId) {
+			loadData();
+		} else {
+			loading = false;
+		}
+	}
 
 	async function loadData() {
 		if (!playerId) { loading = false; return; }

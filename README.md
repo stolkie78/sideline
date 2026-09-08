@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.2.1
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.2.2
 
 ## Tech Stack
 
@@ -355,6 +355,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v3.2.2** | 2026-09-08 | Fix: spelerdashboard (`/`, `/me`) toonde toch nog geen komende trainingen/wedstrijden ondanks de v3.2.1-fix — twee onderliggende oorzaken opgelost: (1) `getAvailabilityForPlayer()` sorteerde op een niet-bestaand `created`-veld op de `player_availability`-collectie, waardoor PocketBase de hele aanvraag met een generieke 400 afwees en de gecombineerde `Promise.all` (incl. trainingen/wedstrijden) faalde; (2) het spelerdashboard laadde zijn data op `onMount`, wat kon rennen vóórdat de asynchrone rol/spelerkoppeling (`loadUserRoles()`) in de layout klaar was — hierdoor werd soms heel even het gewone coach-dashboard getoond (met échte data) dat na een fractie van een seconde verving door een leeg spelerdashboard. Nieuwe `rolesLoaded`-store zorgt dat het spelerdashboard pas beslist of er wel/geen speler gekoppeld is nadat de rolcheck daadwerkelijk is afgerond |
 | **v3.2.1** | 2026-09-08 | Fix: spelerdashboard (`/`, `/me`) toonde geen komende trainingen/wedstrijden voor spelers wiens eerstvolgende training toevallig als "gesloten" gemarkeerd stond — filter aangescherpt naar alle niet-gesloten trainingen (open + actief) vanaf vandaag, gesorteerd op datum zodat de eerstvolgende training bovenaan staat; maximaal 4 trainingen en 4 wedstrijden |
 | **v3.2.0** | 2026-09-08 | Speler-eigen profiel: nieuwe pagina `/profile` waar spelers hun foto en een vrij "Over mij"-tekstveld (nieuw `bio`-veld op spelers) zelf kunnen bijwerken. Spelers die nog geen gekoppeld spelersprofiel hebben kunnen zichzelf nu ook zelf koppelen door hun club/team te kiezen en zichzelf aan te wijzen uit de lijst met nog niet-gekoppelde teamleden — hoeft niet meer via de coach. Header voor pure spelers (rol "Lezer") is vereenvoudigd: geen hamburgermenu/context-picker meer, alleen donker-modus, profielicoon en uitloggen. Gebruikers met de "Speler"-vlag krijgen in het volledige menu een "👤 Mijn profiel"-item |
 | **v3.1.0** | 2026-09-08 | Spelerlandingspagina: gekoppelde spelers zien nu maximaal 4 komende trainingen met datum/trainer, kunnen de training-inhoud (markdown) bekijken in een lightbox en hun beschikbaarheid (beschikbaar/onzeker/niet beschikbaar) direct bijwerken. Nieuw: gebruikers met de "Speler"-vlag (`is_player` in Toegang) krijgen — los van hun rol (admin/coach/lezer) — een "🏐 Mijn training"-item in het menu naar `/me` met dezelfde pagina, zodat bv. een spelende coach zowel het coach-dashboard als zijn eigen beschikbaarheid kan bijhouden |

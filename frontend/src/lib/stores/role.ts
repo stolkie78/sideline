@@ -13,6 +13,12 @@ export const userClubAccess = writable<ClubAccess[]>([]);
 // The player record linked to the current user (if any)
 export const linkedPlayer = writable<Player | null>(null);
 
+// Whether loadUserRoles() has completed at least once since login. Components
+// that depend on `linkedPlayer` (e.g. PlayerDashboard) must wait for this
+// before deciding "no linked player" — otherwise they can run before the
+// async role/player lookup resolves and permanently show an empty state.
+export const rolesLoaded = writable(false);
+
 // Current role for the selected club
 export const userRole = derived(
 	[userClubAccess, selectedClubId],
@@ -75,26 +81,33 @@ export async function loadUserRoles() {
 	const userId = model.id;
 	const userEmail = model.email;
 
-	// Load club access
-	const access = await getClubAccessForUser(userId);
-	userClubAccess.set(access);
+	try {
+		// Load club access
+		const access = await getClubAccessForUser(userId);
+		userClubAccess.set(access);
 
-	// Try to find linked player
-	let player = await getPlayerByUserId(userId);
+		// Try to find linked player
+		let player = await getPlayerByUserId(userId);
 
-	// Auto-link: if no player linked by user_id, try by email
-	if (!player && userEmail) {
-		player = await getPlayerByEmail(userEmail);
-		if (player) {
-			await linkPlayerToUser(player.id, userId);
+		// Auto-link: if no player linked by user_id, try by email
+		if (!player && userEmail) {
+			player = await getPlayerByEmail(userEmail);
+			if (player) {
+				await linkPlayerToUser(player.id, userId);
+			}
 		}
-	}
 
-	linkedPlayer.set(player);
+		linkedPlayer.set(player);
+	} finally {
+		// Always flip this, even on failure, so components waiting on it
+		// (e.g. PlayerDashboard) don't hang in a permanent loading state.
+		rolesLoaded.set(true);
+	}
 }
 
 // Clear on logout
 export function clearUserRoles() {
 	userClubAccess.set([]);
 	linkedPlayer.set(null);
+	rolesLoaded.set(false);
 }

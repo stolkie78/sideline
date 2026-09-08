@@ -629,10 +629,13 @@ export async function getAvailabilityForMatch(matchId: string): Promise<PlayerAv
 }
 
 export async function getAvailabilityForPlayer(playerId: string): Promise<PlayerAvailability[]> {
+	// Note: this collection has no `created`/`updated` autodate fields, so a
+	// `sort: '-created'` here would make PocketBase reject the request with a
+	// generic 400 ("Something went wrong") — silently breaking every caller
+	// that depends on it (e.g. PlayerDashboard's Promise.all).
 	return pb.collection('player_availability').getFullList<PlayerAvailability>({
 		filter: `player = "${playerId}"`,
 		expand: 'training,match',
-		sort: '-created',
 	});
 }
 
