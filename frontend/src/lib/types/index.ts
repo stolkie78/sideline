@@ -104,6 +104,7 @@ export interface TrainingAttendance extends RecordModel {
 	training: string;
 	player: string;
 	status: AttendanceStatus;
+	reason?: string;
 	player_rating?: number;
 	player_notes?: string;
 	happiness?: number;
@@ -121,12 +122,20 @@ export interface MatchAttendance extends RecordModel {
 	match: string;
 	player: string;
 	status: AttendanceStatus;
+	reason?: string;
 	expand?: {
 		player?: Player;
 	};
 }
 
-export type AttendanceStatus = 'present' | 'absent' | 'sick' | 'injured';
+export type AttendanceStatus = 'present' | 'sick' | 'school' | 'absent' | 'late' | 'injured';
+
+// Tap-to-cycle order used by the attendance status switcher (always starts
+// on "present" as the default). Absent/late are the two statuses where a
+// free-text reason can be given.
+export const ATTENDANCE_CYCLE_ORDER: AttendanceStatus[] = ['present', 'sick', 'school', 'absent', 'late', 'injured'];
+
+export const ATTENDANCE_STATUSES_WITH_REASON: AttendanceStatus[] = ['absent', 'late'];
 
 export type AvailabilityStatus = 'available' | 'unavailable' | 'uncertain';
 
@@ -258,9 +267,45 @@ export const STATUS_LABELS: Record<PlayerStatus, string> = {
 
 export const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
 	present: 'Aanwezig',
-	absent: 'Afwezig',
 	sick: 'Ziek',
+	school: 'School',
+	absent: 'Afwezig',
+	late: 'Later',
 	injured: 'Geblesseerd',
+};
+
+// Tailwind classes for the attendance status switcher (card bg/border, badge, dot).
+export const ATTENDANCE_STYLES: Record<AttendanceStatus, { card: string; badge: string; dot: string }> = {
+	present: {
+		card: 'bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700',
+		badge: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+		dot: 'bg-green-500',
+	},
+	sick: {
+		card: 'bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700',
+		badge: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+		dot: 'bg-yellow-500',
+	},
+	school: {
+		card: 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700',
+		badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+		dot: 'bg-blue-500',
+	},
+	absent: {
+		card: 'bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700',
+		badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+		dot: 'bg-red-500',
+	},
+	late: {
+		card: 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700',
+		badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300',
+		dot: 'bg-orange-500',
+	},
+	injured: {
+		card: 'bg-purple-50 dark:bg-purple-900/20 border-2 border-purple-300 dark:border-purple-700',
+		badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+		dot: 'bg-purple-500',
+	},
 };
 
 export const CATEGORY_LABELS: Record<CompetencyCategory, string> = {

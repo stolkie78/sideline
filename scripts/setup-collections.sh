@@ -133,6 +133,30 @@ get_col_id() {
     | jq -r '.id'
 }
 
+# Helper: update the allowed `values` of an existing select field on a collection.
+# ensure_collection() only adds brand-new field names; this patches the values
+# array of a field that already exists (e.g. adding a new select option).
+# Usage: ensure_select_values <collection_name> <field_name> ["a","b","c"]
+ensure_select_values() {
+  local NAME="$1"
+  local FIELD_NAME="$2"
+  local NEW_VALUES="$3"
+
+  local FIELDS=$(curl -sf "$PB_URL/api/collections/$NAME" -H "Authorization: $TOKEN" | jq -c '.fields')
+  if [ -z "$FIELDS" ] || [ "$FIELDS" = "null" ]; then
+    echo "  ⚠️ Could not read fields for $NAME (skipping $FIELD_NAME values update)"
+    return
+  fi
+
+  local UPDATED_FIELDS=$(echo "$FIELDS" | jq -c --arg fname "$FIELD_NAME" --argjson vals "$NEW_VALUES" 'map(if .name == $fname then .values = $vals else . end)')
+
+  curl -sf -X PATCH "$PB_URL/api/collections/$NAME" \
+    -H "Authorization: $TOKEN" -H "Content-Type: application/json" \
+    -d "{\"fields\": $UPDATED_FIELDS}" > /dev/null \
+    && echo "  ✅ $NAME.$FIELD_NAME values updated" \
+    || echo "  ⚠️ Could not update $NAME.$FIELD_NAME values"
+}
+
 echo ""
 echo "📦 Creating/updating collections..."
 
@@ -307,7 +331,8 @@ ensure_collection "{
   \"fields\": [
     {\"name\": \"training\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$TRAININGS_ID\", \"maxSelect\": 1},
     {\"name\": \"player\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$PLAYERS_ID\", \"maxSelect\": 1},
-    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"present\",\"absent\",\"late\",\"sick\",\"injured\"], \"maxSelect\": 1},
+    {\"name\": \"status\", \"type\": \"select\", \"required\": true, \"values\": [\"present\",\"sick\",\"school\",\"absent\",\"late\",\"injured\"], \"maxSelect\": 1},
+    {\"name\": \"reason\", \"type\": \"text\", \"required\": false},
     {\"name\": \"player_rating\", \"type\": \"number\", \"required\": false},
     {\"name\": \"player_notes\", \"type\": \"text\", \"required\": false},
     {\"name\": \"happiness\", \"type\": \"number\", \"required\": false},
@@ -321,6 +346,9 @@ ensure_collection "{
   \"updateRule\": \"@request.auth.id != \\\"\\\"\",
   \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
+
+# Ensure existing installs (created before "school" was added) get the new status value.
+ensure_select_values "training_attendance" "status" '["present","sick","school","absent","late","injured"]'
 
 # === 8. Matches ===
 ensure_collection "{

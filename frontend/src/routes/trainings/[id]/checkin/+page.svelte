@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { pb, getTrainingAttendance, getContextPlayers, createTrainingAttendance, updateTrainingAttendance, updateTraining } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance, Player, AttendanceStatus } from '$lib/types';
-	import { ATTENDANCE_LABELS } from '$lib/types';
+	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
 
 	const HAPPINESS_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'];
 	const HAPPINESS_LABELS = ['Baal', 'Meh', 'Oké', 'Blij', 'Super!'];
@@ -23,6 +23,7 @@
 
 	// Step 1: Attendance
 	let playerStatus: Record<string, AttendanceStatus> = {};
+	let playerReason: Record<string, string> = {};
 	let savingAttendance = false;
 
 	// Step 2: Check-in
@@ -56,21 +57,15 @@
 			for (const p of players) {
 				const existing = existingAttendance[p.id];
 				playerStatus[p.id] = existing?.status || 'present';
+				playerReason[p.id] = existing?.reason || '';
 			}
 			playerStatus = playerStatus;
+			playerReason = playerReason;
 		} catch (e) {
 			console.error(e);
 		}
 		loading = false;
 	});
-
-	function cycleStatus(playerId: string) {
-		const order: AttendanceStatus[] = ['present', 'absent', 'sick', 'injured'];
-		const current = playerStatus[playerId];
-		const idx = order.indexOf(current);
-		playerStatus[playerId] = order[(idx + 1) % order.length];
-		playerStatus = playerStatus;
-	}
 
 	async function saveAttendance() {
 		savingAttendance = true;
@@ -78,14 +73,16 @@
 			for (const p of players) {
 				const existing = existingAttendance[p.id];
 				const status = playerStatus[p.id];
+				const reason = playerReason[p.id] || undefined;
 				if (existing) {
-					await updateTrainingAttendance(existing.id, { status });
-					existingAttendance[p.id] = { ...existing, status };
+					await updateTrainingAttendance(existing.id, { status, reason });
+					existingAttendance[p.id] = { ...existing, status, reason };
 				} else {
 					const created = await createTrainingAttendance({
 						training: $page.params.id,
 						player: p.id,
 						status,
+						reason,
 					});
 					existingAttendance[p.id] = created;
 				}
@@ -233,30 +230,14 @@
 
 				<div class="space-y-2">
 					{#each players as player}
-						{@const status = playerStatus[player.id]}
-						<button
-							type="button"
-							class="w-full flex items-center gap-3 p-3 rounded-xl transition-all active:scale-[0.98]
-								{status === 'present' ? 'bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700' :
-								 status === 'absent' ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700' :
-								 status === 'sick' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700' :
-								 'bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700'}"
-							on:click={() => cycleStatus(player.id)}
-						>
-							<span class="flex-1 text-left font-medium text-gray-800 dark:text-gray-200">
-								{player.name}
-								{#if player.jersey_number}
-									<span class="text-xs text-gray-400 ml-1">#{player.jersey_number}</span>
-								{/if}
-							</span>
-							<span class="text-xs font-semibold px-2 py-1 rounded-lg
-								{status === 'present' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-								 status === 'absent' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-								 status === 'sick' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
-								 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'}">
-								{ATTENDANCE_LABELS[status]}
-							</span>
-						</button>
+						<AttendanceStatusSwitcher
+							label={player.name}
+							sublabel={player.jersey_number ? `#${player.jersey_number}` : undefined}
+							status={playerStatus[player.id]}
+							reason={playerReason[player.id] || ''}
+							on:change={(e) => { playerStatus[player.id] = e.detail; playerStatus = playerStatus; }}
+							on:reason={(e) => { playerReason[player.id] = e.detail; playerReason = playerReason; }}
+						/>
 					{/each}
 				</div>
 

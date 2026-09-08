@@ -7,6 +7,7 @@
 	import type { TeamAccess } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance, Player, AttendanceStatus } from '$lib/types';
 	import { aiConfig } from '$lib/stores/ai';
+	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
 
 	const REFLECTION_SYSTEM_PROMPT = `Je bent een ervaren volleybalcoach-assistent gespecialiseerd in jeugdvolleybal. Bedenk één korte, simpele reflectievraag (Nederlands, max 15 woorden) die een trainer aan een paar jeugdspeelsters kan stellen direct na afloop van een training. De vraag moet uitnodigen tot een kort, persoonlijk antwoord over hun ervaring, gevoel of leerpunt van de training. Geef ALLEEN de vraag terug, zonder aanhalingstekens, opsomming of uitleg.`;
 
@@ -29,6 +30,7 @@
 
 	// Attendance toggles
 	let playerStatus: Record<string, AttendanceStatus> = {};
+	let playerReason: Record<string, string> = {};
 
 	// Scores
 	let overallRating = 7;
@@ -60,6 +62,7 @@
 			for (const a of att) {
 				attendance[a.player] = a;
 				playerStatus[a.player] = a.status;
+				playerReason[a.player] = a.reason || '';
 				playerRatings[a.player] = a.player_rating || 7;
 				playerNotes[a.player] = a.player_notes || '';
 				if (a.checkout_selected) {
@@ -70,10 +73,12 @@
 			// Players without attendance default to present
 			for (const p of players) {
 				if (!playerStatus[p.id]) playerStatus[p.id] = 'present';
+				if (!playerReason[p.id]) playerReason[p.id] = '';
 				if (!playerRatings[p.id]) playerRatings[p.id] = 7;
 				if (!playerNotes[p.id]) playerNotes[p.id] = '';
 			}
 			playerStatus = playerStatus;
+			playerReason = playerReason;
 			reflectionPlayerIds = reflectionPlayerIds;
 
 			overallRating = training.overall_rating || 7;
@@ -92,11 +97,6 @@
 		}
 		loading = false;
 	});
-
-	function togglePlayer(playerId: string) {
-		playerStatus[playerId] = playerStatus[playerId] === 'present' ? 'absent' : 'present';
-		playerStatus = playerStatus;
-	}
 
 	function pickRandomPlayers(): string[] {
 		const pool = [...presentPlayers];
@@ -198,6 +198,7 @@
 				const isSelected = reflectionPlayerIds.includes(p.id);
 				const data: any = {
 					status: playerStatus[p.id],
+					reason: playerReason[p.id] || undefined,
 					player_rating: playerRatings[p.id] || undefined,
 					player_notes: playerNotes[p.id] || undefined,
 					checkout_selected: isSelected,
@@ -263,17 +264,16 @@
 					<h2 class="font-bold text-gray-900 dark:text-gray-100">👥 Aanwezigheid</h2>
 					<span class="text-sm font-medium text-green-600">{presentCount}/{players.length}</span>
 				</div>
-				<div class="space-y-1">
+				<div class="space-y-2">
 					{#each players as player}
-						{@const isPresent = playerStatus[player.id] === 'present'}
-						<button
-							type="button"
-							class="w-full flex items-center gap-3 p-3 rounded-xl transition-all active:scale-[0.98]
-								{isPresent ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'}"
-							on:click={() => togglePlayer(player.id)}
-						>
-							<span class="flex-1 text-left font-medium text-gray-800 dark:text-gray-200">{player.name}</span>
-						</button>
+						<AttendanceStatusSwitcher
+							label={player.name}
+							sublabel={player.jersey_number ? `#${player.jersey_number}` : undefined}
+							status={playerStatus[player.id]}
+							reason={playerReason[player.id] || ''}
+							on:change={(e) => { playerStatus[player.id] = e.detail; playerStatus = playerStatus; }}
+							on:reason={(e) => { playerReason[player.id] = e.detail; playerReason = playerReason; }}
+						/>
 					{/each}
 				</div>
 			</div>

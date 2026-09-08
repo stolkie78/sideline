@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.2.2
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.3.0
 
 ## Tech Stack
 
@@ -355,6 +355,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v3.3.0** | 2026-09-08 | Nieuwe herbruikbare `AttendanceStatusSwitcher` (tap-to-cycle): standaard groen "Aanwezig", door te tikken cyclen door Ziek → School → Afwezig → Later → Geblesseerd → terug naar Aanwezig; bij Afwezig/Later verschijnt een tekstveld voor een reden. Toegepast in zowel de training check-in ("Wie is er?") als check-out ("Aanwezigheid")-stap, met nieuw `reason`-veld op `training_attendance`. Spelerdashboard toont nu standaard alleen de eerstvolgende training en wedstrijd, met een uitklap-knop om de rest van het hele seizoen te tonen zodat spelers hun beschikbaarheid voor elke toekomstige training/wedstrijd kunnen bijwerken, niet alleen de eerstvolgende 4 |
 | **v3.2.2** | 2026-09-08 | Fix: spelerdashboard (`/`, `/me`) toonde toch nog geen komende trainingen/wedstrijden ondanks de v3.2.1-fix — twee onderliggende oorzaken opgelost: (1) `getAvailabilityForPlayer()` sorteerde op een niet-bestaand `created`-veld op de `player_availability`-collectie, waardoor PocketBase de hele aanvraag met een generieke 400 afwees en de gecombineerde `Promise.all` (incl. trainingen/wedstrijden) faalde; (2) het spelerdashboard laadde zijn data op `onMount`, wat kon rennen vóórdat de asynchrone rol/spelerkoppeling (`loadUserRoles()`) in de layout klaar was — hierdoor werd soms heel even het gewone coach-dashboard getoond (met échte data) dat na een fractie van een seconde verving door een leeg spelerdashboard. Nieuwe `rolesLoaded`-store zorgt dat het spelerdashboard pas beslist of er wel/geen speler gekoppeld is nadat de rolcheck daadwerkelijk is afgerond |
 | **v3.2.1** | 2026-09-08 | Fix: spelerdashboard (`/`, `/me`) toonde geen komende trainingen/wedstrijden voor spelers wiens eerstvolgende training toevallig als "gesloten" gemarkeerd stond — filter aangescherpt naar alle niet-gesloten trainingen (open + actief) vanaf vandaag, gesorteerd op datum zodat de eerstvolgende training bovenaan staat; maximaal 4 trainingen en 4 wedstrijden |
 | **v3.2.0** | 2026-09-08 | Speler-eigen profiel: nieuwe pagina `/profile` waar spelers hun foto en een vrij "Over mij"-tekstveld (nieuw `bio`-veld op spelers) zelf kunnen bijwerken. Spelers die nog geen gekoppeld spelersprofiel hebben kunnen zichzelf nu ook zelf koppelen door hun club/team te kiezen en zichzelf aan te wijzen uit de lijst met nog niet-gekoppelde teamleden — hoeft niet meer via de coach. Header voor pure spelers (rol "Lezer") is vereenvoudigd: geen hamburgermenu/context-picker meer, alleen donker-modus, profielicoon en uitloggen. Gebruikers met de "Speler"-vlag krijgen in het volledige menu een "👤 Mijn profiel"-item |

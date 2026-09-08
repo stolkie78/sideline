@@ -12,6 +12,8 @@
 	let submitting: Record<string, boolean> = {};
 	let lightboxTraining: Training | null = null;
 	let hasLoaded = false;
+	let showAllTrainings = false;
+	let showAllMatches = false;
 
 	$: playerId = $linkedPlayer?.id;
 
@@ -50,8 +52,8 @@
 				getAvailabilityForPlayer(playerId),
 			]);
 
-			trainings = t.slice(0, 4);
-			matches = m.slice(0, 4);
+			trainings = t;
+			matches = m;
 			availability = a;
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
@@ -104,6 +106,9 @@
 	};
 
 	const availabilityOptions: AvailabilityStatus[] = ['available', 'unavailable', 'uncertain'];
+
+	$: visibleTrainings = showAllTrainings ? trainings : trainings.slice(0, 1);
+	$: visibleMatches = showAllMatches ? matches : matches.slice(0, 1);
 </script>
 
 <svelte:head>
@@ -132,12 +137,22 @@
 
 		<!-- Upcoming Trainings -->
 		<div>
-			<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">🏋️ Trainingen</h2>
+			<div class="flex items-center justify-between mb-3">
+				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">🏋️ Trainingen</h2>
+				{#if trainings.length > 1}
+					<button
+						class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
+						on:click={() => showAllTrainings = !showAllTrainings}
+					>
+						{showAllTrainings ? '▲ Toon alleen volgende' : `▼ Toon alle (${trainings.length})`}
+					</button>
+				{/if}
+			</div>
 			{#if trainings.length === 0}
 				<p class="text-sm text-gray-400">Geen komende trainingen</p>
 			{:else}
 				<div class="space-y-3">
-					{#each trainings as training}
+					{#each visibleTrainings as training}
 						{@const current = getTrainingStatus(training.id)}
 						{@const key = `training-${training.id}`}
 						<div class="card py-3 px-4">
@@ -181,12 +196,22 @@
 
 		<!-- Upcoming Matches -->
 		<div>
-			<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">🏐 Wedstrijden</h2>
+			<div class="flex items-center justify-between mb-3">
+				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">🏐 Wedstrijden</h2>
+				{#if matches.length > 1}
+					<button
+						class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
+						on:click={() => showAllMatches = !showAllMatches}
+					>
+						{showAllMatches ? '▲ Toon alleen volgende' : `▼ Toon alle (${matches.length})`}
+					</button>
+				{/if}
+			</div>
 			{#if matches.length === 0}
 				<p class="text-sm text-gray-400">Geen komende wedstrijden</p>
 			{:else}
 				<div class="space-y-3">
-					{#each matches as match}
+					{#each visibleMatches as match}
 						{@const current = getMatchStatus(match.id)}
 						{@const key = `match-${match.id}`}
 						<div class="card py-3 px-4">
