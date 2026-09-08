@@ -4,12 +4,14 @@
 	import { linkedPlayer } from '$lib/stores/role';
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
 	import type { Training, Match, PlayerAvailability, AvailabilityStatus } from '$lib/types';
+	import { marked } from 'marked';
 
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
 	let availability: PlayerAvailability[] = [];
 	let loading = true;
 	let submitting: Record<string, boolean> = {};
+	let lightboxTraining: Training | null = null;
 
 	$: playerId = $linkedPlayer?.id;
 
@@ -33,7 +35,7 @@
 				getAvailabilityForPlayer(playerId),
 			]);
 
-			trainings = t.slice(0, 5);
+			trainings = t.slice(0, 4);
 			matches = m.slice(0, 5);
 			availability = a;
 		} catch (e) {
@@ -133,6 +135,14 @@
 										<span class="ml-2 inline-block w-2 h-2 rounded-full {STATUS_COLORS[current]}"></span>
 									{/if}
 								</div>
+								{#if training.content}
+									<button
+										class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
+										on:click={() => lightboxTraining = training}
+									>
+										👁 Bekijken
+									</button>
+								{/if}
 							</div>
 							<div class="flex gap-2">
 								{#each availabilityOptions as status}
@@ -197,6 +207,28 @@
 					{/each}
 				</div>
 			{/if}
+		</div>
+	</div>
+{/if}
+
+<!-- Training content lightbox -->
+{#if lightboxTraining}
+	<!-- svelte-ignore a11y-click-events-have-key-events -->
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" on:click={() => lightboxTraining = null}>
+		<div class="bg-white dark:bg-gray-900 w-full h-full md:w-[90%] md:h-[90%] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden" on:click|stopPropagation>
+			<div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">
+					{new Date(lightboxTraining.date).toLocaleDateString('nl-NL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+				</h2>
+				<button class="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-xl" on:click={() => lightboxTraining = null}>
+					✕
+				</button>
+			</div>
+			<div class="flex-1 overflow-y-auto px-6 py-6 md:px-12 md:py-8">
+				<div class="prose prose-lg dark:prose-invert max-w-none">
+					{@html marked(lightboxTraining.content || '', { breaks: true })}
+				</div>
+			</div>
 		</div>
 	</div>
 {/if}

@@ -17,7 +17,7 @@
 		teamsInClub,
 	} from '$lib/stores/context';
 	import { authUser, isAuthenticated, isPlatformAdmin, AUTH_ENABLED } from '$lib/stores/auth';
-	import { userRole, isCoachOrAdmin, loadUserRoles, clearUserRoles, userClubAccess, defaultTeamId } from '$lib/stores/role';
+	import { userRole, isCoachOrAdmin, isPlayer, loadUserRoles, clearUserRoles, userClubAccess, defaultTeamId } from '$lib/stores/role';
 	import type { Club, Team, Season } from '$lib/types';
 	import { version } from '../../package.json';
 
@@ -165,6 +165,7 @@
 
 	$: navItems = [
 		...allNavItems.filter(item => !$userRole || item.roles.includes($userRole)),
+		...($isPlayer && $userRole !== 'viewer' ? [{ href: '/me', label: '🏐 Mijn training', roles: [] as string[] }] : []),
 		...($isPlatformAdmin ? [{ href: '/platform-admin', label: 'Clubs beheren', roles: [] as string[] }] : []),
 	];
 </script>

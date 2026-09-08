@@ -38,6 +38,23 @@ export const isCoachOrAdmin = derived(
 );
 
 /**
+ * Whether the current user is flagged as a player (`is_player`) for the
+ * selected club. This is independent of their permission `role` — a coach
+ * or admin can also be tagged as a player (e.g. a playing coach), in which
+ * case they get access to the personal "Mijn training" landing page in
+ * addition to their regular role-based dashboard.
+ */
+export const isPlayer = derived(
+	[userClubAccess, selectedClubId],
+	([$access, $clubId]) => {
+		if ($access.length === 0) return false;
+		if (!$clubId) return $access.some(a => a.is_player);
+		const clubAccess = $access.find(a => a.club === $clubId);
+		return !!clubAccess?.is_player;
+	}
+);
+
+/**
  * The default team for the current user on the current club, if one was set.
  * Only meaningful when someone has access to more than one team within the
  * club — otherwise the regular "first accessible team" fallback applies.
