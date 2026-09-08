@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { pb, getMatchAttendance, getContextPlayers } from '$lib/pocketbase';
 	import type { Match, MatchAttendance, Player } from '$lib/types';
-	import { ATTENDANCE_LABELS } from '$lib/types';
+	import { ATTENDANCE_LABELS, ATTENDANCE_STYLES } from '$lib/types';
 	import { getMatchScore, getMatchSets, getMatchOutcome, formatSetScore } from '$lib/utils/match';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
@@ -67,12 +67,9 @@
 				<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
 					{#each attendance as att}
 						{@const player = att.expand?.player}
-						<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm">
-							<span class="w-2 h-2 rounded-full {
-								att.status === 'present' ? 'bg-green-500' :
-								att.status === 'absent' ? 'bg-red-500' :
-								att.status === 'sick' ? 'bg-yellow-500' : 'bg-orange-500'
-							}"></span>
+						{@const styles = ATTENDANCE_STYLES[att.status]}
+						<div class="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm" title={att.reason || ''}>
+							<span class="w-2 h-2 rounded-full {styles.dot}"></span>
 							<span class="text-gray-700 dark:text-gray-300 truncate">
 								{player ? player.name : '...'}
 							</span>

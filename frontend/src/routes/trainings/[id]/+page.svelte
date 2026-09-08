@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { pb, getTrainingAttendance, updateTrainingAttendance } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance } from '$lib/types';
+	import { ATTENDANCE_LABELS, ATTENDANCE_STYLES } from '$lib/types';
 	import { marked } from 'marked';
 
 	const HAPPINESS_EMOJIS = ['😢', '😕', '😐', '😊', '🤩'];
@@ -113,13 +114,11 @@
 				<div class="flex flex-wrap gap-2">
 					{#each attendance as att}
 						{@const player = att.expand?.player}
-						<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm {
-							att.status === 'present'
-								? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300'
-								: 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'
-						}">
-							{att.status === 'present' ? '✅' : '❌'}
+						{@const styles = ATTENDANCE_STYLES[att.status]}
+						<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm {styles.badge}" title={att.reason || ''}>
+							<span class="w-1.5 h-1.5 rounded-full {styles.dot}"></span>
 							{player ? player.name : '...'}
+							<span class="text-xs opacity-75">({ATTENDANCE_LABELS[att.status]})</span>
 						</span>
 					{/each}
 				</div>
