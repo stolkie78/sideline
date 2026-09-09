@@ -4,8 +4,9 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { getPlayer, updatePlayer, deletePlayer, getFileUrl } from '$lib/pocketbase';
-	import type { Player, PlayerPosition } from '$lib/types';
-	import { POSITION_LABELS, STATUS_LABELS } from '$lib/types';
+	import type { Player, PlayerPosition, ExtraActivity, ExtraActivityType, Team } from '$lib/types';
+	import { POSITION_LABELS, STATUS_LABELS, EXTRA_ACTIVITY_LABELS } from '$lib/types';
+	import { teams as teamsStore, selectedClubId } from '$lib/stores/context';
 
 	let player: Player | null = null;
 	let loading = true;
@@ -18,6 +19,18 @@
 	let formJersey = '';
 	let formEmail = '';
 	let formPhoto: FileList | null = null;
+	let formExtras: ExtraActivity[] = [];
+
+	$: clubTeams = ($teamsStore || []).filter((t: Team) => !$selectedClubId || t.club === $selectedClubId);
+	const extraTypes = Object.entries(EXTRA_ACTIVITY_LABELS) as [ExtraActivityType, string][];
+
+	function addExtra() {
+		formExtras = [...formExtras, { type: 'training', team: '', team_name: '', hours: undefined, notes: '' }];
+	}
+
+	function removeExtra(index: number) {
+		formExtras = formExtras.filter((_, i) => i !== index);
+	}
 
 	const allPositions = Object.entries(POSITION_LABELS) as [PlayerPosition, string][];
 
@@ -36,8 +49,10 @@
 			formName = player.name;
 			formPositions = player.position || [];
 			formStatus = player.status || 'active';
-			formJersey = player.jersey_number?.toString() || '';
+			// 0 betekent "geen rugnummer"; als tekst zou het het min=1-veld ongeldig maken.
+			formJersey = player.jersey_number ? String(player.jersey_number) : '';
 			formEmail = player.email || '';
+			formExtras = Array.isArray(player.extra_activities) ? [...player.extra_activities] : [];
 		} catch (e) {
 			console.error('Failed to load player:', e);
 		} finally {
@@ -62,6 +77,18 @@
 			if (formJersey) data.append('jersey_number', formJersey);
 			data.append('email', formEmail.trim());
 			if (formPhoto && formPhoto[0]) data.append('photo', formPhoto[0]);
+
+			// JSON-veld: leeg maken als er niets is ingevuld, zodat het rapport niets telt.
+			const cleanedExtras = formExtras
+				.filter((a) => a.team || a.team_name?.trim() || a.hours || a.notes?.trim())
+				.map((a) => ({
+					type: a.type,
+					team: a.team || undefined,
+					team_name: a.team_name?.trim() || undefined,
+					hours: a.hours ? Number(a.hours) : undefined,
+					notes: a.notes?.trim() || undefined
+				}));
+			data.append('extra_activities', JSON.stringify(cleanedExtras));
 
 			await updatePlayer(player.id, data);
 			goto(`${base}/players/${player.id}`);
@@ -163,6 +190,58 @@
 				<label class="label" for="photo">Nieuwe foto</label>
 				<input id="photo" class="input" type="file" accept="image/*" bind:files={formPhoto} />
 			</div>
+		</div>
+
+		<div class="card space-y-3">
+			<div>
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Extra belasting</h3>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					Trainingen of wedstrijden naast het eigen team, bijvoorbeeld invallen bij een ander team.
+					Deze uren tellen mee in het belastingsoverzicht.
+				</p>
+			</div>
+
+			{#each formExtras as extra, i}
+				<div class="p-3 border border-gray-100 dark:border-gray-700 rounded-lg space-y-2">
+					<div class="flex items-center gap-2">
+						<select class="input text-sm flex-1" bind:value={extra.type}>
+							{#each extraTypes as [value, label]}
+								<option {value}>{label}</option>
+							{/each}
+						</select>
+						<input
+							class="input text-sm w-28"
+							type="number"
+							step="0.5"
+							min="0"
+							max="40"
+							placeholder="uren/wk"
+							bind:value={extra.hours}
+						/>
+						<button type="button" class="text-red-500 text-sm hover:underline" on:click={() => removeExtra(i)}>
+							Verwijder
+						</button>
+					</div>
+					<div class="grid grid-cols-2 gap-2">
+						<select class="input text-sm" bind:value={extra.team}>
+							<option value="">— ander/extern team —</option>
+							{#each clubTeams as t}
+								<option value={t.id}>{t.name}</option>
+							{/each}
+						</select>
+						<input
+							class="input text-sm"
+							type="text"
+							placeholder="Teamnaam (extern)"
+							bind:value={extra.team_name}
+							disabled={!!extra.team}
+						/>
+					</div>
+					<input class="input text-sm" type="text" placeholder="Toelichting (optioneel)" bind:value={extra.notes} />
+				</div>
+			{/each}
+
+			<button type="button" class="btn-secondary w-full text-sm" on:click={addExtra}>+ Extra activiteit</button>
 		</div>
 
 		<button type="submit" class="btn-primary w-full" disabled={saving}>

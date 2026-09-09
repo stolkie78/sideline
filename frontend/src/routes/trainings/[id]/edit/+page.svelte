@@ -7,20 +7,21 @@
 	import type { Player, Training, TrainingAttendance, AttendanceStatus, TrainingTemplate } from '$lib/types';
 	import type { TeamAccess } from '$lib/pocketbase';
 	import { TRAINING_TYPE_LABELS } from '$lib/types';
-	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { selectedTeamId, selectedSeasonId, selectedClubId } from '$lib/stores/context';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
-	import { aiConfig, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
+	import { generateWithAI as callAI, loadClubAISettings } from '$lib/ai/client';
 
 	$: returnTo = $page.url.searchParams.get('returnTo') || `${base}/trainings`;
 
 	let aiPrompt = '';
+	let aiEnabled = false;
 	let aiGenerating = false;
 	let aiError = '';
 	let currentPeriod: any = null;
 	let recentTrainings: any[] = [];
 
 	async function generateWithAI() {
-		if (!aiPrompt.trim() || !$aiConfig.apiKey) return;
+		if (!aiPrompt.trim()) return;
 		aiGenerating = true;
 		aiError = '';
 		try {
@@ -45,25 +46,12 @@
 				});
 				fullPrompt += `\n\n--- Vorige trainingen (ter referentie, vermijd herhaling) ---\n${summaries.join('\n\n')}`;
 			}
-			const controller = new AbortController();
-			const timeout = setTimeout(() => controller.abort(), 60000);
-			const res = await fetch(`${base}/api/ai`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					prompt: fullPrompt,
-					provider: $aiConfig.provider,
-					apiKey: $aiConfig.apiKey,
-					model: $aiConfig.model || undefined,
-					systemPrompt: $aiConfig.systemPrompt || DEFAULT_SYSTEM_PROMPT
-				}),
-				signal: controller.signal
+			formContent = await callAI({
+				prompt: fullPrompt,
+				club: $selectedClubId,
+				team: training?.team || $selectedTeamId,
 			});
-			clearTimeout(timeout);
-			const data = await res.json();
-			if (!res.ok) aiError = data.error || 'Onbekende fout';
-			else formContent = data.content || '';
-		} catch (e) { aiError = String(e); }
+		} catch (e) { aiError = e instanceof Error ? e.message : String(e); }
 		finally { aiGenerating = false; }
 	}
 
@@ -106,6 +94,12 @@
 
 	onMount(async () => {
 		try {
+			if ($selectedClubId) {
+				aiEnabled = await loadClubAISettings($selectedClubId)
+					.then((settings) => settings.hasKey)
+					.catch(() => false);
+			}
+
 			const id = $page.params.id;
 			training = await pb.collection('trainings').getOne<Training>(id, { expand: 'created_by' });
 
@@ -456,7 +450,7 @@
 			{/if}
 
 			<!-- AI Generate -->
-			{#if $aiConfig.apiKey}
+			{#if aiEnabled}
 				<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg space-y-2">
 					<label class="label text-purple-700 dark:text-purple-300">🤖 Genereer met AI</label>
 					{#if currentPeriod}

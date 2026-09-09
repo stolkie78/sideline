@@ -11,6 +11,30 @@ export interface Player extends RecordModel {
 	email?: string;
 	user_id?: string;
 	bio?: string;
+	/** Volleyball commitments outside this team, used for the load report. */
+	extra_activities?: ExtraActivity[];
+}
+
+export type ExtraActivityType = 'training' | 'match';
+
+export const EXTRA_ACTIVITY_LABELS: Record<ExtraActivityType, string> = {
+	training: 'Training',
+	match: 'Wedstrijden',
+};
+
+/**
+ * One recurring commitment next to the player's own team, e.g. training along
+ * with a second team or filling in for its matches.
+ */
+export interface ExtraActivity {
+	type: ExtraActivityType;
+	/** Team relation id when it is a team inside the app. */
+	team?: string;
+	/** Free-text team name, for teams from another club. */
+	team_name?: string;
+	/** Hours per week this costs the player. */
+	hours?: number;
+	notes?: string;
 }
 
 export interface Club extends RecordModel {
@@ -26,6 +50,8 @@ export interface Team extends RecordModel {
 	nevobo_team_type?: string; // e.g. 'hs', 'ds', 'mb', 'mj'
 	nevobo_team_number?: number; // e.g. 1
 	nevobo_url?: string; // URL to team page on volleybal.nl
+	/** Team-specific AI system prompt; overrides the club prompt when set. */
+	ai_system_prompt?: string;
 	expand?: {
 		club?: Club;
 	};

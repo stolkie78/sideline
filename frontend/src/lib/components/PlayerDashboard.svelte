@@ -8,6 +8,8 @@
 	import { marked } from 'marked';
 	import { base } from '$app/paths';
 	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
+	import LoadReport from '$lib/components/LoadReport.svelte';
+	import { fetchPlayerLoad, type PlayerLoad } from '$lib/utils/load';
 
 	let trainings: Training[] = [];
 	let matches: Match[] = [];
@@ -24,6 +26,7 @@
 	let showAllTrainings = false;
 	let showAllMatches = false;
 	let showAllResults = false;
+	let playerLoad: PlayerLoad | null = null;
 
 	$: playerId = $linkedPlayer?.id;
 
@@ -91,6 +94,11 @@
 			const playedIds = new Set(played.map((match) => match.id));
 			playerStats = stats.filter((s) => playedIds.has(s.match));
 			pastTrainingCount = pastTrainings.length;
+
+			playerLoad = await fetchPlayerLoad(currentPlayerId, $linkedPlayer?.extra_activities || [], {
+				teamId,
+				seasonId,
+			});
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
 		} finally {
@@ -354,6 +362,9 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Weekly load -->
+		<LoadReport load={playerLoad} title="⚖️ Mijn belasting" />
 
 		<!-- Personal season stats -->
 		<div>

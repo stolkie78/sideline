@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 3.5.0
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 4.0.0
 
 ## Tech Stack
 
@@ -357,6 +357,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v4.0.0** | 2026-09-09 | De AI-instellingen zijn verhuisd van de browser naar de club. Provider, model, systeem prompt en de API key worden nu per club op de server bewaard; de key verlaat de server niet meer en is alleen door een clubbeheerder in te stellen, zodat elke club zijn eigen sleutel regelt en betaalt. Een team kan onder **Clubs & Teams** een eigen AI-prompt instellen die de clubprompt overschrijft. Bij het voorbereiden van een training kijkt de AI nu ook naar de **aanwezigheid**, zodat de oefeningen passen bij het werkelijke aantal speelsters. Op het spelersprofiel is een lijst **Extra belasting** toegevoegd voor trainingen en wedstrijden naast het eigen team, met uren per week. Die uren komen samen met de teamtrainingen en wedstrijden terug in een nieuw **belastingsoverzicht** op de spelerspagina en op het spelersdashboard. |
 | **v3.7.2** | 2026-09-09 | De uitslagen op het spelersdashboard gebruiken nu dezelfde scoreberekening als de rest van de app. De opgeslagen score staat altijd met de thuisspelende ploeg vooraan, waardoor een gewonnen uitwedstrijd ten onrechte als verloren werd getoond. De uitslag wordt nu vanuit het eigen team gerekend, met de setstanden als leidende bron. |
 | **v3.7.1** | 2026-09-09 | Op het spelersdashboard staan **Trainingen**, **Wedstrijden** en **Uitslagen** nu elk in één grote kaart, met de losse aanwezigheidskaartjes als subkaarten daarbinnen. De kleurstelling volgt die van het coachdashboard, zodat beide schermen dezelfde opbouw hebben. |
 | **v3.7.0** | 2026-09-09 | Het spelersdashboard toont nu standaard de eerstvolgende vijf trainingen en wedstrijden in plaats van alleen de eerste, met de knop **Bekijken** direct in de statusregel van de trainingskaart. Nieuw zijn een blok **Uitslagen** (laatste uitslag, uit te klappen naar het hele seizoen, met gewonnen/verloren-markering) en **Mijn statistieken** met het aantal gespeelde wedstrijden, de totaal gescoorde punten, de trainingsopkomst en een verdeling van punten per positie. Op het coachdashboard heeft elke trainingskaart nu drie duidelijke knoppen: **Bekijken**, **Bewerken** (dezelfde bewerkpagina als in de trainingslijst) en **Start**. Verder zijn overal de potlood- en oogicoontjes vervangen door de leesbare teksten *Bewerken* en *Bekijken*. |

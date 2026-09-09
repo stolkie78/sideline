@@ -6,7 +6,8 @@
 	import { pb, getTrainingAttendance, getContextPlayers, getTeamAccessForTeam, updateTrainingAttendance, updateTraining } from '$lib/pocketbase';
 	import type { TeamAccess } from '$lib/pocketbase';
 	import type { Training, TrainingAttendance, Player, AttendanceStatus } from '$lib/types';
-	import { aiConfig } from '$lib/stores/ai';
+	import { generateWithAI as callAI, loadClubAISettings } from '$lib/ai/client';
+	import { selectedClubId } from '$lib/stores/context';
 	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
 
 	const REFLECTION_SYSTEM_PROMPT = `Je bent een ervaren volleybalcoach-assistent gespecialiseerd in jeugdvolleybal. Bedenk één korte, simpele reflectievraag (Nederlands, max 15 woorden) die een trainer aan een paar jeugdspeelsters kan stellen direct na afloop van een training. De vraag moet uitnodigen tot een kort, persoonlijk antwoord over hun ervaring, gevoel of leerpunt van de training. Geef ALLEEN de vraag terug, zonder aanhalingstekens, opsomming of uitleg.`;
@@ -49,12 +50,19 @@
 	let reflectionPlayerIds: string[] = [];
 	let reflectionAnswers: Record<string, string> = {};
 	let aiQuestionLoading = false;
+	let aiEnabled = false;
 
 	$: presentCount = Object.values(playerStatus).filter(s => s === 'present').length;
 	$: presentPlayers = players.filter(p => playerStatus[p.id] === 'present');
 
 	onMount(async () => {
 		try {
+			if ($selectedClubId) {
+				aiEnabled = await loadClubAISettings($selectedClubId)
+					.then((settings) => settings.hasKey)
+					.catch(() => false);
+			}
+
 			training = await pb.collection('trainings').getOne<Training>($page.params.id);
 			players = await getContextPlayers(training.team || '', training.season || '', { activeOnly: true });
 			const att = await getTrainingAttendance($page.params.id);
@@ -114,7 +122,7 @@
 	}
 
 	async function generateAIQuestion(): Promise<string | null> {
-		if (!$aiConfig.apiKey || !training) return null;
+		if (!aiEnabled || !training) return null;
 		aiQuestionLoading = true;
 		try {
 			let prompt = 'Bedenk een reflectievraag voor spelers na afloop van een volleybaltraining.';
@@ -122,25 +130,16 @@
 			if (training.general_comments) prompt += `\nOpmerkingen van de trainer: ${training.general_comments}`;
 			if (training.content) prompt += `\nInhoud van de training (fragment): ${training.content.slice(0, 400)}`;
 
-			const controller = new AbortController();
-			const timeout = setTimeout(() => controller.abort(), 30000);
-			const res = await fetch(`${base}/api/ai`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					prompt,
-					provider: $aiConfig.provider,
-					apiKey: $aiConfig.apiKey,
-					model: $aiConfig.model || undefined,
-					systemPrompt: REFLECTION_SYSTEM_PROMPT,
-				}),
-				signal: controller.signal,
+			const content = await callAI({
+				prompt,
+				club: $selectedClubId,
+				team: training.team,
+				systemPrompt: REFLECTION_SYSTEM_PROMPT,
+				timeoutMs: 30000,
 			});
-			clearTimeout(timeout);
-			const data = await res.json();
-			if (!res.ok || !data.content) return null;
+			if (!content) return null;
 			// Strip stray quotes/markdown the model might add
-			return data.content.trim().replace(/^["'*#\s]+|["'*\s]+$/g, '');
+			return content.trim().replace(/^["'*#\s]+|["'*\s]+$/g, '');
 		} catch (e) {
 			console.error('AI reflection question failed, falling back to standard question:', e);
 			return null;
@@ -163,7 +162,7 @@
 			reflectionQuestion = pickRandomStandardQuestion();
 		}
 		step = 'reflection';
-		if ($aiConfig.apiKey) {
+		if (aiEnabled) {
 			pickReflectionQuestion();
 		}
 	}
@@ -173,7 +172,7 @@
 	}
 
 	function reshuffleQuestion() {
-		if ($aiConfig.apiKey) {
+		if (aiEnabled) {
 			pickReflectionQuestion();
 		} else {
 			reflectionQuestion = pickRandomStandardQuestion();
@@ -376,7 +375,7 @@
 				<div class="flex justify-between items-center">
 					<h2 class="font-bold text-gray-900 dark:text-gray-100">💬 Reflectie</h2>
 					<button type="button" class="text-xs text-primary-600 hover:text-primary-700 font-medium disabled:opacity-50" on:click={reshuffleQuestion} disabled={aiQuestionLoading}>
-						{aiQuestionLoading ? '🤖 AI denkt na...' : $aiConfig.apiKey ? '🤖 Nieuwe AI-vraag' : '🔀 Andere vraag'}
+						{aiQuestionLoading ? '🤖 AI denkt na...' : aiEnabled ? '🤖 Nieuwe AI-vraag' : '🔀 Andere vraag'}
 					</button>
 				</div>
 
@@ -386,7 +385,7 @@
 					<div>
 						<label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-1">Reflectievraag</label>
 						<textarea bind:value={reflectionQuestion} rows="2" class="input w-full" class:opacity-50={aiQuestionLoading} disabled={aiQuestionLoading}></textarea>
-						{#if $aiConfig.apiKey}
+						{#if aiEnabled}
 							<p class="text-xs text-gray-400 mt-1">🤖 AI-gegenereerd op basis van deze training — pas gerust aan.</p>
 						{/if}
 					</div>

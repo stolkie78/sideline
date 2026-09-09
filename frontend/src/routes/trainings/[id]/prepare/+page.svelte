@@ -3,11 +3,14 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, getTrainingTemplates, updateTraining } from '$lib/pocketbase';
-	import type { Training, TrainingTemplate } from '$lib/types';
+	import { pb, getTrainingTemplates, updateTraining, getTrainingAttendance } from '$lib/pocketbase';
+	import { loadClubAISettings } from '$lib/ai/client';
+	import type { Training, TrainingTemplate, AttendanceStatus } from '$lib/types';
 	import { TRAINING_TYPE_LABELS } from '$lib/types';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
-	import { aiConfig, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
+	import { generateWithAI as callAI } from '$lib/ai/client';
+	import { selectedClubId } from '$lib/stores/context';
+	import { ATTENDANCE_LABELS } from '$lib/types';
 
 	let training: Training | null = null;
 	let templates: TrainingTemplate[] = [];
@@ -15,6 +18,8 @@
 	let formContent = '';
 	let currentPeriod: any = null;
 	let recentTrainings: Training[] = [];
+	let attendanceSummary: { present: number; total: number; breakdown: string[] } | null = null;
+	let aiEnabled = false;
 	let aiPrompt = '';
 	let aiGenerating = false;
 	let aiError = '';
@@ -53,6 +58,9 @@
 				filter: recentFilters.join(' && '),
 				sort: '-date',
 			}).then(result => result.items);
+
+			attendanceSummary = await loadAttendanceSummary(training.id);
+			aiEnabled = await hasClubKey();
 		} catch (error) {
 			console.error('Failed to load training preparation:', error);
 			loadError = 'De trainingsvoorbereiding kon niet worden geladen.';
@@ -61,18 +69,53 @@
 		}
 	});
 
+	/**
+	 * How many players signed up, so the AI can size the drills. Everyone who
+	 * did not answer is reported separately rather than counted as present.
+	 */
+	async function loadAttendanceSummary(trainingId: string) {
+		try {
+			const records = await getTrainingAttendance(trainingId);
+			if (records.length === 0) return null;
+
+			const counts = new Map<AttendanceStatus, number>();
+			for (const record of records) {
+				const status = record.status as AttendanceStatus;
+				counts.set(status, (counts.get(status) || 0) + 1);
+			}
+
+			return {
+				present: counts.get('present') || 0,
+				total: records.length,
+				breakdown: [...counts.entries()]
+					.filter(([, count]) => count > 0)
+					.map(([status, count]) => `${count}x ${ATTENDANCE_LABELS[status] ?? status}`),
+			};
+		} catch (error) {
+			console.error('Failed to load attendance summary:', error);
+			return null;
+		}
+	}
+
+	async function hasClubKey(): Promise<boolean> {
+		if (!$selectedClubId) return false;
+		try {
+			return (await loadClubAISettings($selectedClubId)).hasKey;
+		} catch {
+			return false;
+		}
+	}
+
 	function applyTemplate() {
 		const template = templates.find(item => item.id === selectedTemplate);
 		if (template) formContent = template.content || '';
 	}
 
 	async function generateWithAI() {
-		if (!aiPrompt.trim() || !$aiConfig.apiKey) return;
+		if (!aiPrompt.trim() || !training) return;
 
 		aiGenerating = true;
 		aiError = '';
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 60000);
 
 		try {
 			let fullPrompt = aiPrompt.trim();
@@ -89,6 +132,10 @@
 				}
 			}
 
+			if (attendanceSummary) {
+				fullPrompt += `\n\nAanwezigheid voor deze training: ${attendanceSummary.present} van de ${attendanceSummary.total} speelsters is aanwezig (${attendanceSummary.breakdown.join(', ')}). Stem de oefeningen, groepjes en veldindeling af op ${attendanceSummary.present} speelsters.`;
+			}
+
 			if (recentTrainings.length > 0) {
 				const summaries = recentTrainings.map((item, index) => {
 					const date = new Date(item.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
@@ -97,31 +144,15 @@
 				fullPrompt += `\n\n--- Vorige trainingen (ter referentie, vermijd herhaling) ---\n${summaries.join('\n\n')}`;
 			}
 
-			const response = await fetch(`${base}/api/ai`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					prompt: fullPrompt,
-					provider: $aiConfig.provider,
-					apiKey: $aiConfig.apiKey,
-					model: $aiConfig.model || undefined,
-					systemPrompt: $aiConfig.systemPrompt || DEFAULT_SYSTEM_PROMPT,
-				}),
-				signal: controller.signal,
+			formContent = await callAI({
+				prompt: fullPrompt,
+				club: $selectedClubId,
+				team: training.team,
 			});
-			const data = await response.json();
-			if (!response.ok) {
-				aiError = data.error || 'De training kon niet worden gegenereerd.';
-				return;
-			}
-			formContent = data.content || '';
 		} catch (error) {
 			console.error('Failed to generate training:', error);
-			aiError = error instanceof DOMException && error.name === 'AbortError'
-				? 'De AI-aanvraag duurde te lang.'
-				: 'De training kon niet worden gegenereerd.';
+			aiError = error instanceof Error ? error.message : 'De training kon niet worden gegenereerd.';
 		} finally {
-			clearTimeout(timeout);
 			aiGenerating = false;
 		}
 	}
@@ -206,12 +237,14 @@
 				</div>
 			</div>
 
-			{#if $aiConfig.apiKey}
+			{#if aiEnabled}
 				<div class="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg space-y-2">
 					<p class="label text-purple-700 dark:text-purple-300">🤖 Genereer met AI</p>
-					{#if currentPeriod}
-						<p class="text-xs text-purple-600 dark:text-purple-400">De periodiseringsdoelen worden automatisch als context meegestuurd.</p>
-					{/if}
+					<ul class="text-xs text-purple-600 dark:text-purple-400 space-y-0.5">
+						{#if currentPeriod}<li>• Periodiseringsdoelen van "{currentPeriod.name}"</li>{/if}
+						{#if attendanceSummary}<li>• {attendanceSummary.present} van {attendanceSummary.total} speelsters aanwezig</li>{/if}
+						{#if recentTrainings.length > 0}<li>• De {recentTrainings.length} vorige trainingen</li>{/if}
+					</ul>
 					<div class="flex flex-col sm:flex-row gap-2">
 						<input
 							class="input flex-1"
@@ -228,7 +261,7 @@
 				</div>
 			{:else}
 				<p class="text-sm text-gray-500 dark:text-gray-400">
-					Configureer eerst een AI-model via Configuratie → AI om een training te genereren.
+					Deze club heeft nog geen AI-sleutel. Een beheerder stelt die in via Configuratie → AI.
 				</p>
 			{/if}
 

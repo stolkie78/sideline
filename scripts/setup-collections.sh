@@ -188,7 +188,8 @@ ensure_collection "{
     {\"name\": \"nevobo_code\", \"type\": \"text\", \"required\": false},
     {\"name\": \"nevobo_team_type\", \"type\": \"text\", \"required\": false},
     {\"name\": \"nevobo_team_number\", \"type\": \"number\", \"required\": false},
-    {\"name\": \"nevobo_url\", \"type\": \"url\", \"required\": false}
+    {\"name\": \"nevobo_url\", \"type\": \"url\", \"required\": false},
+    {\"name\": \"ai_system_prompt\", \"type\": \"text\", \"required\": false, \"max\": 8000}
   ],
   \"listRule\": \"@request.auth.id != \\\"\\\"\",
   \"viewRule\": \"id != \\\"\\\"\",
@@ -225,7 +226,8 @@ ensure_collection '{
     {"name": "jersey_number", "type": "number", "required": false, "min": 1, "max": 999, "onlyInt": true},
     {"name": "email", "type": "email", "required": false},
     {"name": "user_id", "type": "relation", "required": false, "collectionId": "_pb_users_auth_", "maxSelect": 1},
-    {"name": "bio", "type": "text", "required": false, "max": 300}
+    {"name": "bio", "type": "text", "required": false, "max": 300},
+    {"name": "extra_activities", "type": "json", "required": false, "maxSize": 20000}
   ],
   "listRule": "@request.auth.id != \"\"",
   "viewRule": "@request.auth.id != \"\"",
@@ -278,6 +280,22 @@ ensure_collection "{
   \"deleteRule\": \"@request.auth.id != \\\"\\\"\"
 }"
 CLUB_ACCESS_ID=$(get_col_id "club_access")
+
+# === 4c. Club AI Config ===
+# Each club brings (and pays for) its own AI key. The key must never reach the
+# browser, so this collection is superuser-only: the frontend reads and writes
+# it exclusively through /api/ai/config, which checks club admin rights first.
+ensure_collection "{
+  \"name\": \"club_ai_config\",
+  \"type\": \"base\",
+  \"fields\": [
+    {\"name\": \"club\", \"type\": \"relation\", \"required\": true, \"collectionId\": \"$CLUBS_ID\", \"maxSelect\": 1},
+    {\"name\": \"provider\", \"type\": \"select\", \"required\": false, \"values\": [\"openai\",\"gemini\"], \"maxSelect\": 1},
+    {\"name\": \"api_key\", \"type\": \"text\", \"required\": false, \"max\": 500},
+    {\"name\": \"model\", \"type\": \"text\", \"required\": false},
+    {\"name\": \"system_prompt\", \"type\": \"text\", \"required\": false, \"max\": 8000}
+  ]
+}"
 
 # === 5. Player Competencies ===
 ensure_collection "{
@@ -939,6 +957,16 @@ else
   # every direction. Invitees never touch them directly: /api/invite/accept
   # looks the token up and grants club_access with superuser rights.
   apply_rules invitations "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN"
+
+  # The AI key is club property and must never be listable from the browser.
+  # Superuser-only: null rules. /api/ai/config is the single way in.
+  if curl -sf -o /dev/null -X PATCH "$PB_URL/api/collections/club_ai_config" \
+      -H "Authorization: $TOKEN" -H "Content-Type: application/json" \
+      -d '{"listRule":null,"viewRule":null,"createRule":null,"updateRule":null,"deleteRule":null}'; then
+    echo "  ✓ club_ai_config (superuser only)"
+  else
+    echo "  ⚠️ Could not lock down club_ai_config"
+  fi
 
   # Own attendance and questionnaire answers stay writable for the player.
   for COL in training_attendance match_attendance questionnaire_responses; do

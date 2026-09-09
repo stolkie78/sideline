@@ -32,8 +32,8 @@
 	import type { Club, Competency, CompetencyCategory, Team, Season } from '$lib/types';
 	import { CATEGORY_LABELS } from '$lib/types';
 
-	import { aiConfig, AI_MODELS, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
-	import type { AIConfig } from '$lib/stores/ai';
+	import { AI_MODELS, DEFAULT_SYSTEM_PROMPT } from '$lib/stores/ai';
+	import { loadClubAISettings, saveClubAISettings } from '$lib/ai/client';
 	import { version } from '../../../package.json';
 
 	// Tab state
@@ -143,14 +143,85 @@
 		}
 	}
 
-	// === AI Config ===
-	let aiProvider: AIConfig['provider'] = $aiConfig.provider;
-	let aiApiKey: string = $aiConfig.apiKey;
-	let aiModel: string = $aiConfig.model;
-	let aiSystemPrompt: string = $aiConfig.systemPrompt;
+	// === AI Config (per club, sleutel blijft server-side) ===
+	let aiProvider: 'openai' | 'gemini' = 'openai';
+	let aiApiKey = '';
+	let aiModel = '';
+	let aiSystemPrompt = '';
+	let aiHasKey = false;
+	let aiLoading = false;
+	let aiSaving = false;
+	let aiError = '';
+	let aiSaved = false;
+	let aiLoadedClub = '';
 
-	function saveAIConfig() {
-		aiConfig.set({ provider: aiProvider, apiKey: aiApiKey, model: aiModel, systemPrompt: aiSystemPrompt });
+	async function loadAIConfig(club: string) {
+		aiLoading = true;
+		aiError = '';
+		try {
+			const settings = await loadClubAISettings(club);
+			aiProvider = settings.provider;
+			aiModel = settings.model;
+			aiSystemPrompt = settings.systemPrompt;
+			aiHasKey = settings.hasKey;
+			aiApiKey = '';
+			aiLoadedClub = club;
+		} catch (e) {
+			aiError = e instanceof Error ? e.message : String(e);
+		} finally {
+			aiLoading = false;
+		}
+	}
+
+	$: if (activeTab === 'ai' && $selectedClubId && $selectedClubId !== aiLoadedClub && !aiLoading) {
+		loadAIConfig($selectedClubId);
+	}
+
+	async function saveAIConfig() {
+		if (!$selectedClubId) return;
+		aiSaving = true;
+		aiError = '';
+		aiSaved = false;
+		try {
+			await saveClubAISettings($selectedClubId, {
+				provider: aiProvider,
+				model: aiModel,
+				systemPrompt: aiSystemPrompt,
+				// Alleen meesturen als de gebruiker iets heeft ingevuld; leeg laten
+				// betekent "houd de bestaande sleutel".
+				...(aiApiKey ? { apiKey: aiApiKey } : {})
+			});
+			if (aiApiKey) {
+				aiHasKey = true;
+				aiApiKey = '';
+			}
+			aiSaved = true;
+			setTimeout(() => (aiSaved = false), 2500);
+		} catch (e) {
+			aiError = e instanceof Error ? e.message : String(e);
+		} finally {
+			aiSaving = false;
+		}
+	}
+
+	async function clearAIKey() {
+		if (!$selectedClubId) return;
+		if (!confirm('API key verwijderen? AI-functies zijn daarna uitgeschakeld voor deze club.')) return;
+		aiSaving = true;
+		try {
+			await saveClubAISettings($selectedClubId, {
+				provider: aiProvider,
+				model: aiModel,
+				systemPrompt: aiSystemPrompt,
+				apiKey: ''
+			});
+			aiHasKey = false;
+			aiApiKey = '';
+		} catch (e) {
+			aiError = e instanceof Error ? e.message : String(e);
+		} finally {
+			aiSaving = false;
+		}
 	}
 
 	// === Competencies ===
@@ -359,6 +430,23 @@
 		} catch (e) {
 			console.error('Failed to save nevobo_url:', e);
 			alert('Fout bij opslaan URL');
+		}
+	}
+
+	// Teams kunnen een eigen AI-prompt hebben die de clubprompt overschrijft.
+	let openTeamPrompt: string | null = null;
+	let teamPromptSaved: string | null = null;
+
+	async function saveTeamPrompt(team: Team, prompt: string) {
+		if ((team.ai_system_prompt || '') === prompt) return;
+		try {
+			await pb.collection('teams').update(team.id, { ai_system_prompt: prompt });
+			team.ai_system_prompt = prompt;
+			teamPromptSaved = team.id;
+			setTimeout(() => (teamPromptSaved = null), 2000);
+		} catch (e) {
+			console.error('Failed to save ai_system_prompt:', e);
+			alert('Fout bij opslaan AI-prompt');
 		}
 	}
 
@@ -756,6 +844,29 @@
 									<a href={team.nevobo_url} target="_blank" class="text-blue-400 text-xs hover:underline">↗</a>
 								{/if}
 							</div>
+							<div>
+								<button
+									type="button"
+									class="text-xs text-primary-500 hover:underline"
+									on:click={() => (openTeamPrompt = openTeamPrompt === team.id ? null : team.id)}
+								>
+									{openTeamPrompt === team.id ? '▾' : '▸'} AI-prompt voor dit team
+									{#if team.ai_system_prompt}<span class="text-gray-400">(aangepast)</span>{/if}
+								</button>
+								{#if openTeamPrompt === team.id}
+									<textarea
+										class="input text-xs font-mono mt-2"
+										rows="6"
+										value={team.ai_system_prompt || ''}
+										placeholder="Leeg = de systeem prompt van de club gebruiken"
+										on:blur={(e) => saveTeamPrompt(team, e.currentTarget.value)}
+									></textarea>
+									<p class="text-xs text-gray-400 mt-1">
+										Overschrijft de clubprompt bij het genereren van trainingen voor dit team.
+										{#if teamPromptSaved === team.id}<span class="text-green-500">Opgeslagen</span>{/if}
+									</p>
+								{/if}
+							</div>
 						</div>
 					{/each}
 
@@ -1019,69 +1130,105 @@
 			<div class="card space-y-4">
 				<h3 class="font-semibold text-gray-800 dark:text-gray-200">AI Configuratie</h3>
 				<p class="text-sm text-gray-500 dark:text-gray-400">
-					Koppel een AI-model om automatisch trainingsplannen te genereren. Je API key wordt lokaal opgeslagen.
+					Koppel een AI-model om automatisch trainingsplannen te genereren. De instellingen gelden voor de
+					hele club en de API key wordt veilig op de server bewaard — hij verlaat je browser nooit meer.
 				</p>
 
-				<div>
-					<label class="label">Provider</label>
-					<select class="input" bind:value={aiProvider} on:change={() => { aiModel = ''; saveAIConfig(); }}>
-						<option value="openai">OpenAI (GPT)</option>
-						<option value="gemini">Google Gemini</option>
-					</select>
-				</div>
+				{#if !$selectedClubId}
+					<div class="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-sm text-amber-700 dark:text-amber-300">
+						Selecteer eerst een club.
+					</div>
+				{:else if aiLoading}
+					<p class="text-sm text-gray-500 dark:text-gray-400">Laden...</p>
+				{:else}
+					{#if aiError}
+						<div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-300">
+							{aiError}
+						</div>
+					{/if}
 
-				<div>
-					<label class="label">API Key</label>
-					<input
-						class="input"
-						type="password"
-						bind:value={aiApiKey}
-						on:blur={saveAIConfig}
-						placeholder={aiProvider === 'openai' ? 'sk-...' : 'AIza...'}
-					/>
-					<p class="text-xs text-gray-400 mt-1">
-						{#if aiProvider === 'openai'}
-							Maak een key aan op <a href="https://platform.openai.com/api-keys" target="_blank" class="text-primary-500 hover:underline">platform.openai.com</a>
-						{:else}
-							Maak een key aan op <a href="https://aistudio.google.com/apikey" target="_blank" class="text-primary-500 hover:underline">aistudio.google.com</a>
+					<div>
+						<label class="label" for="ai-provider">Provider</label>
+						<select id="ai-provider" class="input" bind:value={aiProvider} on:change={() => (aiModel = '')}>
+							<option value="openai">OpenAI (GPT)</option>
+							<option value="gemini">Google Gemini</option>
+						</select>
+					</div>
+
+					<div>
+						<label class="label" for="ai-key">API Key</label>
+						<input
+							id="ai-key"
+							class="input"
+							type="password"
+							autocomplete="off"
+							bind:value={aiApiKey}
+							placeholder={aiHasKey ? '•••••••• (opgeslagen — vul in om te vervangen)' : aiProvider === 'openai' ? 'sk-...' : 'AIza...'}
+						/>
+						<p class="text-xs text-gray-400 mt-1">
+							{#if aiProvider === 'openai'}
+								Maak een key aan op <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" class="text-primary-500 hover:underline">platform.openai.com</a>
+							{:else}
+								Maak een key aan op <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" class="text-primary-500 hover:underline">aistudio.google.com</a>
+							{/if}
+							— de club betaalt zelf voor het gebruik.
+						</p>
+						{#if aiHasKey}
+							<button type="button" class="text-xs text-red-500 mt-1 hover:underline" on:click={clearAIKey}>
+								API key verwijderen
+							</button>
 						{/if}
-					</p>
-				</div>
+					</div>
 
-				<div>
-					<label class="label">Model</label>
-					<select class="input" bind:value={aiModel} on:change={saveAIConfig}>
-						<option value="">Standaard</option>
-						{#each AI_MODELS[aiProvider] as m}
-							<option value={m.value}>{m.label}</option>
-						{/each}
-					</select>
-				</div>
+					<div>
+						<label class="label" for="ai-model">Model</label>
+						<select id="ai-model" class="input" bind:value={aiModel}>
+							<option value="">Standaard</option>
+							{#each AI_MODELS[aiProvider] as m}
+								<option value={m.value}>{m.label}</option>
+							{/each}
+						</select>
+					</div>
 
-				{#if aiApiKey}
-					<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-green-700 dark:text-green-300">
-						✅ AI is geconfigureerd — je ziet een "Genereer met AI" knop bij het aanmaken van trainingen.
+					{#if aiHasKey}
+						<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-green-700 dark:text-green-300">
+							✅ AI is geconfigureerd — je ziet een "Genereer met AI" knop bij het aanmaken van trainingen.
+						</div>
+					{:else}
+						<div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+							Nog geen API key ingesteld. AI-functies zijn uitgeschakeld voor deze club.
+						</div>
+					{/if}
+
+					<div>
+						<label class="label" for="ai-prompt">Systeem prompt van de club</label>
+						<textarea
+							id="ai-prompt"
+							class="input text-xs font-mono"
+							rows="10"
+							bind:value={aiSystemPrompt}
+							placeholder={DEFAULT_SYSTEM_PROMPT}
+						></textarea>
+						<p class="text-xs text-gray-400 mt-1">
+							Laat leeg voor de standaardprompt. Een team kan hier bij <strong>Team</strong> een eigen
+							prompt overheen zetten.
+						</p>
+						{#if aiSystemPrompt}
+							<button type="button" class="text-xs text-primary-500 mt-1 hover:underline" on:click={() => (aiSystemPrompt = '')}>
+								Reset naar standaard
+							</button>
+						{/if}
+					</div>
+
+					<div class="flex items-center gap-3">
+						<button type="button" class="btn-primary" on:click={saveAIConfig} disabled={aiSaving}>
+							{aiSaving ? 'Opslaan...' : 'Opslaan'}
+						</button>
+						{#if aiSaved}
+							<span class="text-sm text-green-600 dark:text-green-400">✅ Opgeslagen</span>
+						{/if}
 					</div>
 				{/if}
-
-				<div>
-					<label class="label">Systeem prompt (volleybal-AI persoonlijkheid)</label>
-					<textarea
-						class="input text-xs font-mono"
-						rows="10"
-						bind:value={aiSystemPrompt}
-						on:blur={saveAIConfig}
-						placeholder={DEFAULT_SYSTEM_PROMPT}
-					></textarea>
-					<p class="text-xs text-gray-400 mt-1">
-						Laat leeg voor de standaard volleybal meiden-B coach prompt. Pas aan voor jouw team-specifieke context.
-					</p>
-					{#if aiSystemPrompt}
-						<button type="button" class="text-xs text-primary-500 mt-1 hover:underline" on:click={() => { aiSystemPrompt = ''; saveAIConfig(); }}>
-							Reset naar standaard
-						</button>
-					{/if}
-				</div>
 			</div>
 		</div>
 	{:else if activeTab === 'schedule'}

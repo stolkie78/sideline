@@ -15,6 +15,9 @@
 	import { authUser } from '$lib/stores/auth';
 	import { isAdmin, canEdit } from '$lib/stores/role';
 	import CompetencyChart from '$lib/components/CompetencyChart.svelte';
+	import LoadReport from '$lib/components/LoadReport.svelte';
+	import { fetchPlayerLoad, type PlayerLoad } from '$lib/utils/load';
+	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 
 	let player: Player | null = null;
 	let competencies: Competency[] = [];
@@ -28,17 +31,24 @@
 	let ratingValue = 5;
 	let ratingNotes = '';
 	let savingRating = false;
+	let playerLoad: PlayerLoad | null = null;
 
 	$: playerId = $page.params.id;
 
 	onMount(async () => {
 		try {
-			[player, competencies] = await Promise.all([
+			const [loadedPlayer, loadedCompetencies] = await Promise.all([
 				getPlayer(playerId),
 				getCompetencies(),
 			]);
+			player = loadedPlayer;
+			competencies = loadedCompetencies;
 			await loadCompetencyData();
 			questionnaireResponses = await getQuestionnaireResponsesForPlayer(playerId);
+			playerLoad = await fetchPlayerLoad(loadedPlayer.id, loadedPlayer.extra_activities || [], {
+				teamId: $selectedTeamId,
+				seasonId: $selectedSeasonId,
+			});
 		} catch (e) {
 			console.error('Failed to load player:', e);
 		} finally {
@@ -115,6 +125,9 @@
 				</a>
 			{/if}
 		</div>
+
+		<!-- Load report -->
+		<LoadReport load={playerLoad} title="📊 Belastingsoverzicht" />
 
 		<!-- Competency Section -->
 		<div class="card space-y-3">

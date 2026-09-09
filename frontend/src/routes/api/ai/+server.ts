@@ -1,16 +1,43 @@
 import type { RequestHandler } from './$types';
+import { getClubMembership, jsonError } from '$lib/server/clubAuth';
+import { readClubAIConfig, resolveSystemPrompt } from '$lib/server/clubAI';
 
+/**
+ * Generates content with the club's own AI subscription. The key stays on the
+ * server: the browser only sends which club and team it is generating for.
+ */
 export const POST: RequestHandler = async ({ request }) => {
-	const { prompt, provider, apiKey, model, systemPrompt: customSystemPrompt } = await request.json();
+	const { prompt, club: clubId, team: teamId, systemPrompt: overridePrompt } = await request.json();
 
-	if (!prompt || !provider || !apiKey) {
-		return new Response(JSON.stringify({ error: 'Missing prompt, provider or apiKey' }), {
-			status: 400,
-			headers: { 'Content-Type': 'application/json' }
-		});
+	if (!prompt || !clubId) {
+		return jsonError('Prompt of club ontbreekt', 400);
 	}
 
-	const systemPrompt = customSystemPrompt || `Je bent een ervaren volleybalcoach-assistent gespecialiseerd in jeugdvolleybal. Genereer trainingsplannen in Markdown format met headers (##), duidelijke structuur, en per oefening: naam, doel, uitleg, duur, variatie.`;
+	const membership = await getClubMembership(request.headers.get('Authorization'), clubId);
+	if (!membership || membership.role === 'viewer') {
+		return jsonError('Geen toegang tot de AI van deze club', 403);
+	}
+
+	let config;
+	try {
+		config = await readClubAIConfig(clubId);
+	} catch (e) {
+		return jsonError(`Kon de AI-instellingen niet laden: ${e}`, 500);
+	}
+
+	const apiKey = config?.api_key?.trim();
+	if (!apiKey) {
+		return jsonError('Deze club heeft nog geen AI-sleutel ingesteld.', 400);
+	}
+
+	const provider = config?.provider || 'openai';
+	const model = config?.model?.trim();
+	// A caller may pass its own prompt for a different task (the training
+	// reflection, for instance); otherwise team beats club beats default.
+	const systemPrompt =
+		typeof overridePrompt === 'string' && overridePrompt.trim()
+			? overridePrompt.trim()
+			: await resolveSystemPrompt(config?.system_prompt, teamId);
 
 	try {
 		let content = '';
@@ -32,11 +59,7 @@ export const POST: RequestHandler = async ({ request }) => {
 				})
 			});
 			if (!res.ok) {
-				const err = await res.text();
-				return new Response(JSON.stringify({ error: `OpenAI error: ${res.status} ${err}` }), {
-					status: 502,
-					headers: { 'Content-Type': 'application/json' }
-				});
+				return jsonError(`OpenAI-fout: ${res.status} ${await res.text()}`, 502);
 			}
 			const data = await res.json();
 			content = data.choices?.[0]?.message?.content || '';
@@ -52,28 +75,18 @@ export const POST: RequestHandler = async ({ request }) => {
 				})
 			});
 			if (!res.ok) {
-				const err = await res.text();
-				return new Response(JSON.stringify({ error: `Gemini error: ${res.status} ${err}` }), {
-					status: 502,
-					headers: { 'Content-Type': 'application/json' }
-				});
+				return jsonError(`Gemini-fout: ${res.status} ${await res.text()}`, 502);
 			}
 			const data = await res.json();
 			content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 		} else {
-			return new Response(JSON.stringify({ error: `Unknown provider: ${provider}` }), {
-				status: 400,
-				headers: { 'Content-Type': 'application/json' }
-			});
+			return jsonError(`Onbekende provider: ${provider}`, 400);
 		}
 
 		return new Response(JSON.stringify({ content }), {
 			headers: { 'Content-Type': 'application/json' }
 		});
 	} catch (e) {
-		return new Response(JSON.stringify({ error: String(e) }), {
-			status: 500,
-			headers: { 'Content-Type': 'application/json' }
-		});
+		return jsonError(String(e), 500);
 	}
 };
