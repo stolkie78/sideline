@@ -32,6 +32,7 @@
 	let ratingNotes = '';
 	let savingRating = false;
 	let playerLoad: PlayerLoad | null = null;
+	let loadMonthOffset = 0;
 
 	$: playerId = $page.params.id;
 
@@ -48,6 +49,7 @@
 			playerLoad = await fetchPlayerLoad(loadedPlayer.id, loadedPlayer.extra_activities || [], {
 				teamId: $selectedTeamId,
 				seasonId: $selectedSeasonId,
+				monthOffset: loadMonthOffset,
 			});
 		} catch (e) {
 			console.error('Failed to load player:', e);
@@ -55,6 +57,16 @@
 			loading = false;
 		}
 	});
+
+	async function changeLoadMonth(delta: number) {
+		if (!player) return;
+		loadMonthOffset += delta;
+		playerLoad = await fetchPlayerLoad(player.id, player.extra_activities || [], {
+			teamId: $selectedTeamId,
+			seasonId: $selectedSeasonId,
+			monthOffset: loadMonthOffset,
+		});
+	}
 
 	async function loadCompetencyData() {
 		playerCompetencies = await getPlayerCompetencies(playerId, selectedCompetency || undefined);
@@ -127,7 +139,13 @@
 		</div>
 
 		<!-- Load report -->
-		<LoadReport load={playerLoad} title="📊 Belastingsoverzicht" />
+		<LoadReport
+			load={playerLoad}
+			title="📊 Belastingsoverzicht"
+			showMonthNav
+			onPrevMonth={() => changeLoadMonth(-1)}
+			onNextMonth={() => changeLoadMonth(1)}
+		/>
 
 		<!-- Competency Section -->
 		<div class="card space-y-3">

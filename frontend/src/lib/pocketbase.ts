@@ -818,3 +818,15 @@ export async function getUnlinkedTeamPlayers(teamId: string, seasonId: string): 
 export async function updatePlayerProfile(id: string, data: FormData): Promise<Player> {
 	return pb.collection('players').update<Player>(id, data);
 }
+
+/**
+ * Self-service update of the player's own extra activities (used from the
+ * player dashboard to add/remove their own "extra training per week" rows).
+ * The caller is responsible for keeping coach-added rows in the array intact.
+ */
+export async function updatePlayerExtraActivities(
+	id: string,
+	extra_activities: Player['extra_activities']
+): Promise<Player> {
+	return pb.collection('players').update<Player>(id, { extra_activities });
+}

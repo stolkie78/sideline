@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { pb, getAttendanceForPlayer, setPlayerAttendance, getPendingQuestionnaires } from '$lib/pocketbase';
+	import { pb, getAttendanceForPlayer, setPlayerAttendance, getPendingQuestionnaires, updatePlayerExtraActivities } from '$lib/pocketbase';
 	import { linkedPlayer, rolesLoaded } from '$lib/stores/role';
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
-	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus, Questionnaire, MatchPlayerStats, PlayerPosition } from '$lib/types';
+	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus, Questionnaire, MatchPlayerStats, PlayerPosition, ExtraActivity } from '$lib/types';
 	import { POSITION_LABELS } from '$lib/types';
 	import { getMatchScore, getMatchOutcome } from '$lib/utils/match';
 	import { marked } from 'marked';
@@ -27,6 +27,8 @@
 	let showAllMatches = false;
 	let showAllResults = false;
 	let playerLoad: PlayerLoad | null = null;
+	let loadMonthOffset = 0;
+	let savingExtra = false;
 
 	$: playerId = $linkedPlayer?.id;
 
@@ -95,14 +97,80 @@
 			playerStats = stats.filter((s) => playedIds.has(s.match));
 			pastTrainingCount = pastTrainings.length;
 
-			playerLoad = await fetchPlayerLoad(currentPlayerId, $linkedPlayer?.extra_activities || [], {
-				teamId,
-				seasonId,
-			});
+			await loadPlayerLoad(currentPlayerId, teamId, seasonId);
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadPlayerLoad(
+		currentPlayerId = playerId,
+		teamId = $selectedTeamId,
+		seasonId = $selectedSeasonId
+	) {
+		if (!currentPlayerId || !teamId || !seasonId) return;
+		playerLoad = await fetchPlayerLoad(currentPlayerId, $linkedPlayer?.extra_activities || [], {
+			teamId,
+			seasonId,
+			monthOffset: loadMonthOffset,
+		});
+	}
+
+	function changeLoadMonth(delta: number) {
+		loadMonthOffset += delta;
+		loadPlayerLoad();
+	}
+
+	async function addOwnExtraTraining() {
+		if (!playerId || savingExtra) return;
+		savingExtra = true;
+		try {
+			const current = $linkedPlayer?.extra_activities || [];
+			const next: ExtraActivity[] = [
+				...current,
+				{ type: 'training', hours: 1.5, source: 'player', notes: 'Zelf toegevoegd' },
+			];
+			const updated = await updatePlayerExtraActivities(playerId, next);
+			linkedPlayer.set(updated);
+			await loadPlayerLoad();
+		} catch (e) {
+			console.error('Failed to add own extra training:', e);
+		} finally {
+			savingExtra = false;
+		}
+	}
+
+	async function updateOwnExtraTraining(index: number, hours: number) {
+		if (!playerId || savingExtra) return;
+		savingExtra = true;
+		try {
+			const current = [...($linkedPlayer?.extra_activities || [])];
+			if (!current[index]) return;
+			current[index] = { ...current[index], hours };
+			const updated = await updatePlayerExtraActivities(playerId, current);
+			linkedPlayer.set(updated);
+			await loadPlayerLoad();
+		} catch (e) {
+			console.error('Failed to update own extra training:', e);
+		} finally {
+			savingExtra = false;
+		}
+	}
+
+	async function removeOwnExtraTraining(index: number) {
+		if (!playerId || savingExtra) return;
+		savingExtra = true;
+		try {
+			const current = ($linkedPlayer?.extra_activities || []).filter((_, i) => i !== index);
+			const updated = await updatePlayerExtraActivities(playerId, current);
+			linkedPlayer.set(updated);
+			await loadPlayerLoad();
+		} catch (e) {
+			console.error('Failed to remove own extra training:', e);
+		} finally {
+			savingExtra = false;
 		}
 	}
 
@@ -363,8 +431,67 @@
 			{/if}
 		</div>
 
-		<!-- Weekly load -->
-		<LoadReport load={playerLoad} title="⚖️ Mijn belasting" />
+		<!-- Monthly load -->
+		<LoadReport
+			load={playerLoad}
+			title="⚖️ Mijn belasting"
+			showMonthNav
+			onPrevMonth={() => changeLoadMonth(-1)}
+			onNextMonth={() => changeLoadMonth(1)}
+		/>
+
+		<!-- Self-service: extra weekly training on top of the team schedule -->
+		<div class="card space-y-2">
+			<div class="flex items-center justify-between">
+				<h3 class="font-semibold text-gray-800 dark:text-gray-200">➕ Eigen extra training</h3>
+				<button
+					type="button"
+					class="text-xs font-semibold text-primary-600 dark:text-primary-400 disabled:opacity-50"
+					disabled={savingExtra}
+					on:click={addOwnExtraTraining}
+				>
+					+ Toevoegen
+				</button>
+			</div>
+			{#if ($linkedPlayer?.extra_activities || []).filter((a) => a.source === 'player').length === 0}
+				<p class="text-sm text-gray-500 dark:text-gray-400">
+					Train je ergens extra naast dit team? Voeg hier je eigen wekelijkse training toe, dan
+					telt die automatisch mee in je belasting.
+				</p>
+			{:else}
+				<div class="space-y-1.5">
+					{#each $linkedPlayer?.extra_activities || [] as activity, i}
+						{#if activity.source === 'player'}
+							<div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+								<span class="text-sm text-gray-700 dark:text-gray-300 flex-1">Extra training</span>
+								<input
+									type="number"
+									min="0"
+									step="0.5"
+									class="input w-20 text-sm py-1"
+									value={activity.hours ?? 0}
+									disabled={savingExtra}
+									on:change={(e) => {
+										const target = e.currentTarget;
+										updateOwnExtraTraining(i, Number(target.value));
+									}}
+								/>
+								<span class="text-xs text-gray-400">u/wk</span>
+								<button
+									type="button"
+									class="text-xs text-red-500 disabled:opacity-50"
+									disabled={savingExtra}
+									on:click={() => removeOwnExtraTraining(i)}
+								>
+									Verwijderen
+								</button>
+							</div>
+						{/if}
+					{/each}
+				</div>
+			{/if}
+		</div>
+
 
 		<!-- Personal season stats -->
 		<div>

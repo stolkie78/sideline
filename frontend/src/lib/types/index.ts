@@ -35,6 +35,13 @@ export interface ExtraActivity {
 	/** Hours per week this costs the player. */
 	hours?: number;
 	notes?: string;
+	/**
+	 * Who added this row: a coach via the player edit form, or the player
+	 * themselves from their own dashboard. Missing means "coach" (rows
+	 * created before this field existed). Only 'player' rows are editable
+	 * from the player dashboard, so a player can't remove what a coach set.
+	 */
+	source?: 'coach' | 'player';
 }
 
 export interface Club extends RecordModel {

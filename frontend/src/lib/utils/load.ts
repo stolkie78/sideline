@@ -4,24 +4,36 @@ import type { ExtraActivity } from '$lib/types';
 
 /** Trainingen en wedstrijden hebben geen duurveld, dus rekenen we met vaste blokken. */
 export const TRAINING_HOURS = 1.5;
-export const MATCH_HOURS = 2;
+export const MATCH_HOURS = 1.5;
 
-/** Aantal weken waarover we terugkijken voor het gemiddelde. */
-export const LOAD_WINDOW_WEEKS = 8;
+/** Gemiddeld aantal weken per maand, om de per-week ingestelde extra activiteiten om te rekenen. */
+export const WEEKS_PER_MONTH = 52 / 12;
 
 export interface LoadLine {
 	label: string;
 	detail?: string;
-	hoursPerWeek: number;
+	hours: number;
+}
+
+export interface MonthRange {
+	/** 0-based month offset from the current month (-1 = vorige maand). */
+	offset: number;
+	label: string;
+	startIso: string;
+	endIso: string;
 }
 
 export interface PlayerLoad {
-	weeks: number;
+	month: MonthRange;
 	trainingCount: number;
+	trainingAbsences: number;
+	trainingHours: number;
 	matchCount: number;
-	teamHoursPerWeek: number;
+	matchAbsences: number;
+	matchHours: number;
 	extraHoursPerWeek: number;
-	totalHoursPerWeek: number;
+	extraHours: number;
+	totalHours: number;
 	lines: LoadLine[];
 }
 
@@ -35,96 +47,66 @@ export function extraActivityLabel(activity: ExtraActivity, teamNames: Record<st
 	return team ? `${type} — ${team}` : type;
 }
 
-/** Telt de uren per week uit teamtrainingen, wedstrijden en extra activiteiten. */
-export function buildPlayerLoad(input: {
-	trainingCount: number;
-	matchCount: number;
-	extras: ExtraActivity[];
-	teamNames?: Record<string, string>;
-	weeks?: number;
-}): PlayerLoad {
-	const weeks = input.weeks || LOAD_WINDOW_WEEKS;
-	const trainingHours = (input.trainingCount * TRAINING_HOURS) / weeks;
-	const matchHours = (input.matchCount * MATCH_HOURS) / weeks;
-	const teamHoursPerWeek = trainingHours + matchHours;
-
-	const lines: LoadLine[] = [];
-	if (input.trainingCount > 0) {
-		lines.push({
-			label: 'Teamtrainingen',
-			detail: `${input.trainingCount} in ${weeks} weken`,
-			hoursPerWeek: round(trainingHours),
-		});
-	}
-	if (input.matchCount > 0) {
-		lines.push({
-			label: 'Wedstrijden',
-			detail: `${input.matchCount} in ${weeks} weken`,
-			hoursPerWeek: round(matchHours),
-		});
-	}
-
-	let extraHoursPerWeek = 0;
-	for (const extra of input.extras || []) {
-		const hours = Number(extra.hours) || 0;
-		extraHoursPerWeek += hours;
-		lines.push({
-			label: extraActivityLabel(extra, input.teamNames),
-			detail: extra.notes || 'Extra belasting',
-			hoursPerWeek: round(hours),
-		});
-	}
-
-	return {
-		weeks,
-		trainingCount: input.trainingCount,
-		matchCount: input.matchCount,
-		teamHoursPerWeek: round(teamHoursPerWeek),
-		extraHoursPerWeek: round(extraHoursPerWeek),
-		totalHoursPerWeek: round(teamHoursPerWeek + extraHoursPerWeek),
-		lines,
-	};
+/** Start/eind (als PocketBase-datumstring) en label van een kalendermaand, met een offset t.o.v. nu. */
+export function getMonthRange(offset = 0): MonthRange {
+	const now = new Date();
+	const start = new Date(now.getFullYear(), now.getMonth() + offset, 1, 0, 0, 0);
+	const end = new Date(now.getFullYear(), now.getMonth() + offset + 1, 0, 23, 59, 59);
+	const toIso = (d: Date) =>
+		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+	const label = start.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+	return { offset, label, startIso: toIso(start), endIso: toIso(end) };
 }
 
 /**
- * Haalt de daadwerkelijke deelname van een speler op over het venster: alleen
- * trainingen waar de speler aanwezig was en wedstrijden van het eigen team.
+ * Belasting voor één kalendermaand: de geplande uren van teamtrainingen en
+ * -wedstrijden, min de uren van trainingen/wedstrijden waar de speler
+ * afwezig was, plus de zelf/coach ingestelde extra activiteiten (die per
+ * week staan en hier naar deze maand worden omgerekend).
  */
 export async function fetchPlayerLoad(
 	playerId: string,
 	extras: ExtraActivity[],
-	options: { teamId?: string; seasonId?: string; weeks?: number } = {}
+	options: { teamId?: string; seasonId?: string; monthOffset?: number } = {}
 ): Promise<PlayerLoad> {
-	const weeks = options.weeks || LOAD_WINDOW_WEEKS;
-	const since = new Date();
-	since.setDate(since.getDate() - weeks * 7);
-	const sinceIso = since.toISOString().slice(0, 19).replace('T', ' ');
-	const nowIso = new Date().toISOString().slice(0, 19).replace('T', ' ');
+	const month = getMonthRange(options.monthOffset || 0);
 
 	let trainingCount = 0;
+	let trainingAbsences = 0;
 	let matchCount = 0;
-
-	try {
-		const attendance = await pb.collection('training_attendance').getFullList({
-			filter: `player = "${playerId}" && status = "present"`,
-			expand: 'training',
-		});
-		trainingCount = attendance.filter((a: any) => {
-			const date = a.expand?.training?.date;
-			return date && date >= sinceIso && date <= nowIso;
-		}).length;
-	} catch (e) {
-		console.error('Failed to load training attendance for load report:', e);
-	}
+	let matchAbsences = 0;
 
 	if (options.teamId) {
 		try {
-			const filters = [`team = "${options.teamId}"`, `date >= "${sinceIso}"`, `date <= "${nowIso}"`];
+			const filters = [`team = "${options.teamId}"`, `date >= "${month.startIso}"`, `date <= "${month.endIso}"`];
 			if (options.seasonId) filters.push(`season = "${options.seasonId}"`);
-			const matches = await pb.collection('matches').getFullList({ filter: filters.join(' && ') });
+			const filter = filters.join(' && ');
+
+			const [trainings, matches] = await Promise.all([
+				pb.collection('trainings').getFullList({ filter, fields: 'id' }),
+				pb.collection('matches').getFullList({ filter, fields: 'id' }),
+			]);
+			trainingCount = trainings.length;
 			matchCount = matches.length;
+
+			if (trainingCount > 0) {
+				const idFilter = trainings.map((t) => `training = "${t.id}"`).join(' || ');
+				const records = await pb.collection('training_attendance').getFullList({
+					filter: `player = "${playerId}" && (${idFilter})`,
+				});
+				// Geen record betekent "normaal aanwezig"; alleen een expliciete
+				// niet-aanwezige status telt als afwezigheid.
+				trainingAbsences = records.filter((r: any) => r.status !== 'present').length;
+			}
+			if (matchCount > 0) {
+				const idFilter = matches.map((m) => `match = "${m.id}"`).join(' || ');
+				const records = await pb.collection('match_attendance').getFullList({
+					filter: `player = "${playerId}" && (${idFilter})`,
+				});
+				matchAbsences = records.filter((r: any) => r.status !== 'present').length;
+			}
 		} catch (e) {
-			console.error('Failed to load matches for load report:', e);
+			console.error('Failed to load team trainings/matches for load report:', e);
 		}
 	}
 
@@ -139,5 +121,70 @@ export async function fetchPlayerLoad(
 		}
 	}
 
-	return buildPlayerLoad({ trainingCount, matchCount, extras: extras || [], teamNames, weeks });
+	return buildPlayerLoad({
+		month,
+		trainingCount,
+		trainingAbsences,
+		matchCount,
+		matchAbsences,
+		extras: extras || [],
+		teamNames,
+	});
+}
+
+export function buildPlayerLoad(input: {
+	month: MonthRange;
+	trainingCount: number;
+	trainingAbsences: number;
+	matchCount: number;
+	matchAbsences: number;
+	extras: ExtraActivity[];
+	teamNames?: Record<string, string>;
+}): PlayerLoad {
+	const trainingHours = (input.trainingCount - input.trainingAbsences) * TRAINING_HOURS;
+	const matchHours = (input.matchCount - input.matchAbsences) * MATCH_HOURS;
+
+	const lines: LoadLine[] = [];
+	if (input.trainingCount > 0) {
+		lines.push({
+			label: 'Teamtrainingen',
+			detail: `${input.trainingCount} gepland, ${input.trainingAbsences} afwezig`,
+			hours: round(trainingHours),
+		});
+	}
+	if (input.matchCount > 0) {
+		lines.push({
+			label: 'Wedstrijden',
+			detail: `${input.matchCount} gepland, ${input.matchAbsences} afwezig`,
+			hours: round(matchHours),
+		});
+	}
+
+	let extraHoursPerWeek = 0;
+	let extraHours = 0;
+	for (const extra of input.extras || []) {
+		const hoursPerWeek = Number(extra.hours) || 0;
+		extraHoursPerWeek += hoursPerWeek;
+		const monthly = hoursPerWeek * WEEKS_PER_MONTH;
+		extraHours += monthly;
+		lines.push({
+			label: extraActivityLabel(extra, input.teamNames),
+			detail: extra.notes || `${round(hoursPerWeek)} u/wk`,
+			hours: round(monthly),
+		});
+	}
+
+	return {
+		month: input.month,
+		trainingCount: input.trainingCount,
+		trainingAbsences: input.trainingAbsences,
+		trainingHours: round(trainingHours),
+		matchCount: input.matchCount,
+		matchAbsences: input.matchAbsences,
+		matchHours: round(matchHours),
+		extraHoursPerWeek: round(extraHoursPerWeek),
+		extraHours: round(extraHours),
+		totalHours: round(trainingHours + matchHours + extraHours),
+		lines,
+	};
 }

@@ -4,13 +4,19 @@
 	import { getContextPlayers } from '$lib/pocketbase';
 	import type { Player } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
-	import { fetchPlayerLoad, type PlayerLoad } from '$lib/utils/load';
+	import { fetchPlayerLoad, getMonthRange, type PlayerLoad } from '$lib/utils/load';
 
 	let players: Player[] = [];
 	let loads: { player: Player; load: PlayerLoad }[] = [];
 	let loading = true;
+	let monthOffset = 0;
 
-	onMount(async () => {
+	$: monthLabel = getMonthRange(monthOffset).label;
+
+	onMount(loadReport);
+
+	async function loadReport() {
+		loading = true;
 		try {
 			players = await getContextPlayers($selectedTeamId, $selectedSeasonId, { activeOnly: true });
 
@@ -20,39 +26,45 @@
 					load: await fetchPlayerLoad(player.id, player.extra_activities || [], {
 						teamId: $selectedTeamId,
 						seasonId: $selectedSeasonId,
+						monthOffset,
 					}),
 				}))
 			);
-			loads.sort((a, b) => b.load.totalHoursPerWeek - a.load.totalHoursPerWeek);
+			loads.sort((a, b) => b.load.totalHours - a.load.totalHours);
 		} catch (e) {
 			console.error('Failed to load player load report:', e);
 		} finally {
 			loading = false;
 		}
-	});
+	}
+
+	function changeMonth(delta: number) {
+		monthOffset += delta;
+		loadReport();
+	}
 
 	function levelLabel(hours: number): string {
-		if (hours >= 8) return 'hoog';
-		if (hours >= 5) return 'gemiddeld';
+		if (hours >= 32) return 'hoog';
+		if (hours >= 20) return 'gemiddeld';
 		return 'laag';
 	}
 
 	function levelColor(hours: number): string {
-		if (hours >= 8) return 'text-red-600 dark:text-red-400';
-		if (hours >= 5) return 'text-amber-600 dark:text-amber-400';
+		if (hours >= 32) return 'text-red-600 dark:text-red-400';
+		if (hours >= 20) return 'text-amber-600 dark:text-amber-400';
 		return 'text-emerald-600 dark:text-emerald-400';
 	}
 
 	function barColor(hours: number): string {
-		if (hours >= 8) return 'bg-red-500';
-		if (hours >= 5) return 'bg-amber-500';
+		if (hours >= 32) return 'bg-red-500';
+		if (hours >= 20) return 'bg-amber-500';
 		return 'bg-emerald-500';
 	}
 
-	const MAX_HOURS = 10;
+	const MAX_HOURS = 40;
 
 	$: avgHours = loads.length > 0
-		? Math.round((loads.reduce((s, l) => s + l.load.totalHoursPerWeek, 0) / loads.length) * 10) / 10
+		? Math.round((loads.reduce((s, l) => s + l.load.totalHours, 0) / loads.length) * 10) / 10
 		: 0;
 </script>
 
@@ -72,9 +84,19 @@
 
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">⚖️ Belastingsoverzicht</h2>
 		<p class="text-sm text-gray-500 dark:text-gray-400">
-			Uren per week op basis van bijgewoonde trainingen, wedstrijden van het team en extra
-			activiteiten die per speler zijn ingesteld.
+			Geplande uren van trainingen en wedstrijden van het team, min gemelde afwezigheid, plus
+			extra activiteiten die per speler zijn ingesteld.
 		</p>
+
+		<div class="flex items-center justify-center gap-3">
+			<button type="button" class="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" on:click={() => changeMonth(-1)}>
+				‹
+			</button>
+			<span class="font-medium text-gray-700 dark:text-gray-300 capitalize">{monthLabel}</span>
+			<button type="button" class="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" on:click={() => changeMonth(1)}>
+				›
+			</button>
+		</div>
 
 		<!-- Summary -->
 		<div class="card">
@@ -85,7 +107,7 @@
 				</div>
 				<div>
 					<div class="text-2xl font-bold text-green-600">{avgHours}</div>
-					<div class="text-xs text-gray-500 dark:text-gray-400">Gem. uur per week</div>
+					<div class="text-xs text-gray-500 dark:text-gray-400">Gem. uur per maand</div>
 				</div>
 			</div>
 		</div>
@@ -102,19 +124,19 @@
 							<a href="{base}/players/{player.id}" class="font-medium text-gray-800 dark:text-gray-200 hover:text-primary-600">
 								{player.name}
 							</a>
-							<span class="font-semibold {levelColor(load.totalHoursPerWeek)}">
-								{load.totalHoursPerWeek} u/wk ({levelLabel(load.totalHoursPerWeek)})
+							<span class="font-semibold {levelColor(load.totalHours)}">
+								{load.totalHours} u ({levelLabel(load.totalHours)})
 							</span>
 						</div>
 						<div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
 							<div
-								class="h-full {barColor(load.totalHoursPerWeek)} rounded-full"
-								style="width: {Math.min(100, (load.totalHoursPerWeek / MAX_HOURS) * 100)}%"
+								class="h-full {barColor(load.totalHours)} rounded-full"
+								style="width: {Math.min(100, (load.totalHours / MAX_HOURS) * 100)}%"
 							></div>
 						</div>
 						{#if load.lines.length > 0}
 							<p class="text-xs text-gray-500 dark:text-gray-400">
-								{load.lines.map((l) => `${l.label}: ${l.hoursPerWeek} u/wk`).join(' · ')}
+								{load.lines.map((l) => `${l.label}: ${l.hours} u`).join(' · ')}
 							</p>
 						{:else}
 							<p class="text-xs text-gray-400">Geen trainingen, wedstrijden of extra activiteiten</p>
