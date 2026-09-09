@@ -219,24 +219,33 @@
 								{#if training.expand?.trainer && training.expand.trainer.length > 0}
 									<span>🧑‍🏫 {training.expand.trainer.map(t => t.name).join(', ')}</span>
 								{/if}
-								{#if training.content}
-									<button on:click={() => lightboxTraining = training}
-										class="text-primary-600 hover:text-primary-800">
-										👁 Bekijken
-									</button>
-								{/if}
 							</div>
-							<div class="grid grid-cols-2 gap-2 mt-3">
+							<div class="grid gap-2 mt-3 {$canEdit ? 'grid-cols-3' : 'grid-cols-1'}">
+								{#if training.content}
+									<button
+										on:click={() => lightboxTraining = training}
+										class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+									>
+										Bekijken
+									</button>
+								{:else}
+									<a
+										href="{base}/trainings/{training.id}"
+										class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+									>
+										Bekijken
+									</a>
+								{/if}
 								{#if $canEdit}
 								<a
-									href="{base}/trainings/{training.id}/prepare"
+									href="{base}/trainings/{training.id}/edit"
 									class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
 										isPrepared
 											? 'bg-green-600 hover:bg-green-700'
 											: 'bg-amber-500 hover:bg-amber-600'
 									}"
 								>
-									Training
+									Bewerken
 								</a>
 								<a
 									href="{base}/trainings/{training.id}/checkin"
@@ -246,7 +255,7 @@
 											: 'bg-gray-500 hover:bg-gray-600'
 									}"
 								>
-									Starten
+									Start
 								</a>
 								{/if}
 							</div>

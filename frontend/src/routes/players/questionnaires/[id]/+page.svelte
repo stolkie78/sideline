@@ -105,7 +105,7 @@
 				</div>
 				<div class="flex gap-2 flex-shrink-0">
 					{#if questionnaire.status === 'draft'}
-						<button class="btn-secondary text-xs px-2 py-1.5" on:click={startEdit}>✏️ Bewerken</button>
+						<button class="btn-secondary text-xs px-2 py-1.5" on:click={startEdit}>Bewerken</button>
 					{/if}
 					<button class="btn-secondary text-xs px-2 py-1.5" on:click={toggleStatus}>
 						{questionnaire.status === 'active' ? 'Sluiten' : 'Activeren'}

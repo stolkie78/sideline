@@ -678,10 +678,9 @@
 										<span class="text-sm font-medium text-gray-700 dark:text-gray-300">{comp.name}</span>
 										<div class="flex items-center gap-1">
 											<button
-												class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors text-xs"
-												on:click={() => startEditComp(comp)}
-												title="Bewerken">
-												✏️
+												class="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-primary-600 transition-colors text-xs font-medium"
+												on:click={() => startEditComp(comp)}>
+												Bewerken
 											</button>
 											<button
 												class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-500 transition-colors text-xs"

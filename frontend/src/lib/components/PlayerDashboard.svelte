@@ -2,7 +2,8 @@
 	import { pb, getAttendanceForPlayer, setPlayerAttendance, getPendingQuestionnaires } from '$lib/pocketbase';
 	import { linkedPlayer, rolesLoaded } from '$lib/stores/role';
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
-	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus, Questionnaire } from '$lib/types';
+	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus, Questionnaire, MatchPlayerStats, PlayerPosition } from '$lib/types';
+	import { POSITION_LABELS } from '$lib/types';
 	import { marked } from 'marked';
 	import { base } from '$app/paths';
 	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
@@ -12,12 +13,16 @@
 	let trainingAttendance: TrainingAttendance[] = [];
 	let matchAttendance: MatchAttendance[] = [];
 	let pendingQuestionnaires: Questionnaire[] = [];
+	let playedMatches: Match[] = [];
+	let playerStats: MatchPlayerStats[] = [];
+	let pastTrainingCount = 0;
 	let loading = true;
 	let submitting: Record<string, boolean> = {};
 	let lightboxTraining: Training | null = null;
 	let loadedContext = '';
 	let showAllTrainings = false;
 	let showAllMatches = false;
+	let showAllResults = false;
 
 	$: playerId = $linkedPlayer?.id;
 
@@ -44,7 +49,7 @@
 			const filter = contextFilter(teamId, seasonId);
 			const now = new Date().toISOString().slice(0, 10);
 
-			const [t, m, att, pendingQ] = await Promise.all([
+			const [t, m, att, pendingQ, played, stats, pastTrainings] = await Promise.all([
 				pb.collection('trainings').getFullList<Training>({
 					sort: 'date',
 					// Any upcoming training that isn't finished yet (open or
@@ -58,6 +63,20 @@
 				}),
 				getAttendanceForPlayer(currentPlayerId),
 				getPendingQuestionnaires(teamId, currentPlayerId),
+				pb.collection('matches').getFullList<Match>({
+					sort: '-date',
+					filter: [filter, `date < "${now}"`].filter(Boolean).join(' && '),
+				}),
+				pb.collection('match_player_stats').getFullList<MatchPlayerStats>({
+					filter: `player = "${currentPlayerId}"`,
+					expand: 'match',
+				}),
+				// Only trainings that already happened count towards turnout —
+				// including upcoming ones would drag the percentage down.
+				pb.collection('trainings').getFullList<Training>({
+					fields: 'id',
+					filter: [filter, `date < "${now}"`].filter(Boolean).join(' && '),
+				}),
 			]);
 
 			trainings = t;
@@ -65,6 +84,12 @@
 			trainingAttendance = att.training;
 			matchAttendance = att.match;
 			pendingQuestionnaires = pendingQ;
+			playedMatches = played;
+			// Stats are fetched per player, so drop the ones belonging to
+			// matches outside the current team/season.
+			const playedIds = new Set(played.map((match) => match.id));
+			playerStats = stats.filter((s) => playedIds.has(s.match));
+			pastTrainingCount = pastTrainings.length;
 		} catch (e) {
 			console.error('Failed to load player dashboard:', e);
 		} finally {
@@ -120,8 +145,66 @@
 		}
 	}
 
-	$: visibleTrainings = showAllTrainings ? trainings : trainings.slice(0, 1);
-	$: visibleMatches = showAllMatches ? matches : matches.slice(0, 1);
+	// Show the next few by default; the toggle expands to the whole season so
+	// a player can fill in their attendance in one go.
+	const PREVIEW_COUNT = 5;
+	$: visibleTrainings = showAllTrainings ? trainings : trainings.slice(0, PREVIEW_COUNT);
+	$: visibleMatches = showAllMatches ? matches : matches.slice(0, PREVIEW_COUNT);
+
+	// === Season stats for the logged-in player ===
+
+	$: results = playedMatches.filter((m) => m.score_team != null && m.score_opponent != null);
+	$: visibleResults = showAllResults ? results : results.slice(0, 1);
+
+	// "Played" means actually being there — a match you missed shouldn't count
+	// towards your own total.
+	$: matchesPlayed = playedMatches.filter(
+		(m) => matchAttendance.find((a) => a.match === m.id)?.status === 'present'
+	).length;
+
+	$: pointsByPosition = playerStats
+		.flatMap((s) => s.position_points ?? [])
+		.reduce<Record<string, number>>((acc, pp) => {
+			acc[pp.position] = (acc[pp.position] || 0) + (pp.points || 0);
+			return acc;
+		}, {});
+
+	$: totalPoints = Object.values(pointsByPosition).reduce((sum, p) => sum + p, 0);
+	$: positionBreakdown = Object.entries(pointsByPosition)
+		.filter(([, points]) => points > 0)
+		.sort((a, b) => b[1] - a[1]) as [PlayerPosition, number][];
+
+	// An unregistered past training counts as a miss: turnout is measured
+	// against every training that took place, not just the ones marked.
+	// Attendance also covers upcoming trainings, so filter on the actual date.
+	$: trainingsAttended = trainingAttendance.filter((a) => {
+		if (a.status !== 'present') return false;
+		const date = a.expand?.training?.date;
+		return date ? new Date(date) < new Date() : false;
+	}).length;
+	$: trainingTurnout = pastTrainingCount > 0
+		? Math.round((Math.min(trainingsAttended, pastTrainingCount) / pastTrainingCount) * 100)
+		: null;
+
+	function matchOutcome(match: Match): 'win' | 'loss' | 'draw' {
+		const team = match.score_team ?? 0;
+		const opponent = match.score_opponent ?? 0;
+		if (team > opponent) return 'win';
+		if (team < opponent) return 'loss';
+		return 'draw';
+	}
+
+	const OUTCOME_STYLES = {
+		win: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+		loss: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+		draw: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+	};
+
+	const OUTCOME_LABELS = { win: 'Gewonnen', loss: 'Verloren', draw: 'Gelijk' };
+
+	function formatDate(date: string): string {
+		return new Date(date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
+	}
 </script>
 
 <svelte:head>
@@ -163,12 +246,12 @@
 		<div>
 			<div class="flex items-center justify-between mb-3">
 				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">🏋️ Trainingen</h2>
-				{#if trainings.length > 1}
+				{#if trainings.length > PREVIEW_COUNT}
 					<button
 						class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
 						on:click={() => showAllTrainings = !showAllTrainings}
 					>
-						{showAllTrainings ? '▲ Toon alleen volgende' : `▼ Toon alle (${trainings.length})`}
+						{showAllTrainings ? '▲ Toon minder' : `▼ Toon alle (${trainings.length})`}
 					</button>
 				{/if}
 			</div>
@@ -180,23 +263,24 @@
 						{@const current = getTrainingStatus(training.id, trainingAttendance)}
 						{@const key = `training-${training.id}`}
 						<div class="card py-3 px-4 space-y-2">
-							{#if training.content}
-								<div class="flex justify-end">
-									<button
-										class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
-										on:click={() => lightboxTraining = training}
-									>
-										👁 Bekijken
-									</button>
-								</div>
-							{/if}
 							<AttendanceStatusSwitcher
 								label={new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								status={current}
 								reason={getTrainingReason(training.id, trainingAttendance)}
 								on:change={(e) => submitStatus('training', training.id, e.detail)}
 								on:reason={(e) => submitStatus('training', training.id, current, e.detail)}
-							/>
+							>
+								<svelte:fragment slot="action">
+									{#if training.content}
+										<button
+											class="text-xs font-medium whitespace-nowrap text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
+											on:click={() => lightboxTraining = training}
+										>
+											Bekijken
+										</button>
+									{/if}
+								</svelte:fragment>
+							</AttendanceStatusSwitcher>
 						</div>
 					{/each}
 				</div>
@@ -207,12 +291,12 @@
 		<div>
 			<div class="flex items-center justify-between mb-3">
 				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">🏐 Wedstrijden</h2>
-				{#if matches.length > 1}
+				{#if matches.length > PREVIEW_COUNT}
 					<button
 						class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
 						on:click={() => showAllMatches = !showAllMatches}
 					>
-						{showAllMatches ? '▲ Toon alleen volgende' : `▼ Toon alle (${matches.length})`}
+						{showAllMatches ? '▲ Toon minder' : `▼ Toon alle (${matches.length})`}
 					</button>
 				{/if}
 			</div>
@@ -236,6 +320,108 @@
 					{/each}
 				</div>
 			{/if}
+		</div>
+
+		<!-- Results -->
+		<div>
+			<div class="flex items-center justify-between mb-3">
+				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">📋 Uitslagen</h2>
+				{#if results.length > 1}
+					<button
+						class="text-xs font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
+						on:click={() => showAllResults = !showAllResults}
+					>
+						{showAllResults ? '▲ Toon minder' : `▼ Alle uitslagen (${results.length})`}
+					</button>
+				{/if}
+			</div>
+			{#if results.length === 0}
+				<p class="text-sm text-gray-400">Nog geen uitslagen</p>
+			{:else}
+				<div class="space-y-2">
+					{#each visibleResults as match}
+						{@const outcome = matchOutcome(match)}
+						<div class="card py-3 px-4 flex items-center gap-3">
+							<div class="flex-1 min-w-0">
+								<p class="font-medium text-gray-800 dark:text-gray-200 truncate">
+									{match.opponent}
+									<span class="text-xs text-gray-400 ml-1">{match.home_away === 'home' ? 'Thuis' : 'Uit'}</span>
+								</p>
+								<p class="text-xs text-gray-400">{formatDate(match.date)}</p>
+							</div>
+							<span class="font-bold text-gray-800 dark:text-gray-200 tabular-nums">
+								{match.score_team}–{match.score_opponent}
+							</span>
+							<span class="text-xs font-semibold px-2 py-1 rounded-lg {OUTCOME_STYLES[outcome]}">
+								{OUTCOME_LABELS[outcome]}
+							</span>
+						</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
+
+		<!-- Personal season stats -->
+		<div>
+			<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-3">📊 Mijn statistieken</h2>
+			<div class="card space-y-4">
+				<div class="grid grid-cols-3 gap-3 text-center">
+					<div>
+						<p class="text-2xl font-bold text-gray-800 dark:text-gray-200">{matchesPlayed}</p>
+						<p class="text-xs text-gray-500 dark:text-gray-400">Wedstrijden</p>
+					</div>
+					<div>
+						<p class="text-2xl font-bold text-gray-800 dark:text-gray-200">{totalPoints}</p>
+						<p class="text-xs text-gray-500 dark:text-gray-400">Punten</p>
+					</div>
+					<div>
+						<p class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+							{trainingTurnout === null ? '–' : `${trainingTurnout}%`}
+						</p>
+						<p class="text-xs text-gray-500 dark:text-gray-400">Opkomst</p>
+					</div>
+				</div>
+
+				{#if trainingTurnout !== null}
+					<div>
+						<div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+							<span>Trainingsopkomst</span>
+							<span>{trainingsAttended} van {pastTrainingCount}</span>
+						</div>
+						<div class="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+							<div class="h-full rounded-full bg-primary-500" style="width: {trainingTurnout}%"></div>
+						</div>
+					</div>
+				{/if}
+
+				<div>
+					<p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">
+						Punten per positie
+					</p>
+					{#if positionBreakdown.length === 0}
+						<p class="text-sm text-gray-400">Nog geen punten geregistreerd</p>
+					{:else}
+						<div class="space-y-1.5">
+							{#each positionBreakdown as [position, points]}
+								<div class="flex items-center gap-3">
+									<span class="text-sm text-gray-700 dark:text-gray-300 w-40 shrink-0 truncate">
+										{POSITION_LABELS[position] ?? position}
+									</span>
+									<div class="flex-1 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+										<div
+											class="h-full rounded-full bg-primary-500"
+											style="width: {totalPoints > 0 ? (points / totalPoints) * 100 : 0}%"
+										></div>
+									</div>
+									<span class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums w-8 text-right">
+										{points}
+									</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</div>
 		</div>
 	</div>
 {/if}

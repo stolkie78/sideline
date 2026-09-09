@@ -132,8 +132,8 @@
 									{score.ourSets} - {score.theirSets}
 								</span>
 							{/if}
-							<a href="{base}/matches/{match.id}/edit" class="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
-								✏️
+							<a href="{base}/matches/{match.id}/edit" class="px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-primary-600 transition-colors text-xs font-medium whitespace-nowrap">
+								Bewerken
 							</a>
 						</div>
 					</div>
