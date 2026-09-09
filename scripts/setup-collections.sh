@@ -856,5 +856,95 @@ PLAYED_COUNT=$(backfill_match_status "status='' && date < @now" "played")
 OPEN_COUNT=$(backfill_match_status "status='' && date >= @now" "open")
 echo "  ✓ $PLAYED_COUNT gespeeld, $OPEN_COUNT open"
 
+
+# =============================================================================
+# API rules — enforce the permission model server side
+# =============================================================================
+# The app has two orthogonal concepts. "Permission" (club_access.role) says what
+# you may do: admin = everything including configuration and the roster, user =
+# record trainings/matches/competency scores, viewer = read only. "Role"
+# (is_trainer/is_player/is_parent) only decides which dashboard you see and is
+# deliberately NOT a permission.
+#
+# Hiding a button in the UI is not access control — without these rules any
+# logged-in user can still write through the REST API directly.
+#
+# The checks start from the authenticated record via a back-relation
+# (@request.auth.club_access_via_user). That correlation matters: the naive
+# form "@collection.club_access.user ?= @request.auth.id &&
+# @collection.club_access.role ?= \"admin\"" is UNSAFE, because PocketBase
+# evaluates both conditions independently over the whole collection — so any
+# user passes as soon as some admin row exists anywhere.
+echo ""
+echo "🔒 Applying permission rules..."
+
+AUTHED='@request.auth.id != ""'
+RULE_ADMIN='@request.auth.club_access_via_user.role ?= "admin"'
+RULE_EDIT='@request.auth.club_access_via_user.role ?= "admin" || @request.auth.club_access_via_user.role ?= "user"'
+# Players must always be able to maintain their own attendance and answers,
+# even when their permission is "viewer".
+RULE_EDIT_OR_SELF="$RULE_EDIT"' || player.user_id = @request.auth.id'
+
+# Preflight: a syntactically invalid rule is rejected (safe), but an unsupported
+# back-relation that is silently accepted and always evaluates false would lock
+# everyone out. Verify on a scratch collection before touching anything real.
+verify_rule_support() {
+  local PROBE="_rule_probe_$$"
+  curl -sf "$PB_URL/api/collections" -X POST \
+    -H "Authorization: $TOKEN" -H "Content-Type: application/json" \
+    -d "$(jq -n --arg n "$PROBE" '{name:$n, type:"base", fields:[{name:"dummy",type:"text"}]}')" \
+    > /dev/null 2>&1 || return 1
+
+  local CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH "$PB_URL/api/collections/$PROBE" \
+    -H "Authorization: $TOKEN" -H "Content-Type: application/json" \
+    -d "$(jq -n --arg r "$RULE_ADMIN" '{listRule:$r}')")
+
+  curl -sf -X DELETE "$PB_URL/api/collections/$PROBE" \
+    -H "Authorization: $TOKEN" > /dev/null 2>&1
+
+  [ "$CODE" = "200" ]
+}
+
+# Usage: apply_rules <collection> <list> <view> <create> <update> <delete>
+# Built with jq so the expressions never need manual JSON escaping.
+apply_rules() {
+  local NAME="$1"
+  curl -sf -o /dev/null "$PB_URL/api/collections/$NAME" -H "Authorization: $TOKEN" || return 0
+  local BODY=$(jq -n --arg l "$2" --arg v "$3" --arg c "$4" --arg u "$5" --arg d "$6" \
+    '{listRule:$l, viewRule:$v, createRule:$c, updateRule:$u, deleteRule:$d}')
+  if curl -sf -o /dev/null -X PATCH "$PB_URL/api/collections/$NAME" \
+      -H "Authorization: $TOKEN" -H "Content-Type: application/json" -d "$BODY"; then
+    echo "  ✓ $NAME"
+  else
+    echo "  ⚠️ Could not apply rules for $NAME"
+  fi
+}
+
+if ! verify_rule_support; then
+  echo "  ⚠️ This PocketBase build does not accept back-relation rules."
+  echo "     Skipping — permissions stay enforced in the frontend only."
+else
+  # Configuration and the roster: admin writes, everyone reads.
+  for COL in clubs teams seasons players competencies club_access team_access training_templates; do
+    apply_rules "$COL" "$AUTHED" "$AUTHED" "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN"
+  done
+
+  # Day-to-day recording: admins and users write, viewers read.
+  for COL in trainings training_plan matches match_player_stats team_players \
+             player_competencies season_periods questionnaires; do
+    apply_rules "$COL" "$AUTHED" "$AUTHED" "$RULE_EDIT" "$RULE_EDIT" "$RULE_EDIT"
+  done
+
+  # Invitations carry the role that will be granted, so they are admin-only in
+  # every direction. Invitees never touch them directly: /api/invite/accept
+  # looks the token up and grants club_access with superuser rights.
+  apply_rules invitations "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN" "$RULE_ADMIN"
+
+  # Own attendance and questionnaire answers stay writable for the player.
+  for COL in training_attendance match_attendance questionnaire_responses; do
+    apply_rules "$COL" "$AUTHED" "$AUTHED" "$RULE_EDIT_OR_SELF" "$RULE_EDIT_OR_SELF" "$RULE_EDIT_OR_SELF"
+  done
+fi
+
 echo ""
 echo "✅ Setup complete! All collections are ready."

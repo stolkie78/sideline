@@ -6,9 +6,10 @@
 	import { getMatchStatus, isMatchFinished } from '$lib/utils/match';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
 	import { contextFilter } from '$lib/stores/context';
-	import { userRole } from '$lib/stores/role';
+	import { currentRole, canEdit } from '$lib/stores/role';
 	import { marked } from 'marked';
 	import PlayerDashboard from '$lib/components/PlayerDashboard.svelte';
+	import ParentDashboard from '$lib/components/ParentDashboard.svelte';
 	import { browser } from '$app/environment';
 
 	let players: Player[] = [];
@@ -91,8 +92,10 @@
 	<title>SetBaas - Dashboard</title>
 </svelte:head>
 
-{#if $userRole === 'viewer'}
+{#if $currentRole === 'player'}
 	<PlayerDashboard />
+{:else if $currentRole === 'parent'}
+	<ParentDashboard />
 {:else if loading}
 	<div class="flex justify-center py-12">
 		<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -116,14 +119,16 @@
 		</div>
 
 		<!-- Quick Actions -->
-		<div class="grid grid-cols-2 gap-3">
-			<a href="{base}/trainings/new" class="btn-primary text-center text-base py-4">
-				Nieuwe training
-			</a>
-			<a href="{base}/matches/new" class="btn-primary text-center text-base py-4">
-				Nieuwe wedstrijd
-			</a>
-		</div>
+		{#if $canEdit}
+			<div class="grid grid-cols-2 gap-3">
+				<a href="{base}/trainings/new" class="btn-primary text-center text-base py-4">
+					Nieuwe training
+				</a>
+				<a href="{base}/matches/new" class="btn-primary text-center text-base py-4">
+					Nieuwe wedstrijd
+				</a>
+			</div>
+		{/if}
 
 		<!-- Trainingen + Wedstrijden: side by side on tablet+ -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -158,7 +163,7 @@
 									<span>🧑‍🏫 {activeTraining.expand.trainer.map(t => t.name).join(', ')}</span>
 								{/if}
 							</div>
-							<div class="grid grid-cols-3 gap-2 mt-3">
+							<div class="grid gap-2 mt-3 {$canEdit ? 'grid-cols-3' : 'grid-cols-1'}">
 								{#if activeTraining.content}
 									<button
 										on:click={() => lightboxTraining = activeTraining}
@@ -174,18 +179,20 @@
 										Bekijk
 									</a>
 								{/if}
-								<a
-									href="{base}/trainings/{activeTraining.id}/prepare"
-									class="rounded-xl bg-primary-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700"
-								>
-									Training
-								</a>
-								<a
-									href="{base}/trainings/{activeTraining.id}/checkout"
-									class="rounded-xl bg-red-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-700"
-								>
-									Afronden
-								</a>
+								{#if $canEdit}
+									<a
+										href="{base}/trainings/{activeTraining.id}/prepare"
+										class="rounded-xl bg-primary-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+									>
+										Training
+									</a>
+									<a
+										href="{base}/trainings/{activeTraining.id}/checkout"
+										class="rounded-xl bg-red-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-700"
+									>
+										Afronden
+									</a>
+								{/if}
 							</div>
 						</div>
 					{/if}
@@ -220,6 +227,7 @@
 								{/if}
 							</div>
 							<div class="grid grid-cols-2 gap-2 mt-3">
+								{#if $canEdit}
 								<a
 									href="{base}/trainings/{training.id}/prepare"
 									class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
@@ -240,6 +248,7 @@
 								>
 									Starten
 								</a>
+								{/if}
 							</div>
 						</div>
 					{/each}
@@ -289,6 +298,7 @@
 								{/if}
 							</div>
 							<div class="mt-3">
+								{#if $canEdit}
 								<a
 									href="{base}/matches/{match.id}/edit?returnTo=/"
 									class="block rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
@@ -299,6 +309,7 @@
 								>
 									{isMatchFinished(match) ? 'Invullen' : 'Bijwerken'}
 								</a>
+								{/if}
 							</div>
 						</div>
 					{/each}

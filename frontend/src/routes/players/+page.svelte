@@ -5,6 +5,7 @@
 	import type { Player } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS } from '$lib/types';
 	import { selectedTeamId, selectedSeasonId } from '$lib/stores/context';
+	import { isAdmin } from '$lib/stores/role';
 
 	let players: Player[] = [];
 	let loading = true;
@@ -94,13 +95,15 @@
 
 	<div class="flex justify-between items-center">
 		<h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">Spelers</h2>
-		<button class="btn-primary" on:click={() => (showForm = !showForm)}>
-			{showForm ? '✕ Sluiten' : '+ Speler'}
-		</button>
+		{#if $isAdmin}
+			<button class="btn-primary" on:click={() => (showForm = !showForm)}>
+				{showForm ? '✕ Sluiten' : '+ Speler'}
+			</button>
+		{/if}
 	</div>
 
 	<!-- Add Player Form -->
-	{#if showForm}
+	{#if showForm && $isAdmin}
 		<form class="card space-y-3" on:submit|preventDefault={handleSubmit}>
 			<div>
 				<label class="label" for="name">Naam *</label>

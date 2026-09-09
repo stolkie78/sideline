@@ -13,6 +13,7 @@
 	import type { Player, Competency, PlayerCompetency, QuestionnaireResponse } from '$lib/types';
 	import { POSITION_LABELS, STATUS_LABELS, CATEGORY_LABELS } from '$lib/types';
 	import { authUser } from '$lib/stores/auth';
+	import { isAdmin, canEdit } from '$lib/stores/role';
 	import CompetencyChart from '$lib/components/CompetencyChart.svelte';
 
 	let player: Player | null = null;
@@ -108,22 +109,26 @@
 					{STATUS_LABELS[player.status]}
 				</span>
 			</div>
-			<a href="{base}/players/{player.id}/edit" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
-				✏️
-			</a>
+			{#if $isAdmin}
+				<a href="{base}/players/{player.id}/edit" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-600 transition-colors" title="Bewerken">
+					✏️
+				</a>
+			{/if}
 		</div>
 
 		<!-- Competency Section -->
 		<div class="card space-y-3">
 			<div class="flex justify-between items-center">
 				<h3 class="font-semibold text-gray-800 dark:text-gray-200">Competenties</h3>
-				<button
-					class="btn-primary text-xs px-3 py-2"
-					on:click={() => (showRatingForm = !showRatingForm)}
-					disabled={!selectedCompetency}
-				>
-					+ Score
-				</button>
+				{#if $canEdit}
+					<button
+						class="btn-primary text-xs px-3 py-2"
+						on:click={() => (showRatingForm = !showRatingForm)}
+						disabled={!selectedCompetency}
+					>
+						+ Score
+					</button>
+				{/if}
 			</div>
 
 			<!-- Competency filter -->
@@ -139,7 +144,7 @@
 			</select>
 
 			<!-- Rating Form -->
-			{#if showRatingForm && selectedCompetency}
+			{#if showRatingForm && selectedCompetency && $canEdit}
 				<form class="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 space-y-2" on:submit|preventDefault={saveRating}>
 					<div>
 						<label class="label">Score: {ratingValue}/10</label>

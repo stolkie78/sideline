@@ -1,11 +1,54 @@
-import { writable, derived, get } from 'svelte/store';
-import { selectedClubId } from './context';
-import { isAuthenticated } from './auth';
+import { writable, derived } from 'svelte/store';
+import { selectedClubId, createPersistentStore } from './context';
 import { pb, getClubAccessForUser, getPlayerByUserId, getPlayerByEmail, linkPlayerToUser } from '$lib/pocketbase';
 import type { ClubAccess } from '$lib/pocketbase';
 import type { Player } from '$lib/types';
 
-export type UserRole = 'admin' | 'user' | 'viewer' | null;
+/**
+ * SetBaas separates two independent concepts:
+ *
+ * 1. `Permission` — WHAT you may do (access level, `club_access.role`):
+ *      admin  → everything, including configuration and team management
+ *      user   → fill in trainings, matches and competencies per player
+ *      viewer → read-only (plus their own attendance/questionnaire answers)
+ *
+ * 2. `AppRole` — WHO you are on the club (`is_trainer`/`is_player`/`is_parent`):
+ *      coach  → general dashboard
+ *      player → personal player dashboard
+ *      parent → parent dashboard (not built yet)
+ *
+ * The two are deliberately orthogonal: a coach can be read-only and a player
+ * can be an admin. The permission decides what is editable, the role decides
+ * which dashboard and navigation you land on.
+ */
+export type Permission = 'admin' | 'user' | 'viewer' | null;
+export type AppRole = 'coach' | 'player' | 'parent';
+
+export const APP_ROLES: AppRole[] = ['coach', 'player', 'parent'];
+
+export const APP_ROLE_LABELS: Record<AppRole, string> = {
+	coach: 'Coach',
+	player: 'Speler',
+	parent: 'Ouder',
+};
+
+export const APP_ROLE_ICONS: Record<AppRole, string> = {
+	coach: '🧑‍🏫',
+	player: '🏐',
+	parent: '👨‍👩‍👦',
+};
+
+export const APP_ROLE_DESCRIPTIONS: Record<AppRole, string> = {
+	coach: 'Trainingen, wedstrijden en teamoverzicht',
+	player: 'Je eigen aanwezigheid, inbox en profiel',
+	parent: 'Meekijken met je kind',
+};
+
+export const PERMISSION_LABELS: Record<'admin' | 'user' | 'viewer', string> = {
+	admin: 'Beheerder',
+	user: 'Gebruiker',
+	viewer: 'Lezer',
+};
 
 // All club_access records for the current user
 export const userClubAccess = writable<ClubAccess[]>([]);
@@ -19,46 +62,95 @@ export const linkedPlayer = writable<Player | null>(null);
 // async role/player lookup resolves and permanently show an empty state.
 export const rolesLoaded = writable(false);
 
-// Current role for the selected club
-export const userRole = derived(
+// === Permissions (access level) ===
+
+/**
+ * Access level for the selected club. Admin on any club counts as admin
+ * everywhere, because club administration itself is a cross-club action.
+ */
+export const permission = derived(
 	[userClubAccess, selectedClubId],
-	([$access, $clubId]) => {
-		if (!$clubId || $access.length === 0) return null;
-		// Admin on any club = admin everywhere
-		const isAdminAnywhere = $access.some(a => a.role === 'admin');
-		if (isAdminAnywhere) return 'admin' as UserRole;
-		const clubAccess = $access.find(a => a.club === $clubId);
-		return (clubAccess?.role as UserRole) || null;
+	([$access, $clubId]): Permission => {
+		if ($access.length === 0) return null;
+		const isAdminAnywhere = $access.some((a) => a.role === 'admin');
+		if (isAdminAnywhere) return 'admin';
+		if (!$clubId) return null;
+		const clubAccess = $access.find((a) => a.club === $clubId);
+		return (clubAccess?.role as Permission) || null;
 	}
 );
 
-// Is admin (global)
-export const isAdmin = derived(userClubAccess, ($access) =>
-	$access.some(a => a.role === 'admin')
-);
+/** Full access: configuration, clubs/teams/seasons and the player roster. */
+export const isAdmin = derived(permission, ($p) => $p === 'admin');
 
-// Is user or admin for current club (i.e. not a read-only viewer)
-export const isCoachOrAdmin = derived(
-	[userRole],
-	([$role]) => $role === 'admin' || $role === 'user'
+/**
+ * May record day-to-day data: trainings, matches, attendance and competency
+ * scores. Explicitly does NOT include configuration or roster management.
+ */
+export const canEdit = derived(permission, ($p) => $p === 'admin' || $p === 'user');
+
+/** Read-only access — may still submit their own attendance and answers. */
+export const isReadOnly = derived(permission, ($p) => $p === 'viewer');
+
+// === Roles (who you are) ===
+
+/**
+ * Which roles the current user may act in on the selected club. Someone with
+ * no role flags at all still gets the coach view, so a plain admin or viewer
+ * account lands on the regular dashboard instead of on nothing.
+ */
+export const availableRoles = derived(
+	[userClubAccess, selectedClubId],
+	([$access, $clubId]): AppRole[] => {
+		if ($access.length === 0) return [];
+		const relevant = $clubId ? $access.filter((a) => a.club === $clubId) : $access;
+		const roles: AppRole[] = [];
+		if (relevant.some((a) => a.is_trainer)) roles.push('coach');
+		if (relevant.some((a) => a.is_player)) roles.push('player');
+		if (relevant.some((a) => a.is_parent)) roles.push('parent');
+		return roles.length > 0 ? roles : ['coach'];
+	}
 );
 
 /**
- * Whether the current user is flagged as a player (`is_player`) for the
- * selected club. This is independent of their permission `role` — a coach
- * or admin can also be tagged as a player (e.g. a playing coach), in which
- * case they get access to the personal "Mijn training" landing page in
- * addition to their regular role-based dashboard.
+ * The role the user picked for this session. Empty until chosen; persisted so
+ * a page reload doesn't ask again.
  */
-export const isPlayer = derived(
-	[userClubAccess, selectedClubId],
-	([$access, $clubId]) => {
-		if ($access.length === 0) return false;
-		if (!$clubId) return $access.some(a => a.is_player);
-		const clubAccess = $access.find(a => a.club === $clubId);
-		return !!clubAccess?.is_player;
+export const activeRole = createPersistentStore('activeRole', '');
+
+/**
+ * The role actually in effect. A stored choice only counts while it is still
+ * available, and a single available role is selected automatically so the user
+ * is never asked a question that has only one answer.
+ */
+export const currentRole = derived(
+	[availableRoles, activeRole],
+	([$available, $active]): AppRole | null => {
+		if ($active && $available.includes($active as AppRole)) return $active as AppRole;
+		if ($available.length === 1) return $available[0];
+		return null;
 	}
 );
+
+/** Whether to ask the user which role they are acting in right now. */
+export const needsRoleChoice = derived(
+	[rolesLoaded, availableRoles, currentRole],
+	([$loaded, $available, $current]) => $loaded && $available.length > 1 && !$current
+);
+
+export function selectRole(role: AppRole) {
+	activeRole.set(role);
+}
+
+export const isCoachView = derived(currentRole, ($r) => $r === 'coach');
+export const isPlayerView = derived(currentRole, ($r) => $r === 'player');
+export const isParentView = derived(currentRole, ($r) => $r === 'parent');
+
+/**
+ * Whether the user is a player at all, regardless of the role they are
+ * currently acting in — used to decide whether player-only data exists.
+ */
+export const isPlayer = derived(availableRoles, ($roles) => $roles.includes('player'));
 
 /**
  * The default team for the current user on the current club, if one was set.
@@ -68,7 +160,7 @@ export const isPlayer = derived(
 export const defaultTeamId = derived(
 	[userClubAccess, selectedClubId],
 	([$access, $clubId]) => {
-		const clubAccess = $access.find(a => a.club === $clubId);
+		const clubAccess = $access.find((a) => a.club === $clubId);
 		return clubAccess?.default_team || '';
 	}
 );
@@ -110,4 +202,6 @@ export function clearUserRoles() {
 	userClubAccess.set([]);
 	linkedPlayer.set(null);
 	rolesLoaded.set(false);
+	// The next user on this browser must pick their own role.
+	activeRole.set('');
 }

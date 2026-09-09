@@ -17,13 +17,30 @@
 		teamsInClub,
 	} from '$lib/stores/context';
 	import { authUser, isAuthenticated, isPlatformAdmin, AUTH_ENABLED } from '$lib/stores/auth';
-	import { userRole, isCoachOrAdmin, isPlayer, loadUserRoles, clearUserRoles, userClubAccess, defaultTeamId } from '$lib/stores/role';
+	import {
+		permission,
+		canEdit,
+		isAdmin,
+		currentRole,
+		availableRoles,
+		needsRoleChoice,
+		isPlayer,
+		loadUserRoles,
+		clearUserRoles,
+		userClubAccess,
+		defaultTeamId,
+		APP_ROLE_LABELS,
+		APP_ROLE_ICONS,
+		PERMISSION_LABELS,
+	} from '$lib/stores/role';
+	import RoleSelectDialog from '$lib/components/RoleSelectDialog.svelte';
 	import type { Club, Team, Season } from '$lib/types';
 	import { version } from '../../package.json';
 
 	let darkMode = true;
 	let showContextPicker = false;
 	let menuOpen = false;
+	let roleSwitcherOpen = false;
 	let localClubs: Club[] = [];
 	let localTeams: Team[] = [];
 	let localSeasons: Season[] = [];
@@ -153,28 +170,47 @@
 	$: currentTeamName = localTeams.find((t) => t.id === $selectedTeamId)?.name || 'Team';
 	$: currentSeasonName = localSeasons.find((s) => s.id === $selectedSeasonId)?.name || 'Seizoen';
 
-	const allNavItems = [
-		{ href: '/', label: 'Dashboard', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/players', label: 'Team', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/trainings', label: 'Trainingen', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/matches', label: 'Wedstrijden', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/periodisering', label: 'Periodisering', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/reports', label: 'Rapporten', roles: ['admin', 'user', 'viewer'] },
-		{ href: '/config', label: 'Configuratie', roles: ['admin'] },
+	// Navigation is driven by two things: the permission decides whether an
+	// item is allowed at all, the active role decides which set of items is
+	// relevant. A playing admin therefore sees the full coach navigation in
+	// the coach role and the stripped player navigation in the player role.
+	const coachNavItems = [
+		{ href: '/', label: 'Dashboard', permissions: ['admin', 'user', 'viewer'] },
+		{ href: '/players', label: 'Team', permissions: ['admin', 'user', 'viewer'] },
+		{ href: '/trainings', label: 'Trainingen', permissions: ['admin', 'user', 'viewer'] },
+		{ href: '/matches', label: 'Wedstrijden', permissions: ['admin', 'user', 'viewer'] },
+		{ href: '/periodisering', label: 'Periodisering', permissions: ['admin', 'user', 'viewer'] },
+		{ href: '/reports', label: 'Rapporten', permissions: ['admin', 'user', 'viewer'] },
+		{ href: '/config', label: 'Configuratie', permissions: ['admin'] },
+	];
+
+	$: playerNavItems = [
+		{ href: '/', label: '🏐 Mijn dashboard' },
+		{ href: '/inbox', label: '📬 Inbox' },
+		{ href: '/profile', label: '👤 Mijn profiel' },
 	];
 
 	$: navItems = [
-		...allNavItems.filter(item => !$userRole || item.roles.includes($userRole)),
-		...($isPlayer ? [{ href: '/inbox', label: '📬 Inbox', roles: [] as string[] }] : []),
-		...($isPlayer ? [{ href: '/profile', label: '👤 Mijn profiel', roles: [] as string[] }] : []),
-		...($isPlayer && $userRole !== 'viewer' ? [{ href: '/me', label: '🏐 Mijn training', roles: [] as string[] }] : []),
-		...($isPlatformAdmin ? [{ href: '/platform-admin', label: 'Clubs beheren', roles: [] as string[] }] : []),
+		...($currentRole === 'player'
+			? playerNavItems
+			: $currentRole === 'parent'
+				? [{ href: '/', label: '👨‍👩‍👦 Mijn dashboard' }]
+				: [
+						...coachNavItems.filter(
+							(item) => !$permission || item.permissions.includes($permission)
+						),
+						// A coach who also plays keeps a shortcut to their own player view
+						// without having to switch roles.
+						...($isPlayer ? [{ href: '/me', label: '🏐 Mijn training' }] : []),
+						...($isPlayer ? [{ href: '/inbox', label: '📬 Inbox' }] : []),
+					]),
+		...($isPlatformAdmin ? [{ href: '/platform-admin', label: 'Clubs beheren' }] : []),
 	];
 
-	// Pure players (role "viewer") get a stripped-down header: no hamburger
-	// menu / app navigation / context picker — just their landing page,
-	// a way to reach their own profile, and logout.
-	$: isPlayerOnlyView = $userRole === 'viewer';
+	// Players and parents get a stripped-down header: no app navigation or
+	// context picker, just their own landing page. They keep a way to switch
+	// role when they hold more than one.
+	$: isStrippedView = $currentRole === 'player' || $currentRole === 'parent';
 </script>
 
 <svelte:head>
@@ -203,7 +239,7 @@
 				<img src="/logo.svg" alt="SetBaas" class="h-12 w-12" />
 				<div class="leading-tight">
 					<span class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">SetBaas</span>
-					{#if !isPlayerOnlyView}
+					{#if !isStrippedView}
 						<span class="block text-sm font-medium text-gray-600 dark:text-gray-300">{currentClubName} · {currentTeamName}</span>
 						<span class="block text-[11px] text-gray-500 dark:text-gray-400">{currentSeasonName}</span>
 					{/if}
@@ -226,24 +262,38 @@
 					</svg>
 				</button>
 
-				{#if isPlayerOnlyView}
-					<!-- Simplified actions for pure players: inbox + profile + logout, no hamburger/app-nav -->
-					<a href="{base}/inbox"
-						class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-						aria-label="Inbox"
-					>
-						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-						</svg>
-					</a>
-					<a href="{base}/profile"
-						class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
-						aria-label="Mijn profiel"
-					>
-						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-						</svg>
-					</a>
+				{#if isStrippedView}
+					<!-- Simplified actions for players/parents: no hamburger or app-nav -->
+					{#if $availableRoles.length > 1}
+						<button
+							on:click={() => (roleSwitcherOpen = true)}
+							class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+							aria-label="Wissel van rol"
+							title="Wissel van rol"
+						>
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4M16 17H4m0 0l4 4m-4-4l4-4" />
+							</svg>
+						</button>
+					{/if}
+					{#if $currentRole === 'player'}
+						<a href="{base}/inbox"
+							class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+							aria-label="Inbox"
+						>
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+							</svg>
+						</a>
+						<a href="{base}/profile"
+							class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+							aria-label="Mijn profiel"
+						>
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+							</svg>
+						</a>
+					{/if}
 					{#if AUTH_ENABLED}
 						<button
 							on:click={handleLogout}
@@ -356,13 +406,31 @@
 								<div class="min-w-0 flex-1">
 									<span class="text-sm font-medium text-gray-800 dark:text-gray-200 block truncate">{$authUser.name || '—'}</span>
 									<span class="text-xs text-gray-400 dark:text-gray-500 block truncate">{$authUser.email}</span>
-								{#if $userRole}
+								{#if $permission}
 									<span class="inline-block mt-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full
-										{$userRole === 'admin' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
-										 $userRole === 'user' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+										{$permission === 'admin' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' :
+										 $permission === 'user' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
 										 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'}"
-									>{$userRole}</span>
+									>{PERMISSION_LABELS[$permission]}</span>
 								{/if}
+								</div>
+							</div>
+						{/if}
+						{#if $currentRole}
+							<div class="mb-4">
+								<p class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Rol</p>
+								<div class="flex items-center justify-between gap-2">
+									<span class="text-sm font-medium text-gray-800 dark:text-gray-200">
+										{APP_ROLE_ICONS[$currentRole]} {APP_ROLE_LABELS[$currentRole]}
+									</span>
+									{#if $availableRoles.length > 1}
+										<button
+											class="text-sm font-medium text-primary-600 hover:text-primary-800 dark:hover:text-primary-400"
+											on:click={() => { menuOpen = false; roleSwitcherOpen = true; }}
+										>
+											Wisselen
+										</button>
+									{/if}
 								</div>
 							</div>
 						{/if}
@@ -386,5 +454,13 @@
 	<main class="px-5 py-6 max-w-2xl md:max-w-4xl lg:max-w-5xl mx-auto">
 		<slot />
 	</main>
+
+	<!-- Role selection: mandatory right after login when someone holds more
+	     than one role, and available on demand as a switcher afterwards. -->
+	{#if $needsRoleChoice}
+		<RoleSelectDialog />
+	{:else if roleSwitcherOpen}
+		<RoleSelectDialog dismissible on:close={() => (roleSwitcherOpen = false)} />
+	{/if}
 	{/if}
 </div>

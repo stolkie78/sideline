@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import type { Club, Team, Season } from '$lib/types';
 
 // Selected team & season IDs
-function createPersistentStore(key: string, initial: string) {
+export function createPersistentStore(key: string, initial: string) {
 	const stored = browser ? localStorage.getItem(key) : null;
 	const store = writable<string>(stored || initial);
 

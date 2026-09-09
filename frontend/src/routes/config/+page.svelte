@@ -236,7 +236,7 @@
 
 	// A club_access "admin" role is required to manage a club's teams/members
 	// here — being admin of one club must not grant management rights over
-	// every other club, even though the global $userRole flag treats "admin
+	// every other club, even though the global $permission flag treats "admin
 	// anywhere" as admin (used only for showing/hiding nav items).
 	$: myAdminClubIds = new Set($userClubAccess.filter((a) => a.role === 'admin').map((a) => a.club));
 	$: manageableClubs = clubs.filter((c) => myAdminClubIds.has(c.id));

@@ -21,31 +21,20 @@
 	onMount(async () => {
 		const token = $page.params.token;
 		try {
-			// Look up invitation by token (public, no auth needed)
-			const records = await pb.collection('invitations').getFullList({
-				filter: `token = "${token}" && status = "pending"`
-			});
-			if (records.length === 0) {
+			// Resolved server side: the invitations collection is not readable
+			// from the browser, and the token itself is the only credential.
+			const res = await fetch(`${base}/api/invite/accept?token=${encodeURIComponent(token ?? '')}`);
+			if (res.status === 404 || res.status === 410) {
 				status = 'expired';
 				return;
 			}
-			invitation = records[0];
+			if (!res.ok) throw new Error((await res.json())?.error || 'Kon uitnodiging niet laden');
 
-			// Check expiry
-			if (new Date(invitation.expires_at) < new Date()) {
-				status = 'expired';
-				return;
-			}
-
+			invitation = await res.json();
 			email = invitation.email;
+			clubName = invitation.clubName;
 
-			// Get club name
-			try {
-				const club = await pb.collection('clubs').getOne(invitation.club);
-				clubName = club.name;
-			} catch { clubName = 'Club'; }
-
-			// If user is already logged in, auto-accept
+			// If the user is already logged in, auto-accept
 			if (pb.authStore.isValid) {
 				await acceptInvitation();
 				return;
@@ -60,28 +49,26 @@
 
 	async function acceptInvitation() {
 		try {
-			// Grant club_access
-			await pb.collection('club_access').create({
-				user: pb.authStore.record?.id,
-				club: invitation.club,
-				role: invitation.role
+			// Granting access happens server side with superuser rights — the
+			// invitee must not be able to write club_access themselves.
+			const res = await fetch(`${base}/api/invite/accept`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ token: $page.params.token, userId: pb.authStore.record?.id })
 			});
-
-			// Mark invitation as accepted
-			await pb.collection('invitations').update(invitation.id, { status: 'accepted' });
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				if (res.status === 404 || res.status === 410) {
+					status = 'expired';
+					return;
+				}
+				throw new Error(err?.error || 'Fout bij accepteren');
+			}
 
 			status = 'accepted';
 			setTimeout(() => goto(`${base}/`), 2000);
 		} catch (e: any) {
-			if (e?.data?.data?.user?.code === 'validation_not_unique' ||
-				e?.message?.includes('unique')) {
-				// Already has access, still mark as accepted
-				await pb.collection('invitations').update(invitation.id, { status: 'accepted' });
-				status = 'accepted';
-				setTimeout(() => goto(`${base}/`), 2000);
-			} else {
-				regError = e?.message || 'Fout bij accepteren';
-			}
+			regError = e?.message || 'Fout bij accepteren';
 		}
 	}
 
