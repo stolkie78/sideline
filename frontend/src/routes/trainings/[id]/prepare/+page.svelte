@@ -10,7 +10,7 @@
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
 	import { generateWithAI as callAI } from '$lib/ai/client';
 	import { selectedClubId } from '$lib/stores/context';
-	import { ATTENDANCE_LABELS } from '$lib/types';
+	import { ATTENDANCE_LABELS, POSITION_LABELS } from '$lib/types';
 
 	let training: Training | null = null;
 	let templates: TrainingTemplate[] = [];
@@ -18,7 +18,7 @@
 	let formContent = '';
 	let currentPeriod: any = null;
 	let recentTrainings: Training[] = [];
-	let attendanceSummary: { present: number; total: number; breakdown: string[] } | null = null;
+	let attendanceSummary: { present: number; total: number; breakdown: string[]; positions: string[] } | null = null;
 	let aiEnabled = false;
 	let aiPrompt = '';
 	let aiGenerating = false;
@@ -72,6 +72,8 @@
 	/**
 	 * How many players signed up, so the AI can size the drills. Everyone who
 	 * did not answer is reported separately rather than counted as present.
+	 * Positions come from the present players only, so the AI can plan
+	 * position-specific drills (e.g. enough setters for a rotation).
 	 */
 	async function loadAttendanceSummary(trainingId: string) {
 		try {
@@ -79,9 +81,15 @@
 			if (records.length === 0) return null;
 
 			const counts = new Map<AttendanceStatus, number>();
+			const positionCounts = new Map<string, number>();
 			for (const record of records) {
 				const status = record.status as AttendanceStatus;
 				counts.set(status, (counts.get(status) || 0) + 1);
+				if (status === 'present') {
+					for (const pos of record.expand?.player?.position || []) {
+						positionCounts.set(pos, (positionCounts.get(pos) || 0) + 1);
+					}
+				}
 			}
 
 			return {
@@ -90,6 +98,8 @@
 				breakdown: [...counts.entries()]
 					.filter(([, count]) => count > 0)
 					.map(([status, count]) => `${count}x ${ATTENDANCE_LABELS[status] ?? status}`),
+				positions: [...positionCounts.entries()]
+					.map(([pos, count]) => `${count}x ${POSITION_LABELS[pos as keyof typeof POSITION_LABELS] ?? pos}`),
 			};
 		} catch (error) {
 			console.error('Failed to load attendance summary:', error);
@@ -132,10 +142,6 @@
 				}
 			}
 
-			if (attendanceSummary) {
-				fullPrompt += `\n\nAanwezigheid voor deze training: ${attendanceSummary.present} van de ${attendanceSummary.total} speelsters is aanwezig (${attendanceSummary.breakdown.join(', ')}). Stem de oefeningen, groepjes en veldindeling af op ${attendanceSummary.present} speelsters.`;
-			}
-
 			if (recentTrainings.length > 0) {
 				const summaries = recentTrainings.map((item, index) => {
 					const date = new Date(item.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
@@ -144,10 +150,20 @@
 				fullPrompt += `\n\n--- Vorige trainingen (ter referentie, vermijd herhaling) ---\n${summaries.join('\n\n')}`;
 			}
 
+			let context: string | undefined;
+			if (attendanceSummary) {
+				context = `--- Aanwezigheid voor deze training ---\n${attendanceSummary.present} van de ${attendanceSummary.total} speelsters is aanwezig (${attendanceSummary.breakdown.join(', ')}).`;
+				if (attendanceSummary.positions.length > 0) {
+					context += `\nPosities van de aanwezige speelsters: ${attendanceSummary.positions.join(', ')}.`;
+				}
+				context += `\nStem de oefeningen, groepjes en veldindeling af op deze ${attendanceSummary.present} speelsters en hun posities.`;
+			}
+
 			formContent = await callAI({
 				prompt: fullPrompt,
 				club: $selectedClubId,
 				team: training.team,
+				context,
 			});
 		} catch (error) {
 			console.error('Failed to generate training:', error);
@@ -242,7 +258,12 @@
 					<p class="label text-purple-700 dark:text-purple-300">🤖 Genereer met AI</p>
 					<ul class="text-xs text-purple-600 dark:text-purple-400 space-y-0.5">
 						{#if currentPeriod}<li>• Periodiseringsdoelen van "{currentPeriod.name}"</li>{/if}
-						{#if attendanceSummary}<li>• {attendanceSummary.present} van {attendanceSummary.total} speelsters aanwezig</li>{/if}
+						{#if attendanceSummary}
+							<li>• {attendanceSummary.present} van {attendanceSummary.total} speelsters aanwezig</li>
+							{#if attendanceSummary.positions.length > 0}
+								<li>• Posities: {attendanceSummary.positions.join(', ')}</li>
+							{/if}
+						{/if}
 						{#if recentTrainings.length > 0}<li>• De {recentTrainings.length} vorige trainingen</li>{/if}
 					</ul>
 					<div class="flex flex-col sm:flex-row gap-2">

@@ -25,6 +25,11 @@
 			title: 'Sets gewonnen & verloren',
 			description: 'Overzicht van gewonnen en verloren sets over het seizoen.',
 		},
+		{
+			href: '/reports/load',
+			title: 'Belastingsoverzicht',
+			description: 'Uren per week per speler uit trainingen, wedstrijden en extra activiteiten naast het eigen team.',
+		},
 	];
 </script>
 

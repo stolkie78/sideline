@@ -7,7 +7,7 @@ import { readClubAIConfig, resolveSystemPrompt } from '$lib/server/clubAI';
  * server: the browser only sends which club and team it is generating for.
  */
 export const POST: RequestHandler = async ({ request }) => {
-	const { prompt, club: clubId, team: teamId, systemPrompt: overridePrompt } = await request.json();
+	const { prompt, club: clubId, team: teamId, systemPrompt: overridePrompt, context } = await request.json();
 
 	if (!prompt || !clubId) {
 		return jsonError('Prompt of club ontbreekt', 400);
@@ -34,10 +34,17 @@ export const POST: RequestHandler = async ({ request }) => {
 	const model = config?.model?.trim();
 	// A caller may pass its own prompt for a different task (the training
 	// reflection, for instance); otherwise team beats club beats default.
-	const systemPrompt =
+	const basePrompt =
 		typeof overridePrompt === 'string' && overridePrompt.trim()
 			? overridePrompt.trim()
 			: await resolveSystemPrompt(config?.system_prompt, teamId);
+	// Optional per-request context (e.g. attendance + positions for a
+	// training) is appended to whichever system prompt was resolved above,
+	// so the persona/rules stay intact while the AI still sees live data.
+	const systemPrompt =
+		typeof context === 'string' && context.trim()
+			? `${basePrompt}\n\n${context.trim()}`
+			: basePrompt;
 
 	try {
 		let content = '';

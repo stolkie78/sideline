@@ -7,6 +7,8 @@ export interface GenerateOptions {
 	team?: string;
 	/** Overrides the team/club prompt for a different kind of task. */
 	systemPrompt?: string;
+	/** Extra facts (e.g. attendance + positions) appended to the system prompt. */
+	context?: string;
 	timeoutMs?: number;
 }
 
@@ -16,7 +18,7 @@ export interface GenerateOptions {
  * only forward the user's own auth token so the server can check club rights.
  */
 export async function generateWithAI(options: GenerateOptions): Promise<string> {
-	const { prompt, club, team, systemPrompt, timeoutMs = 60000 } = options;
+	const { prompt, club, team, systemPrompt, context, timeoutMs = 60000 } = options;
 
 	if (!club) throw new Error('Geen club geselecteerd.');
 
@@ -30,7 +32,7 @@ export async function generateWithAI(options: GenerateOptions): Promise<string> 
 				'Content-Type': 'application/json',
 				Authorization: pb.authStore.token
 			},
-			body: JSON.stringify({ prompt, club, team, systemPrompt }),
+			body: JSON.stringify({ prompt, club, team, systemPrompt, context }),
 			signal: controller.signal
 		});
 		const data = await res.json().catch(() => ({}));
