@@ -4,6 +4,7 @@
 	import { selectedTeamId, selectedSeasonId, contextFilter } from '$lib/stores/context';
 	import type { Training, Match, TrainingAttendance, MatchAttendance, AttendanceStatus, Questionnaire, MatchPlayerStats, PlayerPosition } from '$lib/types';
 	import { POSITION_LABELS } from '$lib/types';
+	import { getMatchScore, getMatchOutcome } from '$lib/utils/match';
 	import { marked } from 'marked';
 	import { base } from '$app/paths';
 	import AttendanceStatusSwitcher from '$lib/components/AttendanceStatusSwitcher.svelte';
@@ -153,7 +154,7 @@
 
 	// === Season stats for the logged-in player ===
 
-	$: results = playedMatches.filter((m) => m.score_team != null && m.score_opponent != null);
+	$: results = playedMatches.filter((m) => getMatchScore(m).played);
 	$: visibleResults = showAllResults ? results : results.slice(0, 1);
 
 	// "Played" means actually being there — a match you missed shouldn't count
@@ -186,21 +187,13 @@
 		? Math.round((Math.min(trainingsAttended, pastTrainingCount) / pastTrainingCount) * 100)
 		: null;
 
-	function matchOutcome(match: Match): 'win' | 'loss' | 'draw' {
-		const team = match.score_team ?? 0;
-		const opponent = match.score_opponent ?? 0;
-		if (team > opponent) return 'win';
-		if (team < opponent) return 'loss';
-		return 'draw';
-	}
-
-	const OUTCOME_STYLES = {
-		win: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-		loss: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+	const OUTCOME_STYLES: Record<string, string> = {
+		won: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+		lost: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
 		draw: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
 	};
 
-	const OUTCOME_LABELS = { win: 'Gewonnen', loss: 'Verloren', draw: 'Gelijk' };
+	const OUTCOME_LABELS: Record<string, string> = { won: 'Gewonnen', lost: 'Verloren', draw: 'Gelijk' };
 
 	function formatDate(date: string): string {
 		return new Date(date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -340,7 +333,8 @@
 			{:else}
 				<div class="space-y-2">
 					{#each visibleResults as match}
-						{@const outcome = matchOutcome(match)}
+						{@const outcome = getMatchOutcome(match) ?? 'draw'}
+						{@const score = getMatchScore(match)}
 						<div class="rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 bg-white dark:bg-gray-900 py-3 px-4 flex items-center gap-3">
 							<div class="flex-1 min-w-0">
 								<p class="font-medium text-gray-800 dark:text-gray-200 truncate">
@@ -350,7 +344,7 @@
 								<p class="text-xs text-gray-400">{formatDate(match.date)}</p>
 							</div>
 							<span class="font-bold text-gray-800 dark:text-gray-200 tabular-nums">
-								{match.score_team}–{match.score_opponent}
+								{score.ourSets}–{score.theirSets}
 							</span>
 							<span class="text-xs font-semibold px-2 py-1 rounded-lg {OUTCOME_STYLES[outcome]}">
 								{OUTCOME_LABELS[outcome]}
