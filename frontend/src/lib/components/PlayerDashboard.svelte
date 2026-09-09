@@ -243,7 +243,7 @@
 		{/if}
 
 		<!-- Upcoming Trainings -->
-		<div>
+		<div class="card !border-blue-200 dark:!border-blue-800/60 !bg-blue-50/30 dark:!bg-blue-900/10">
 			<div class="flex items-center justify-between mb-3">
 				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">🏋️ Trainingen</h2>
 				{#if trainings.length > PREVIEW_COUNT}
@@ -258,11 +258,11 @@
 			{#if trainings.length === 0}
 				<p class="text-sm text-gray-400">Geen komende trainingen</p>
 			{:else}
-				<div class="space-y-3">
+				<div class="space-y-2">
 					{#each visibleTrainings as training}
 						{@const current = getTrainingStatus(training.id, trainingAttendance)}
 						{@const key = `training-${training.id}`}
-						<div class="card py-3 px-4 space-y-2">
+						<div class="rounded-xl border border-blue-200/70 dark:border-blue-800/50 bg-white dark:bg-gray-900 py-3 px-4">
 							<AttendanceStatusSwitcher
 								label={new Date(training.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								status={current}
@@ -288,7 +288,7 @@
 		</div>
 
 		<!-- Upcoming Matches -->
-		<div>
+		<div class="card !border-cyan-200 dark:!border-cyan-800/60 !bg-cyan-50/30 dark:!bg-cyan-900/10">
 			<div class="flex items-center justify-between mb-3">
 				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">🏐 Wedstrijden</h2>
 				{#if matches.length > PREVIEW_COUNT}
@@ -303,11 +303,11 @@
 			{#if matches.length === 0}
 				<p class="text-sm text-gray-400">Geen komende wedstrijden</p>
 			{:else}
-				<div class="space-y-3">
+				<div class="space-y-2">
 					{#each visibleMatches as match}
 						{@const current = getMatchStatus(match.id, matchAttendance)}
 						{@const key = `match-${match.id}`}
-						<div class="card py-3 px-4 space-y-2">
+						<div class="rounded-xl border border-cyan-200/70 dark:border-cyan-800/50 bg-white dark:bg-gray-900 py-3 px-4">
 							<AttendanceStatusSwitcher
 								label={new Date(match.date).toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' })}
 								sublabel={`vs ${match.opponent} (${match.home_away === 'home' ? 'Thuis' : 'Uit'})`}
@@ -323,7 +323,7 @@
 		</div>
 
 		<!-- Results -->
-		<div>
+		<div class="card !border-emerald-200 dark:!border-emerald-800/60 !bg-emerald-50/30 dark:!bg-emerald-900/10">
 			<div class="flex items-center justify-between mb-3">
 				<h2 class="text-lg font-bold text-gray-800 dark:text-gray-200">📋 Uitslagen</h2>
 				{#if results.length > 1}
@@ -341,7 +341,7 @@
 				<div class="space-y-2">
 					{#each visibleResults as match}
 						{@const outcome = matchOutcome(match)}
-						<div class="card py-3 px-4 flex items-center gap-3">
+						<div class="rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 bg-white dark:bg-gray-900 py-3 px-4 flex items-center gap-3">
 							<div class="flex-1 min-w-0">
 								<p class="font-medium text-gray-800 dark:text-gray-200 truncate">
 									{match.opponent}
