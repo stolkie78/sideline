@@ -163,32 +163,26 @@
 									<span>🧑‍🏫 {activeTraining.expand.trainer.map(t => t.name).join(', ')}</span>
 								{/if}
 							</div>
-							<div class="grid gap-2 mt-3 {$canEdit ? 'grid-cols-3' : 'grid-cols-1'}">
+							<div class="grid gap-4 mt-3 {$canEdit ? 'grid-cols-2' : 'grid-cols-1'}">
 								{#if activeTraining.content}
 									<button
 										on:click={() => lightboxTraining = activeTraining}
-										class="rounded-xl bg-green-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-green-700"
+										class="w-full rounded-xl bg-blue-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-700"
 									>
-										Bekijk
+										Bekijken
 									</button>
 								{:else}
 									<a
 										href="{base}/trainings/{activeTraining.id}"
-										class="rounded-xl bg-green-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-green-700"
+										class="w-full rounded-xl bg-blue-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-blue-700"
 									>
-										Bekijk
+										Bekijken
 									</a>
 								{/if}
 								{#if $canEdit}
 									<a
-										href="{base}/trainings/{activeTraining.id}/prepare"
-										class="rounded-xl bg-primary-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700"
-									>
-										Training
-									</a>
-									<a
 										href="{base}/trainings/{activeTraining.id}/checkout"
-										class="rounded-xl bg-red-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-700"
+										class="w-full rounded-xl bg-red-600 px-3 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-red-700"
 									>
 										Afronden
 									</a>

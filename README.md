@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 4.1.2
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 4.1.3
 
 ## Tech Stack
 
@@ -357,6 +357,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v4.1.3** | 2026-09-10 | Kleine dashboard-patch: de live trainingskaart toont nu alleen **Bekijken** en **Afronden**. **Bekijken** is blauw, **Afronden** is rood, en beide knoppen zijn gelijk verdeeld over de kaartbreedte. |
 | **v4.1.2** | 2026-09-10 | Kleine dashboard-patch: de knoppen **Bekijken** en **Start** in geplande trainingskaarten zijn nu gelijk verdeeld over de breedte van de kaart, met ruimere tussenruimte. |
 | **v4.1.1** | 2026-09-10 | Kleine dashboard-patch: de knop **Bewerken** is verwijderd uit de geplande trainingskaarten. De kaart toont nu alleen nog **Bekijken** en **Start**, zodat de snelle acties rustiger en duidelijker zijn. |
 | **v4.1.0** | 2026-09-09 | Het **belastingsoverzicht** rekent nu per kalendermaand in plaats van een gemiddelde over 8 weken: de geplande uren van teamtrainingen en -wedstrijden, min de uren van trainingen/wedstrijden waarbij de speler afwezig was gemeld. Een wedstrijd telt voortaan voor **1,5 uur** (was 2 uur). Het overzicht op het spelersdashboard, de spelerspagina en de rapportage heeft nu een maand-navigatie (‹ ›). Spelers kunnen vanaf hun eigen dashboard zelf een **extra wekelijkse training** toevoegen naast de vaste, door de coach ingestelde belasting — deze telt automatisch mee, los van wat de coach in het spelersprofiel heeft ingevuld. |
