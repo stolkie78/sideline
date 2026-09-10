@@ -238,16 +238,6 @@
 								{/if}
 								{#if $canEdit}
 								<a
-									href="{base}/trainings/{training.id}/edit"
-									class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
-										isPrepared
-											? 'bg-green-600 hover:bg-green-700'
-											: 'bg-amber-500 hover:bg-amber-600'
-									}"
-								>
-									Bewerken
-								</a>
-								<a
 									href="{base}/trainings/{training.id}/checkin"
 									class="rounded-xl px-3 py-3 text-center text-sm font-semibold text-white transition-colors {
 										isPrepared
