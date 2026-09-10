@@ -2,7 +2,7 @@
 
 Een Progressive Web App voor het beheren van je volleybalteam: spelers, trainingen, wedstrijden en competentie-ontwikkeling. Gebouwd voor coaches die hun team professioneel willen managen vanaf telefoon, tablet of laptop.
 
-**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 4.1.1
+**Live:** [setbaas.nl](https://setbaas.nl) | **Versie:** 4.1.2
 
 ## Tech Stack
 
@@ -357,6 +357,7 @@ rest `open`.
 
 | Versie | Datum | Beschrijving |
 |--------|-------|-------------|
+| **v4.1.2** | 2026-09-10 | Kleine dashboard-patch: de knoppen **Bekijken** en **Start** in geplande trainingskaarten zijn nu gelijk verdeeld over de breedte van de kaart, met ruimere tussenruimte. |
 | **v4.1.1** | 2026-09-10 | Kleine dashboard-patch: de knop **Bewerken** is verwijderd uit de geplande trainingskaarten. De kaart toont nu alleen nog **Bekijken** en **Start**, zodat de snelle acties rustiger en duidelijker zijn. |
 | **v4.1.0** | 2026-09-09 | Het **belastingsoverzicht** rekent nu per kalendermaand in plaats van een gemiddelde over 8 weken: de geplande uren van teamtrainingen en -wedstrijden, min de uren van trainingen/wedstrijden waarbij de speler afwezig was gemeld. Een wedstrijd telt voortaan voor **1,5 uur** (was 2 uur). Het overzicht op het spelersdashboard, de spelerspagina en de rapportage heeft nu een maand-navigatie (‹ ›). Spelers kunnen vanaf hun eigen dashboard zelf een **extra wekelijkse training** toevoegen naast de vaste, door de coach ingestelde belasting — deze telt automatisch mee, los van wat de coach in het spelersprofiel heeft ingevuld. |
 | **v4.0.1** | 2026-09-09 | Bij het voorbereiden van een training ziet de AI nu ook de **posities** van de aanwezige speelsters (bijv. "2x Setter, 4x Buitenaanvaller"), naast het aantal aanwezigen — dit wordt meegegeven aan de systeem prompt in plaats van de gebruikersvraag, zodat het los blijft van wat de trainer zelf intypt. Het **Belastingsoverzicht** is ook toegevoegd als rapportage: alle spelers van het team op een rij met hun uren per week, gesorteerd van hoog naar laag. |
