@@ -16,6 +16,14 @@
 	import type { ClubAccess } from '$lib/pocketbase';
 	import { isPlatformAdmin } from '$lib/stores/auth';
 	import { userClubAccess } from '$lib/stores/role';
+	import {
+		listBackups,
+		createBackup,
+		deleteBackup,
+		downloadBackup,
+		restoreBackup,
+		type BackupInfo,
+	} from '$lib/backup/client';
 
 	// This page is intentionally narrow: a platform admin can only bootstrap a
 	// new club and hand it its first admin. Once a club has an admin, all
@@ -45,12 +53,25 @@
 	let assignError: Record<string, string> = {};
 	let assignSuccess: Record<string, string> = {};
 
+	// Backup & restore state
+	let backups: BackupInfo[] = [];
+	let backupsLoading = true;
+	let backupsError = '';
+	let creatingBackup = false;
+	let deletingBackupKey = '';
+	let downloadingBackupKey = '';
+	let restoreFile: File | null = null;
+	let restoring = false;
+	let restoreError = '';
+	let restoreDone = false;
+
 	onMount(async () => {
 		if (!$isPlatformAdmin) {
 			goto(`${base}/`);
 			return;
 		}
 		await loadClubs();
+		await loadBackups();
 	});
 
 	async function loadClubs() {
@@ -141,6 +162,90 @@
 			alert(e?.message || 'Fout bij verwijderen club');
 		} finally {
 			deletingClubId = '';
+		}
+	}
+
+	async function loadBackups() {
+		backupsLoading = true;
+		backupsError = '';
+		try {
+			backups = await listBackups();
+		} catch (e: any) {
+			backupsError = e?.message || 'Kon de backups niet laden';
+		} finally {
+			backupsLoading = false;
+		}
+	}
+
+	async function handleCreateBackup() {
+		creatingBackup = true;
+		backupsError = '';
+		try {
+			await createBackup();
+			await loadBackups();
+		} catch (e: any) {
+			backupsError = e?.message || 'Kon geen backup maken';
+		} finally {
+			creatingBackup = false;
+		}
+	}
+
+	async function handleDownloadBackup(backup: BackupInfo) {
+		downloadingBackupKey = backup.key;
+		backupsError = '';
+		try {
+			await downloadBackup(backup.key);
+		} catch (e: any) {
+			backupsError = e?.message || 'Kon de backup niet downloaden';
+		} finally {
+			downloadingBackupKey = '';
+		}
+	}
+
+	async function handleDeleteBackup(backup: BackupInfo) {
+		if (!confirm(`Backup "${backup.key}" verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+		deletingBackupKey = backup.key;
+		backupsError = '';
+		try {
+			await deleteBackup(backup.key);
+			await loadBackups();
+		} catch (e: any) {
+			backupsError = e?.message || 'Kon de backup niet verwijderen';
+		} finally {
+			deletingBackupKey = '';
+		}
+	}
+
+	function handleRestoreFileChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		restoreFile = input.files?.[0] || null;
+		restoreError = '';
+		restoreDone = false;
+	}
+
+	async function handleRestoreBackup() {
+		if (!restoreFile) return;
+		if (
+			!confirm(
+				'Weet je het zeker? Dit overschrijft ALLE huidige data (spelers, trainingen, wedstrijden, clubs) met de inhoud van dit backupbestand en herstart de server.'
+			)
+		) {
+			return;
+		}
+		restoring = true;
+		restoreError = '';
+		restoreDone = false;
+		try {
+			await restoreBackup(restoreFile);
+			restoreDone = true;
+			restoreFile = null;
+		} catch (e: any) {
+			// The server process restarts as part of a restore, so a dropped
+			// connection here is expected — treat it as likely success rather
+			// than an error, since the request was already accepted.
+			restoreError = e?.message || 'Herstellen is mogelijk mislukt — controleer de data na een paar seconden.';
+		} finally {
+			restoring = false;
 		}
 	}
 </script>
@@ -237,4 +342,84 @@
 			{/if}
 		</div>
 	{/if}
+
+	<div class="card space-y-4">
+		<div>
+			<h2 class="font-semibold text-gray-800 dark:text-gray-200">💾 Backup &amp; herstel</h2>
+			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+				Een backup bevat de volledige data van de server (alle clubs, spelers, trainingen,
+				wedstrijden en foto's) als één zip-bestand. Download hem naar bijvoorbeeld je eigen NAS
+				en zet hem terug als de server een keer crasht.
+			</p>
+		</div>
+
+		{#if backupsError}
+			<p class="text-sm text-red-500">{backupsError}</p>
+		{/if}
+
+		<button class="btn-primary" disabled={creatingBackup} on:click={handleCreateBackup}>
+			{creatingBackup ? 'Bezig...' : '📦 Nu een backup maken'}
+		</button>
+
+		{#if backupsLoading}
+			<p class="text-sm text-gray-500 dark:text-gray-400">Backups laden...</p>
+		{:else if backups.length === 0}
+			<p class="text-sm text-gray-500 dark:text-gray-400">Nog geen backups gemaakt.</p>
+		{:else}
+			<div class="space-y-2">
+				{#each backups as backup}
+					<div class="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-700 last:border-0 pb-2 last:pb-0">
+						<div class="min-w-0">
+							<p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{backup.key}</p>
+							<p class="text-xs text-gray-500 dark:text-gray-400">
+								{new Date(backup.modified).toLocaleString('nl-NL')} · {(backup.size / 1024 / 1024).toFixed(1)} MB
+							</p>
+						</div>
+						<div class="flex items-center gap-2 shrink-0">
+							<button
+								class="text-xs text-primary-600 hover:underline whitespace-nowrap"
+								disabled={downloadingBackupKey === backup.key}
+								on:click={() => handleDownloadBackup(backup)}>
+								{downloadingBackupKey === backup.key ? 'Bezig...' : 'Downloaden'}
+							</button>
+							<button
+								class="text-xs text-red-500 hover:underline whitespace-nowrap"
+								disabled={deletingBackupKey === backup.key}
+								on:click={() => handleDeleteBackup(backup)}>
+								{deletingBackupKey === backup.key ? 'Bezig...' : 'Verwijderen'}
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		<div class="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2">
+			<h3 class="text-sm font-semibold text-red-600 dark:text-red-400">⚠️ Terugzetten vanuit backup</h3>
+			<p class="text-xs text-gray-500 dark:text-gray-400">
+				Dit overschrijft alle huidige data met de inhoud van het gekozen bestand en herstart de
+				server. Gebruik dit alleen om te herstellen na een crash of om te migreren.
+			</p>
+			<input
+				type="file"
+				accept=".zip"
+				class="input"
+				on:change={handleRestoreFileChange}
+			/>
+			{#if restoreError}
+				<p class="text-sm text-red-500">{restoreError}</p>
+			{/if}
+			{#if restoreDone}
+				<p class="text-sm text-green-600 dark:text-green-400">
+					✅ Backup teruggezet. De server herstart — herlaad de pagina over een paar seconden.
+				</p>
+			{/if}
+			<button
+				class="btn-secondary text-red-600 border-red-300 hover:bg-red-50 dark:hover:bg-red-900/20"
+				disabled={!restoreFile || restoring}
+				on:click={handleRestoreBackup}>
+				{restoring ? 'Bezig met terugzetten...' : 'Backup terugzetten'}
+			</button>
+		</div>
+	</div>
 </div>
